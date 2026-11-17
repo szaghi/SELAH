@@ -23,8 +23,9 @@
 ---
 
 > [!WARNING]
-> **Pre-release (M0).** The repository holds the build, test and documentation scaffolding only. The design and the
-> milestones are in [notes/PLAN.md](notes/PLAN.md).
+> **Pre-release (M1).** L0, the coefficients, is in: the Runge–Kutta catalogue (forward Euler to SSP(10,4) and
+> Carpenter–Kennedy), the splitting schemes (Strang to Blanes–Moan S10) and the storage forms, each verified. The
+> kernels (L1) and the stepper (L2) are next. The design and the milestones are in [notes/PLAN.md](notes/PLAN.md).
 
 ## The name
 

@@ -16,8 +16,8 @@ exchange, AMR seam fill, reflux) before the integrator goes on.
 
 ## Status
 
-Milestone **M0**: the build, test and documentation scaffolding. The design (layers L0–L3, principles, milestones,
-risks) is in `notes/PLAN.md` of the repository.
+Milestone **M1**: L0, the coefficients ([Schemes](./schemes), [API](./api)). The kernels (L1) and the stepper (L2)
+are next. The design (layers L0–L3, principles, milestones, risks) is in `notes/PLAN.md` of the repository.
 
 ## Design principles
 

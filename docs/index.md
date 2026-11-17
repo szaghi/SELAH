@@ -26,6 +26,6 @@ features:
 ---
 
 ::: warning Pre-release
-SELAH is at milestone M0: build, test and documentation scaffolding only. The design is in `notes/PLAN.md` of the
-repository.
+SELAH is at milestone M1: the coefficients (L0) are in, verified; the kernels and the stepper are next. The design
+is in `notes/PLAN.md` of the repository.
 :::
