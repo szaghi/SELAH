@@ -6,7 +6,7 @@ module selah
 !< the coefficients: the coefficient forms and their conversions (selah_tableaux), the Runge–Kutta catalogue
 !< (selah_schemes), the splitting schemes (selah_splittings) and the buffers each storage form needs
 !< (selah_storage); and L1, the kernels: the box (selah_box) and the stage operations over a box or a flat array
-!< (selah_kernels). The stepper (L2) joins as it lands (notes/PLAN.md).
+!< (selah_kernels); and L2, the stepper a caller drives stage by stage (selah_stepper).
 use penf, only : I4P, I8P, R4P, R8P
 use selah_kind_parameters
 use selah_tableaux
@@ -15,6 +15,7 @@ use selah_splittings
 use selah_storage
 use selah_box
 use selah_kernels
+use selah_stepper
 implicit none
 private
 ! kinds
@@ -37,4 +38,6 @@ public :: registers_needed
 public :: box, LAYOUT_V_FIRST, LAYOUT_V_LAST, box_interior, box_components, component_dim
 public :: selah_copy, selah_axpy, selah_lincomb, selah_stage_state, selah_step_update
 public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
+! L2: stepper
+public :: stepper
 endmodule selah
