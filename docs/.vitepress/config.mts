@@ -39,6 +39,7 @@ export default withMermaid({
           text: 'Reference',
           items: [
             { text: 'Schemes', link: '/guide/schemes' },
+            { text: 'Kernels', link: '/guide/kernels' },
             { text: 'API',     link: '/guide/api' },
           ],
         },

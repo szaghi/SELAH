@@ -23,9 +23,10 @@
 ---
 
 > [!WARNING]
-> **Pre-release (M1).** L0, the coefficients, is in: the Runge–Kutta catalogue (forward Euler to SSP(10,4) and
-> Carpenter–Kennedy), the splitting schemes (Strang to Blanes–Moan S10) and the storage forms, each verified. The
-> kernels (L1) and the stepper (L2) are next. The design and the milestones are in [notes/PLAN.md](notes/PLAN.md).
+> **Pre-release (M2).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms) and L1, the kernels
+> (stage operations over a box of a rank-5 field or a flat array, bitwise ADAM's FNL kernels on the host), are in,
+> each verified. Next: the device tests and benchmarks (M3), then the stepper (M4). The design and the milestones are
+> in [notes/PLAN.md](notes/PLAN.md).
 
 ## The name
 

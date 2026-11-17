@@ -16,8 +16,8 @@ exchange, AMR seam fill, reflux) before the integrator goes on.
 
 ## Status
 
-Milestone **M1**: L0, the coefficients ([Schemes](./schemes), [API](./api)). The kernels (L1) and the stepper (L2)
-are next. The design (layers L0–L3, principles, milestones, risks) is in `notes/PLAN.md` of the repository.
+Milestone **M2**: L0, the coefficients ([Schemes](./schemes)), and L1, the kernels on the host ([Kernels](./kernels));
+see the [API](./api). Next: the device tests and benchmarks (M3), then the stepper (M4). The design (layers L0–L3, principles, milestones, risks) is in `notes/PLAN.md` of the repository.
 
 ## Design principles
 

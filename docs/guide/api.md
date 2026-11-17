@@ -49,7 +49,60 @@ them are `RK_SCHEMES` and `SPLITTING_SCHEMES`.
 | `palindrome(first, half, order)`         | a symmetric composition from its half sequence |
 | `registers_needed(scheme, form)`         | field-sized buffers besides the solution, -1 if the scheme has no such form |
 
-## Example
+## L1: kernels
+
+| Name | Purpose |
+|------|---------|
+| `box`, `LAYOUT_V_FIRST`, `LAYOUT_V_LAST` | the part of a rank-5 field a kernel updates, and its layout |
+| `box_interior(layout, nv, ni, nj, nk, ngc, blocks_number)` | the interior cells of the active blocks |
+| `box_components(bx, v1, v2)`, `component_dim(bx)` | a component range (a partition); the component dimension |
+| `selah_copy([bx,] x, y [, mask, mask_comp])` | y = x |
+| `selah_axpy([bx,] alpha, x, y [, mask, mask_comp])` | y = y + alpha x |
+| `selah_lincomb([bx,] alpha, x, beta, y [, mask, mask_comp])` | y = alpha x + beta y |
+| `selah_stage_state([bx,] n, dt, coef, q, regs, u [, mask, mask_comp])` | u = q + sum dt coef(k) regs(k) |
+| `selah_step_update([bx,] n, dt, coef, regs, q [, dq] [, mask, mask_comp])` | q = q + dt sum coef(k) regs(k) |
+| `selah_shu_osher_2r_stage([bx,] dt, a, b, c, q0, r, q [, mask, mask_comp])` | q = a q0 + b q + dt c r |
+| `selah_williamson_2n_stage([bx,] dt, a, b, r, dqr, q [, mask, mask_comp])` | dqr = a dqr + dt r; q = q + b dqr |
+
+With the box the arrays are rank 5 (`regs` rank 6) with the box's lower bounds; without it, rank 1 (`regs` rank 2).
+See [Kernels](./kernels).
+
+## Example: an SSP(3,3) step with the kernels
+
+```fortran
+program selah_kernels_example
+use selah
+implicit none
+integer(I4P), parameter :: NV=2, NI=4, NJ=4, NK=1, NGC=2, NB=3
+real(R_P),    parameter :: DT=0.1_R_P
+real(R_P), allocatable  :: q(:,:,:,:,:), u(:,:,:,:,:), regs(:,:,:,:,:,:)
+type(butcher_tableau)   :: bt
+type(box)               :: bx
+integer(I4P)            :: s
+
+bt = butcher(SCHEME_SSP_33)
+bx = box_interior(LAYOUT_V_FIRST, NV, NI, NJ, NK, NGC, 2_I4P) ! 2 active blocks of a pool of 3
+allocate(q(NV, 1-NGC:NI+NGC, 1-NGC:NJ+NGC, 1-NGC:NK+NGC, NB), source=1._R_P)
+allocate(u, mold=q) ; u = 0._R_P
+allocate(regs(NV, 1-NGC:NI+NGC, 1-NGC:NJ+NGC, 1-NGC:NK+NGC, NB, bt%stages), source=0._R_P)
+do s=1, bt%stages
+   call selah_stage_state(bx, s-1, DT, bt%a(s,:), q, regs, u) ! the state of stage s
+   regs(:,:,:,:,:,s) = -u                                     ! its residual, u' = -u: the caller's job
+enddo
+call selah_step_update(bx, bt%stages, DT, bt%b, regs, q)       ! q = q + dt sum_s b_s F_s
+print '(A,F12.10)', 'interior cell:  ', q(1,1,1,1,1)   ! 1 - h + h^2/2 - h^3/6 at h = 0.1
+print '(A,F12.10)', 'ghost cell:     ', q(1,0,1,1,1)   ! untouched
+print '(A,F12.10)', 'inactive block: ', q(1,1,1,1,3)   ! untouched
+endprogram selah_kernels_example
+```
+
+```text
+interior cell:  0.9048333333
+ghost cell:     1.0000000000
+inactive block: 1.0000000000
+```
+
+## Example: the coefficients
 
 ```fortran
 program selah_example
