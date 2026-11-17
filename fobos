@@ -58,6 +58,14 @@ $GPU_CC = cc89
 [varset:cc90]
 $GPU_CC = cc90
 
+# medooza (CNR-IAC): A30, and CUDA 12.9 because the node drivers (545, 575) cannot run CUDA 13
+[varset:iac]
+$GPU_CC = cc80,cuda12.9
+
+# the WSL workstation: RTX of compute capability 8.9
+[varset:wsl]
+$GPU_CC = cc89
+
 # ── library modes ────────────────────────────────────────────────────────────
 [static-gnu]
 help      = Static library, gfortran, optimised
@@ -121,9 +129,11 @@ help      = Tests, nvfortran, all checks on
 template  = template-tests template-nvf template-debug
 
 [tests-nvf-oac]
-help      = Tests, nvfortran, OpenACC ($GPU_CC): build only until M3 (the tests still pass host arrays to the kernels)
+help      = Tests, nvfortran, OpenACC on the GPU ($GPU_CC; medooza: --varset iac); the host-array kernel tests excluded
 template  = template-tests template-nvf template-release
 preproc   = -DFUNDAL_NO_MPI -DDEV_OAC -DCOMPILER_NVF
+# these pass host arrays to the kernels: their device twins are selah_test_device_*
+exclude   = src/tests/selah_test_kernels.F90 src/tests/selah_test_kernels_adam.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -189,9 +199,12 @@ help      = Tests, nvfortran, optimised, CPU, single precision (R_P = R4P)
 template  = template-r4-tests template-tests template-nvf template-release
 
 [tests-nvf-oac-r4]
-help      = Tests, nvfortran, OpenACC ($GPU_CC), single precision (R_P = R4P): build only until M3
+help      = Tests, nvfortran, OpenACC on the GPU ($GPU_CC), single precision (R_P = R4P)
 template  = template-r4-tests template-tests template-nvf template-release
 preproc   = -DFUNDAL_NO_MPI -D_R_P_IS_R4P -DDEV_OAC -DCOMPILER_NVF
+exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
+            src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
+            src/tests/selah_test_kernels.F90 src/tests/selah_test_device_adam.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -256,6 +269,7 @@ build_dir = exe-r4/
 # ADAM's coefficients and the bitwise comparison with them are R8P only, as in ADAM
 exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
             src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
+            src/tests/selah_test_device_adam.F90
 
 [template-tests]
 src       = src/lib/ src/tests/
