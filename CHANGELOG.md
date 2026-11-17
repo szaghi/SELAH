@@ -4,6 +4,37 @@ All notable changes to this project are documented here.
 Versions follow [Semantic Versioning](https://semver.org/).
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] — 2026-11-17
+### Added
+- **stepper**: Stages on q, an opt-in that spares the Butcher form its stage-1 copy
+
+
+### Documentation
+- **guide**: Stages on q, the option, the query and their measurement
+
+- The theme, figure tooling and navigation of the documentation refactor
+
+- **tutorial**: Ten chapters, each a real program whose code and output the pages include
+
+- **cookbook**: Recipes with real code and output, porting and performance references
+
+- **figures**: The verification figures, tables and casts, drawn from the report data
+
+- **verification**: The verification section, case by case, with its catalogue and regression page
+
+- **guide**: The guide rewritten from the audit: concepts, every procedure's preconditions, the home page
+
+- **verification**: The final A30 run of the documented tree
+
+- README in SETH's layout, ADAM out of the landing pages
+
+- New identity, Hamon in Tsuyukusa (Sumi family)
+
+
+### Fixed
+- **stepper,kernels**: The defects of the documentation audit, and the tests it found missing
+
+
 ## [0.1.0] — 2026-11-17
 ### Added
 - **tableaux**: The coefficient forms of a Runge-Kutta scheme and their conversion to Butcher
