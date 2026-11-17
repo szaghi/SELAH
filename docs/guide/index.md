@@ -16,7 +16,7 @@ exchange, AMR seam fill, reflux) before the integrator goes on.
 
 ## Status
 
-Milestone **M4**: L0, the coefficients ([Schemes](./schemes)); L1, the kernels on the host and on the GPU
+Milestone **M5**: L0, the coefficients ([Schemes](./schemes)); L1, the kernels on the host and on the GPU
 ([Kernels](./kernels), [Performance](./performance)); L2, the [Stepper](./stepper); see the [API](./api). The design (layers L0–L3, principles, milestones, risks) is in `notes/PLAN.md` of the repository.
 
 ## Design principles

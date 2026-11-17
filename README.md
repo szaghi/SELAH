@@ -23,10 +23,11 @@
 ---
 
 > [!WARNING]
-> **Pre-release (M4).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms), L1, the kernels
-> (bitwise ADAM's FNL kernels on an A30, and an SSP(5,4) step 20% faster), and L2, the stepper a caller drives stage by
-> stage under a tested contract, are in. Next: the fused paths (M5), then the wiring into ADAM (M7). The design and the
-> milestones are in [notes/PLAN.md](notes/PLAN.md).
+> **Pre-release (M5).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms), L1, the kernels
+> (bitwise ADAM's FNL kernels on an A30), and L2, the stepper a caller drives stage by stage under a tested contract,
+> are in. Through the stepper an SSP(5,4) step with its step residual costs 0.55 of ADAM's on the A30. Next: the
+> documentation and v0.1.0 (M6), then the wiring into ADAM (M7). The design and the milestones are in
+> [notes/PLAN.md](notes/PLAN.md).
 
 ## The name
 

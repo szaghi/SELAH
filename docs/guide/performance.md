@@ -4,9 +4,10 @@ title: Performance
 
 # Performance
 
-SELAH's kernels against ADAM's FNL kernels, the code they were carved from, on an NVIDIA A30 (medooza, driver 575.51.03,
-nvfortran 26.9, OpenACC `-gpu=cc80,cuda12.9`). The program is `src/bench/selah_bench_kernels.F90`. The method and every
-job are in `notes/m3-bench.md` of the repository.
+SELAH's kernels, and whole steps through the [stepper](./stepper), against ADAM's FNL kernels, the code they were carved from, on an NVIDIA A30 (medooza, driver 575.51.03,
+nvfortran 26.9, OpenACC `-gpu=cc80,cuda12.9`). The programs are `src/bench/selah_bench_kernels.F90` (kernels, M3) and
+`src/bench/selah_bench_stepper.F90` (whole steps, M5). The method and every job are in `notes/m3-bench.md` and
+`notes/m5-bench.md` of the repository.
 
 ## Setup
 
@@ -30,8 +31,44 @@ job are in `notes/m3-bench.md` of the repository.
 | **whole SSP(5,4) step** | **0.795** | 427 | 0.52 |
 
 **Per kernel, SELAH matches ADAM**, to within 3%. **On a whole step SELAH is 20% faster.** It builds each stage state
-directly from the solution: 37 field accesses per step, against ADAM's 43, which first copy the solution into every
-stage buffer. The step residual comes in the same pass as the update, where ADAM needs a separate kernel.
+directly from the solution: 37 field accesses per step, against ADAM's 47, which first copy the solution into every
+stage buffer (M3 counted 43: the in-place stage also reads its buffer). The time ratio, 0.795, sits on the access
+ratio, 0.787. This row still copies each residual into its register, as ADAM does; the stepper (below) does not.
 
 **Neither code reaches 80% of the triad.** The kernels stream 6 to 8 arrays over the interior of each block, a gap
 every 256 contiguous values; the triad streams 3 contiguous arrays.
+
+## Whole steps through the stepper
+
+The stepper driven as a solver drives it, the residual left in its register (the caller's work, the same on both sides).
+Field accesses per step over the interior, counted from the code before the runs; job 1368100.
+
+| Step | Accesses | Time [ms] | GB/s |
+|---|---|---|---|
+| ADAM SSP(5,4) | 47 | 4.569 | 432 |
+| ADAM FLUME SSP(5,4) + its step residual kernel | 53 | 4.948 | 449 |
+| SELAH stepper SSP(5,4), Butcher | 27 | 2.688 | 421 |
+| SELAH stepper SSP(5,4), Butcher, step residual fused | 28 | 2.714 | 433 |
+| SELAH stepper SSP(10,4), Butcher | 77 | 6.399 | 505 |
+| SELAH stepper SSP(10,4), Ketcheson's two registers | 39 | 2.322 | 705 |
+
+- **With the step residual, a SELAH step costs 0.548 of ADAM FLUME's** (accesses: 0.528); without it, 0.588 of
+  ADAM's (0.574). Three passes of the field are gone: the copy of the solution into every stage buffer, the copy of
+  every residual into its register (the caller writes it in place, into `rhs_register()`), and the rereading of every
+  stage for the step residual (fused into the update).
+- **The stepper costs nothing**: the same kernels called without it take 0.999 of the time.
+- **The state of the first stage is a copy.** The summing kernel with nothing to sum ran at 0.57 of a copy's speed;
+  `selah_stage_state` now hands that case to the copy kernel, which made the SSP(5,4) step 4.3% faster.
+
+**SSP(10,4) in two registers.** Its kernels stream 3 or 4 arrays and reach 0.86 of the triad, so it costs 0.363 of the
+Butcher form of the same scheme, below its access ratio (0.506). At equal simulated time, with the time step at the
+SSP limit (coefficient 6 against SSP(5,4)'s 1.508), against SSP(5,4):
+
+| | SSP(10,4) Ketcheson / SSP(5,4) Butcher |
+|---|---|
+| integrator time | 0.217 |
+| residual evaluations | 0.503 |
+| stored fields (with q) | 3 / 7 |
+
+A solver's ratio lies between the first two rows, by the share of its step the residual takes. Where accuracy rather
+than the SSP limit sets the step, this comparison does not apply; it has not been measured.

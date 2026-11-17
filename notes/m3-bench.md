@@ -42,6 +42,9 @@ The whole-step row is the comparison that matters:
 
 SELAH is 20% faster, more than the 14% the access counts predict.
 
+> **Erratum (M5, notes/m5-bench.md).** ADAM's step is 47 accesses, not 43: the in-place stage also reads its own
+> buffer. The access ratio is then 37/47 = 0.787, and the measured 0.795 sits on it.
+
 ## Findings
 
 1. **Parity holds.** Every SELAH kernel is within 0.97–1.015 of ADAM's on the same work.
