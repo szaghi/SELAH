@@ -88,6 +88,9 @@ contains
       enddo
    enddo
    bt%stages = s
+   ! allocated before the assignments, as ADAM does: nvfortran 26.9 leaves an unallocated allocatable component
+   ! unallocated when assigned the result of sum(..., dim=2)
+   allocate(bt%a(s,s), bt%b(s), bt%c(s))
    bt%a = bb(1:s,:)
    bt%b = bb(s+1,:)
    bt%c = sum(bt%a, dim=2)
@@ -146,6 +149,7 @@ contains
       yy(i+1,:) = yy(i,:) + w%b(i) * dd
    enddo
    bt%stages = s
+   allocate(bt%a(s,s), bt%b(s), bt%c(s)) ! before the assignments (see butcher_from_shu_osher)
    bt%a = yy(1:s,:)
    bt%b = yy(s+1,:)
    bt%c = sum(bt%a, dim=2)

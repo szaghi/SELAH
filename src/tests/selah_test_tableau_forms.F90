@@ -77,6 +77,7 @@ contains
    type(butcher_tableau) :: bt        !< Tableau.
 
    bt%stages = s
+   allocate(bt%a(s,s), bt%b(s), bt%c(s)) ! before the assignments (see selah_tableaux, butcher_from_shu_osher)
    bt%a = transpose(reshape(a_rows, [s, s]))
    bt%b = b
    bt%c = sum(bt%a, dim=2)
