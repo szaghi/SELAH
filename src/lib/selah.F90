@@ -5,13 +5,16 @@ module selah
 !< `use selah` gives the working kinds (R_P, the operators' kind, chosen at build time: selah_kind_parameters) and L0,
 !< the coefficients: the coefficient forms and their conversions (selah_tableaux), the Runge–Kutta catalogue
 !< (selah_schemes), the splitting schemes (selah_splittings) and the buffers each storage form needs
-!< (selah_storage). The kernels (L1) and the stepper (L2) join as they land (notes/PLAN.md).
+!< (selah_storage); and L1, the kernels: the box (selah_box) and the stage operations over a box or a flat array
+!< (selah_kernels). The stepper (L2) joins as it lands (notes/PLAN.md).
 use penf, only : I4P, I8P, R4P, R8P
 use selah_kind_parameters
 use selah_tableaux
 use selah_schemes
 use selah_splittings
 use selah_storage
+use selah_box
+use selah_kernels
 implicit none
 private
 ! kinds
@@ -30,4 +33,8 @@ public :: SCHEME_STRANG, SCHEME_YOSHIDA_4, SCHEME_BLANES_MOAN_S6, SCHEME_BLANES_
 ! storage
 public :: FORM_BUTCHER, FORM_SHU_OSHER_2R, FORM_WILLIAMSON_2N, FORM_KETCHESON_2R, FORM_SPLITTING
 public :: registers_needed
+! L1: box and kernels
+public :: box, LAYOUT_V_FIRST, LAYOUT_V_LAST, box_interior, box_components, component_dim
+public :: selah_copy, selah_axpy, selah_lincomb, selah_stage_state, selah_step_update
+public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
 endmodule selah

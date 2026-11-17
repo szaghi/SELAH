@@ -61,3 +61,8 @@ main = "selah_test_storage.F90"
 name = "selah_test_fundal"
 source-dir = "src/tests"
 main = "selah_test_fundal.F90"
+
+[[test]]
+name = "selah_test_kernels"
+source-dir = "src/tests"
+main = "selah_test_kernels.F90"

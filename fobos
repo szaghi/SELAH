@@ -34,7 +34,7 @@ FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
 modes = static-gnu shared-gnu
         static-nvf shared-nvf
         static-intel shared-intel
-        tests-gnu tests-gnu-debug tests-gnu-coverage
+        tests-gnu tests-gnu-debug tests-gnu-coverage tests-gnu-omp
         tests-nvf tests-nvf-debug tests-nvf-oac
         tests-intel tests-intel-debug
         static-gnu-r4 shared-gnu-r4 static-nvf-r4 shared-nvf-r4 static-intel-r4 shared-intel-r4
@@ -101,6 +101,12 @@ template  = template-tests template-gnu template-release
 help      = Tests, gfortran, all checks on
 template  = template-tests template-gnu template-debug
 
+[tests-gnu-omp]
+help      = Tests, gfortran, optimised, host OpenMP: the kernels' parallel loops (run with OMP_NUM_THREADS > 1)
+template  = template-tests template-gnu template-release
+cflags    = -c -fopenmp -foffload=disable $STD_GNU
+lflags    = -fopenmp -foffload=disable
+
 [tests-gnu-coverage]
 help      = Tests, gfortran, coverage instrumentation (rule makecoverage)
 template  = template-tests template-gnu
@@ -115,8 +121,9 @@ help      = Tests, nvfortran, all checks on
 template  = template-tests template-nvf template-debug
 
 [tests-nvf-oac]
-help      = Tests, nvfortran, OpenACC on the GPU of compute capability $GPU_CC
+help      = Tests, nvfortran, OpenACC ($GPU_CC): build only until M3 (the tests still pass host arrays to the kernels)
 template  = template-tests template-nvf template-release
+preproc   = -DFUNDAL_NO_MPI -DDEV_OAC -DCOMPILER_NVF
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -182,8 +189,9 @@ help      = Tests, nvfortran, optimised, CPU, single precision (R_P = R4P)
 template  = template-r4-tests template-tests template-nvf template-release
 
 [tests-nvf-oac-r4]
-help      = Tests, nvfortran, OpenACC on the GPU of compute capability $GPU_CC, single precision (R_P = R4P)
+help      = Tests, nvfortran, OpenACC ($GPU_CC), single precision (R_P = R4P): build only until M3
 template  = template-r4-tests template-tests template-nvf template-release
+preproc   = -DFUNDAL_NO_MPI -D_R_P_IS_R4P -DDEV_OAC -DCOMPILER_NVF
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
