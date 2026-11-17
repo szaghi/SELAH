@@ -1,5 +1,6 @@
 ---
 title: C4 Golden regression
+icon: selah
 ---
 
 # C4 Golden regression

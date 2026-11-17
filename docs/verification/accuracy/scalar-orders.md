@@ -1,5 +1,6 @@
 ---
 title: A2 Orders on scalar ODEs
+icon: order-conditions
 ---
 
 # A2 Orders on scalar ODEs

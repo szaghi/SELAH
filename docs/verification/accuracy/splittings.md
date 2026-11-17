@@ -1,5 +1,6 @@
 ---
 title: A4 Splittings
+icon: order-conditions
 ---
 
 # A4 Splittings

@@ -1,5 +1,6 @@
 ---
 title: P3 Splitting energy
+icon: ssp
 ---
 
 # P3 Splitting energy

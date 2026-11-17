@@ -1,5 +1,6 @@
 ---
 title: C6 Mutation testing
+icon: selah
 ---
 
 # C6 Mutation testing

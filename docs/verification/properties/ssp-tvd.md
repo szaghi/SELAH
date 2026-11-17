@@ -1,5 +1,6 @@
 ---
 title: P1 Strong stability (TVD)
+icon: ssp
 ---
 
 # P1 Strong stability (TVD)

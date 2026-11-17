@@ -1,5 +1,6 @@
 ---
 title: A5 Linear stability
+icon: order-conditions
 ---
 
 # A5 Linear stability

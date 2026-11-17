@@ -59,6 +59,8 @@ The findings that change how SELAH should be used, each documented on its page:
 
 ## Accuracy
 
+<SelahIcon name="order-conditions" :size="40" label="accuracy" float />
+
 Order conditions, observed orders on scalar problems, through the stepper and for the splittings, and the linear
 stability regions. [Group page](./accuracy/).
 
@@ -78,6 +80,8 @@ stability regions. [Group page](./accuracy/).
 
 ## Properties
 
+<SelahIcon name="ssp" :size="40" label="properties" float />
+
 Strong stability, the SSP coefficients, long-time energy behaviour and conservation. [Group page](./properties/).
 
 <div class="selah-gallery selah-catalog">
@@ -93,6 +97,8 @@ Strong stability, the SSP coefficients, long-time energy behaviour and conservat
 </div>
 
 ## Contracts
+
+<SelahIcon name="selah" :size="40" label="contracts" float />
 
 Equivalences, the stage contract, pinned values, the device and the suite's own sensitivity. [Group page](./contracts/).
 

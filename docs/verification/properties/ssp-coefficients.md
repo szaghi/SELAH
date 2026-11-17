@@ -1,5 +1,6 @@
 ---
 title: P2 SSP coefficients
+icon: ssp
 ---
 
 # P2 SSP coefficients

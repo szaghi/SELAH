@@ -1,5 +1,6 @@
 ---
 title: Contracts
+icon: selah
 ---
 
 # Contracts

@@ -1,5 +1,6 @@
 ---
 title: C1 Equivalence with ADAM
+icon: selah
 ---
 
 # C1 Equivalence with ADAM

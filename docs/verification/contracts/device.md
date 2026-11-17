@@ -1,5 +1,6 @@
 ---
 title: C5 Device
+icon: selah
 ---
 
 # C5 Device

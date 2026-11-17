@@ -1,5 +1,6 @@
 ---
 title: A3 Orders through the stepper
+icon: order-conditions
 ---
 
 # A3 Orders through the stepper

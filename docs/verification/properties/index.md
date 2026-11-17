@@ -1,5 +1,6 @@
 ---
 title: Properties
+icon: ssp
 ---
 
 # Properties

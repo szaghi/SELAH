@@ -1,5 +1,6 @@
 ---
 title: C3 Stage contract
+icon: selah
 ---
 
 # C3 Stage contract

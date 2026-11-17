@@ -1,5 +1,6 @@
 ---
 title: C2 Storage forms
+icon: selah
 ---
 
 # C2 Storage forms

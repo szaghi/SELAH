@@ -1,5 +1,6 @@
 ---
 title: C7 Precision
+icon: selah
 ---
 
 # C7 Precision

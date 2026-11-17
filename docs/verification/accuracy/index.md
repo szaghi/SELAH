@@ -1,5 +1,6 @@
 ---
 title: Accuracy
+icon: order-conditions
 ---
 
 # Accuracy
