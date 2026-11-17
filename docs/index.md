@@ -26,6 +26,6 @@ features:
 ---
 
 ::: warning Pre-release
-SELAH is at milestone M3: the coefficients (L0) and the kernels (L1, verified on the host and on an A30) are in; the
-stepper is next. The design is in `notes/PLAN.md` of the repository.
+SELAH is at milestone M4: the coefficients (L0), the kernels (L1, verified on the host and on an A30) and the stepper
+(L2) are in. The design is in `notes/PLAN.md` of the repository.
 :::

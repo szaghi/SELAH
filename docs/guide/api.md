@@ -67,6 +67,22 @@ them are `RK_SCHEMES` and `SPLITTING_SCHEMES`.
 With the box the arrays are rank 5 (`regs` rank 6) with the box's lower bounds; without it, rank 1 (`regs` rank 2).
 See [Kernels](./kernels).
 
+## L2: stepper
+
+| Procedure of `type(stepper)` | Purpose |
+|------------------------------|---------|
+| `initialize(scheme, form, lb, ub [, partitions] [, registers])` | set the scheme and form; allocate the registers (FUNDAL) or take the caller's |
+| `begin_step(bx, q [, mask, mask_comp])` | open a step |
+| `begin_stage(k, bx, dt, q [, mask, mask_comp])` | open stage k: build its state |
+| `stage_state()` | the stage state (Butcher form; null when `state_aliases_q()`: then it is `q`) |
+| `rhs_register()` | where the caller writes the residual of the active stage |
+| `end_stage(k, bx, dt, q [, mask, mask_comp])` | close stage k |
+| `finish_step(bx, dt, q [, dq] [, mask, mask_comp])` | close the step (`dq`: Butcher form) |
+| `stages()`, `stage_time(k)`, `stage_weight(k)`, `stage_partition(k)`, `state_aliases_q()` | queries |
+| `destroy()` | free what the stepper owns |
+
+See [Stepper](./stepper) for the contract.
+
 ## Example: an SSP(3,3) step with the kernels
 
 ```fortran
