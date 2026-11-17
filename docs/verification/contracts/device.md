@@ -40,7 +40,7 @@ sbatch --export=ALL,SELAH_SRC=$PWD scripts/medooza/selah-tests.slurm           #
 |---|---|---|
 | 1368142 | the audit fixes | 14/14 |
 | 1368177 | the verification programs | 15/15 |
-| the final job of the night | the documented tree | see the morning brief of the night log |
+| 1368190 | the documented tree (the night's last snapshot) | 15/15 |
 
 ## Findings
 
