@@ -56,10 +56,12 @@ fobis build --lmodes             # every mode (gfortran, nvfortran, ifx; R8P and
 ## Authors
 
 **[Stefano Zaghi](https://github.com/szaghi)** · stefano.zaghi@gmail.com
+> *Chief Yak Shaver & Keeper of the Time Step*: believes every problem is one more library away from being solved,
+> and keeps proving it
 
-**[Giacomo Rossi](https://github.com/giacrossi)**: ADAM co-author, from whose Runge–Kutta machinery SELAH is carved
-
-**[Claude](https://claude.ai)** (Anthropic): AI pair programmer
+**[Claude](https://claude.ai)** (Anthropic)
+> *Tireless Rubber Duck & Professional Pedant*: AI pair programmer; checks the order conditions so humans don't have
+> to, and has an opinion on every comma
 
 ## License
 
