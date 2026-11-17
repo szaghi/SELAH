@@ -302,3 +302,42 @@
   margin: 0 0 4px;
   line-height: 0;
 }
+
+
+/* ---------- Identity: the Mermaid diagrams (API dependency and call graphs, the guide's maps) ----------
+   Mermaid writes its theme into each SVG (#mermaid-N .node rect {...}): lavender nodes on washi, grey on silver ink.
+   These rules put the diagrams in the page's own ink and ground, in both themes; !important wins over those
+   id-scoped rules. A node marked `focus` (the procedure of a FORMAL call graph) is filled with the drop, its label in
+   the primary button's text colour: 5.3:1 on washi, 9:1 on silver ink. */
+.vp-doc .mermaid .node rect,
+.vp-doc .mermaid .node polygon,
+.vp-doc .mermaid .node circle,
+.vp-doc .mermaid .node path {
+  fill: var(--vp-c-bg-elv) !important;
+  stroke: var(--vp-c-border) !important;
+}
+.vp-doc .mermaid .node .nodeLabel,
+.vp-doc .mermaid .node .label text { color: var(--vp-c-text-1) !important; fill: var(--vp-c-text-1) !important; }
+.vp-doc .mermaid .flowchart-link,
+.vp-doc .mermaid .edgePaths .path { stroke: var(--vp-c-text-2) !important; }
+.vp-doc .mermaid .marker { fill: var(--vp-c-text-2) !important; stroke: var(--vp-c-text-2) !important; }
+.vp-doc .mermaid .edgeLabel,
+.vp-doc .mermaid .edgeLabel p,
+.vp-doc .mermaid .edgeLabel rect { background-color: var(--vp-c-bg) !important; fill: var(--vp-c-bg) !important; color: var(--vp-c-text-2) !important; }
+.vp-doc .mermaid .node.focus rect,
+.vp-doc .mermaid .node.focus polygon,
+.vp-doc .mermaid .node.focus path {
+  fill: var(--selah-drop) !important;
+  stroke: var(--selah-drop) !important;
+}
+.vp-doc .mermaid .node.focus .nodeLabel,
+.vp-doc .mermaid .node.focus .label text {
+  color: var(--vp-button-brand-text) !important;
+  fill: var(--vp-button-brand-text) !important;
+}
+
+/* ---------- Layout (not identity): a diagram wider than the column ----------
+   Mermaid shrinks a diagram to the column, whatever its width. index.ts floors the shrink at 0.75 (12 px labels):
+   a diagram that would need more scrolls sideways instead. */
+.vp-doc .mermaid { overflow-x: auto; }
+.vp-doc .mermaid svg { display: block; margin: 0 auto; }

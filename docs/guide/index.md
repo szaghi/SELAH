@@ -18,7 +18,7 @@ fill, reflux) before the integrator goes on.
 ## The three layers
 
 ```mermaid
-flowchart LR
+flowchart TD
   L0[L0 coefficients] --> L1[L1 kernels] --> L2[L2 stepper]
   L2 -.->|stage window| S[your solver: ghosts, residual]
   S -.-> L2

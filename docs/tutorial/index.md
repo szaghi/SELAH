@@ -29,7 +29,8 @@ time integrator alone.
 | [10. Production](./10-production) | your own register pool, stage 1 without a copy, the fused step residual |
 
 ```mermaid
-flowchart LR
+%%{init: {"flowchart": {"nodeSpacing": 20}}}%%
+flowchart TD
   A[1 by hand] --> B[2 catalogue] --> C[3 box] --> D[4 stepper]
   D --> E[5 low-storage]
   D --> F[6 splittings]

@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "docs:api": "formal generate --mirror-sources --diagrams --project ford.md --output api",
+    "docs:api": "formal generate --mirror-sources --diagrams --project ford.md --output api && bash scripts/formal_compat.sh api",
     "predocs:dev": "npm run docs:api",
     "predocs:build": "npm run docs:api",
     "docs:dev": "vitepress dev",
