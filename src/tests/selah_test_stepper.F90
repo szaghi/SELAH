@@ -13,6 +13,9 @@ program selah_test_stepper
 !<  every form it has reaches its order; the splittings reach theirs on a two-partition oscillator (q' = p, p' = -q).
 !<+ **Contract.** Ghost cells hold sentinels through a whole step wherever the caller does not fill them; the residual
 !<  register is distinct from the stage state; state_aliases_q is false for the Butcher form only.
+!<+ **Stages on q.** The Butcher form with stages_on_q=.true. ('butcher-q'): stage_state_is_q(k) is true exactly for
+!<  the zero rows of A, stage_state() is null during those stages, and the solution is bitwise the one of the plain
+!<  Butcher form (the stage-1 copy only moves the same values).
 !<+ **Telescoping.** With inflow on the left and outflow on the right, the change of the mass over a step equals
 !<  -dt sum_k stage_weight(k) (F_right - F_left)_k, the stage fluxes at the boundary faces: the identity a flux
 !<  register relies on, for every Runge–Kutta form (round-off).
@@ -29,7 +32,7 @@ integer(I4P), parameter :: NI=16, NB=4, NGC=1                 !< Cells per block
 real(R_P),    parameter :: PI = acos(-1._R_P)
 real(R_P),    parameter :: DX = 1._R_P / real(NI*NB, R_P)     !< Cell size.
 real(R_P),    parameter :: SENTINEL = -777._R_P               !< Ghost value nobody must touch.
-character(7), parameter :: RK_FORMS(4) = [character(7) :: 'butcher', 'two-reg', '2n', 'ket']
+character(9), parameter :: RK_FORMS(5) = [character(9) :: 'butcher', 'butcher-q', 'two-reg', '2n', 'ket']
 integer(I4P)            :: s
 
 #if defined DEV_OAC || defined DEV_OMP
@@ -50,7 +53,7 @@ contains
    character(*), intent(in) :: tag
    character(:), allocatable :: form
    select case(tag)
-   case('butcher') ; form = FORM_BUTCHER
+   case('butcher', 'butcher-q') ; form = FORM_BUTCHER
    case('two-reg') ; form = FORM_SHU_OSHER_2R
    case('2n')      ; form = FORM_WILLIAMSON_2N
    case default    ; form = FORM_KETCHESON_2R
@@ -63,40 +66,52 @@ contains
    real(R_P)                :: errors(4), orders(3)
    integer(I4P)             :: f, n, k
    type(butcher_tableau)    :: bt
+   real(R_P), allocatable   :: q_plain(:,:,:,:,:), q_on_q(:,:,:,:,:)
+   logical                  :: on_q
 
    bt = butcher(name)
    do f=1, size(RK_FORMS)
       if (registers_needed(name, form_of(trim(RK_FORMS(f)))) < 0) cycle
       associate(tag=>name//' '//trim(RK_FORMS(f)))
+      on_q = trim(RK_FORMS(f)) == 'butcher-q'
 #if !defined _R_P_IS_R4P
       n = merge(8_I4P, 16_I4P, bt%order >= 4)
       do k=1, 4
-         errors(k) = advect(name, form_of(trim(RK_FORMS(f))), n * 2_I4P**(k-1), .true.)
+         errors(k) = advect(name, form_of(trim(RK_FORMS(f))), n * 2_I4P**(k-1), .true., on_q)
       enddo
       orders = log(errors(1:3) / errors(2:4)) / log(2._R_P)
       print '(A,3F7.3)', '        '//tag//' observed orders:', orders
       call check(orders(3) >= real(bt%order, R_P) - 0.2_R_P, tag//': observed order through the stepper')
 #endif
-      errors(1) = advect(name, form_of(trim(RK_FORMS(f))), 4_I4P, .false.) ! contract and telescoping, checked inside
+      errors(1) = advect(name, form_of(trim(RK_FORMS(f))), 4_I4P, .false., on_q) ! contract and telescoping, inside
       endassociate
    enddo
+   ! the Butcher form with and without the stages on q: the same solution in the cells, bit for bit (the ghost cells
+   ! differ by design: with the stages on q the caller fills those of q at stage 1)
+   errors(1) = advect(name, FORM_BUTCHER, 8_I4P, .true., .false., q_plain)
+   errors(2) = advect(name, FORM_BUTCHER, 8_I4P, .true., .true., q_on_q)
+   call check(all(q_plain(:,1:NI,1,1,:) == q_on_q(:,1:NI,1,1,:)), &
+              name//' butcher-q: the solution bitwise that of the plain Butcher form')
    endsubroutine rk_scheme
 
-   function advect(name, form, nsteps, periodic) result(err)
+   function advect(name, form, nsteps, periodic, on_q, q_final) result(err)
    !< Advect to t = 0.25 in nsteps steps. Periodic: return the error against the semi-discrete solution. Otherwise
    !< (inflow 1 on the left, outflow on the right, a contract check): check the ghosts, the registers and the
    !< telescoping of the mass at every step.
    character(*), intent(in) :: name, form
    integer(I4P), intent(in) :: nsteps
    logical,      intent(in) :: periodic
+   logical,      intent(in) :: on_q                    !< Butcher form: initialise with stages_on_q.
+   real(R_P), allocatable, intent(out), optional :: q_final(:,:,:,:,:) !< The solution at the end.
    real(R_P)                :: err
+   type(butcher_tableau)    :: bt
    type(stepper)            :: st
    type(box)                :: bx
    real(R_P), pointer       :: q_d(:,:,:,:,:)=>null(), u_d(:,:,:,:,:)=>null(), r_d(:,:,:,:,:)=>null()
    real(R_P), allocatable   :: q(:,:,:,:,:), h(:,:,:,:,:)
    real(R_P)                :: dt, t, c, m0, m1, flux, x
    integer(I4P)             :: step, k, i, b, ierr
-   logical                  :: ghosts_ok, distinct_ok, telescoping_ok
+   logical                  :: ghosts_ok, distinct_ok, telescoping_ok, on_q_ok
 
    bx = box_interior(LAYOUT_V_FIRST, 1_I4P, NI, 1_I4P, 1_I4P, NGC, NB)
    allocate(q(1:1, 0:NI+1, 0:2, 0:2, 1:NB))
@@ -110,10 +125,16 @@ contains
    call dev_alloc(fptr_dev=q_d, ubounds=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB], lbounds=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], &
                   ierr=ierr)
    call dev_memcpy_to_device(dst=q_d, src=q)
-   call st%initialize(name, form, lb=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], ub=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB])
+   call st%initialize(name, form, lb=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], ub=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB], &
+                      stages_on_q=on_q)
    dt = 0.25_R_P / real(nsteps, R_P)
-   ghosts_ok = .true. ; distinct_ok = .true. ; telescoping_ok = .true.
+   ghosts_ok = .true. ; distinct_ok = .true. ; telescoping_ok = .true. ; on_q_ok = .true.
    call check(st%state_aliases_q() .eqv. (form /= FORM_BUTCHER), name//' '//form//': state_aliases_q')
+   bt = butcher(name)
+   do k=1, st%stages() ! q is the stage state: every stage of the aliasing forms, the zero rows of A with on_q
+      if (st%stage_state_is_q(k) .neqv. (form /= FORM_BUTCHER .or. (on_q .and. all(bt%a(k,:) == 0._R_P)))) &
+         on_q_ok = .false.
+   enddo
    if (.not. periodic) call sentinel_registers(st)
    do step=1, nsteps
       if (.not. periodic) m0 = mass(q_d)
@@ -121,7 +142,8 @@ contains
       call st%begin_step(bx, q_d)
       do k=1, st%stages()
          call st%begin_stage(k, bx, dt, q_d)
-         if (st%state_aliases_q()) then
+         if (st%stage_state_is_q(k)) then
+            if (associated(st%stage_state())) on_q_ok = .false. ! null on a stage on q, never a stale register
             u_d => q_d
          else
             u_d => st%stage_state()
@@ -158,6 +180,10 @@ contains
       call check(ghosts_ok, name//' '//form//': no ghost cell written by the stepper (q and registers)')
       call check(distinct_ok, name//' '//form//': residual register distinct from the stage state')
       call check(telescoping_ok, name//' '//form//': mass change = -dt sum_k w_k (boundary fluxes)_k')
+      call check(on_q_ok, name//' '//form//merge(' on q', '     ', on_q)//': stage_state_is_q, stage_state() null on q')
+   endif
+   if (present(q_final)) then
+      allocate(q_final, mold=q) ; call dev_memcpy_from_device(dst=q_final, src=q_d)
    endif
    call st%destroy
    call dev_free(q_d)

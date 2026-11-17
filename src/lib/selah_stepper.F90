@@ -12,7 +12,7 @@ module selah_stepper
 !< call st%begin_step(bx, q)
 !< do k=1, st%stages()
 !<    call st%begin_stage(k, bx, dt, q)                  ! builds the state of stage k
-!<    ! fill the ghost cells of the stage state (st%stage_state(), or q itself when st%state_aliases_q())
+!<    ! fill the ghost cells of the stage state (q itself when st%stage_state_is_q(k), else st%stage_state())
 !<    ! write its residual into st%rhs_register() (the components of st%stage_partition(k) for a splitting)
 !<    call st%end_stage(k, bx, dt, q)
 !< enddo
@@ -22,7 +22,9 @@ module selah_stepper
 !< **The stage contract.**
 !<
 !< 1. Between `begin_stage(k)` and `end_stage(k)` the stage state holds the state of stage k in the cells of the box:
-!<    `stage_state()` (Butcher form), or `q` itself (every other form: `state_aliases_q()` is true).
+!<    `q` itself when `stage_state_is_q(k)` (every stage of every form but the Butcher one, where `state_aliases_q()`
+!<    is true; in the Butcher form the stages whose row of A is zero, when the stepper was initialised with
+!<    `stages_on_q=.true.`), else `stage_state()`.
 !< 2. The stepper never writes a ghost cell, of any register or of `q`.
 !< 3. The caller may write the ghost cells of the stage state during that window (ghost exchange, seam fill, physical
 !<    boundaries).
@@ -31,6 +33,12 @@ module selah_stepper
 !<
 !< `stage_weight(k)` is the effective Butcher weight b_k of stage k in every Runge–Kutta form (the weight a flux
 !< register needs to accumulate the step's boundary fluxes); for a splitting it is the fraction of the step of flow k.
+!<
+!< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
+!< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
+!< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
+!< ask `stage_state_is_q(k)` fails at once instead of reading a stale register. Default `.false.`: every stage of the
+!< Butcher form has its register (v0.1.0 behaviour).
 !<
 !< **Storage.** `registers_needed(scheme, form)` field-sized buffers, allocated through FUNDAL (device memory in a
 !< device build) or passed by the caller (`registers`, any rank-6 array with the field's bounds and enough slots).
@@ -63,6 +71,7 @@ type :: stepper
    real(R_P), pointer          :: at_d(:,:) => null()     !< Transposed A (column k = row k), device resident.
    real(R_P), pointer          :: b_d(:) => null()        !< Weights b, device resident.
    logical                     :: owned = .false.         !< The registers are the stepper's.
+   logical, allocatable        :: on_q(:)                 !< Stage k's state is q itself.
    contains
       procedure, pass(self) :: initialize
       procedure, pass(self) :: destroy
@@ -77,10 +86,11 @@ type :: stepper
       procedure, pass(self) :: stage_weight
       procedure, pass(self) :: stage_partition
       procedure, pass(self) :: state_aliases_q
+      procedure, pass(self) :: stage_state_is_q
 endtype stepper
 
 contains
-   subroutine initialize(self, scheme, form, lb, ub, partitions, registers)
+   subroutine initialize(self, scheme, form, lb, ub, partitions, registers, stages_on_q)
    !< Set the scheme and its storage form; allocate the registers (or take the caller's).
    class(stepper),     intent(inout)                  :: self          !< Stepper.
    character(*),       intent(in)                     :: scheme        !< Scheme name (selah_schemes, selah_splittings).
@@ -88,7 +98,10 @@ contains
    integer(I4P),       intent(in)                     :: lb(5), ub(5)  !< Bounds of the field, ghosts included.
    integer(I4P),       intent(in), optional           :: partitions(2,2) !< Splitting: (v1, v2) of partitions 1, 2.
    real(R_P),          intent(in), optional, pointer  :: registers(:,:,:,:,:,:) !< The caller's registers.
+   logical,            intent(in), optional           :: stages_on_q   !< Butcher form: the stages whose row of A is
+                                                                       !< zero are evaluated on q (default .false.).
    integer(I4P)                                       :: nreg, ierr  !< Registers needed, error status.
+   integer(I4P)                                       :: k           !< Stage.
 
    call self%destroy
    self%scheme = trim(adjustl(scheme))
@@ -116,6 +129,19 @@ contains
       self%nstages = self%sc%flows
       self%part = partitions
    endselect
+   allocate(self%on_q(self%nstages))
+   if (self%form == FORM_BUTCHER) then
+      self%on_q = .false.
+      if (present(stages_on_q)) then
+         if (stages_on_q) then
+            do k=1, self%nstages
+               self%on_q(k) = all(self%bt%a(k,:) == 0._R_P)
+            enddo
+         endif
+      endif
+   else
+      self%on_q = .true.
+   endif
    if (present(registers)) then
       if (.not. associated(registers)) error stop 'selah stepper: the registers passed are not associated'
       if (size(registers, 6) < nreg) error stop 'selah stepper: too few registers passed'
@@ -137,6 +163,7 @@ contains
    if (associated(self%at_d)) call dev_free(self%at_d)
    if (associated(self%b_d)) call dev_free(self%b_d)
    nullify(self%regs, self%at_d, self%b_d)
+   if (allocated(self%on_q)) deallocate(self%on_q)
    self%owned = .false. ; self%nstages = 0_I4P ; self%k_active = 0_I4P
    endsubroutine destroy
 
@@ -156,7 +183,7 @@ contains
    endsubroutine begin_step
 
    subroutine begin_stage(self, k, bx, dt, q, mask, mask_comp)
-   !< Open stage k: build its state (Butcher form; every other form keeps it in q).
+   !< Open stage k: build its state (Butcher form, unless the stage's state is q; every other form keeps it in q).
    class(stepper), intent(inout)        :: self                 !< Stepper.
    integer(I4P),   intent(in)           :: k                    !< Stage.
    type(box),      intent(in)           :: bx                   !< Box.
@@ -165,7 +192,7 @@ contains
    real(R_P),      intent(in), optional :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Mask.
    integer(I4P),   intent(in), optional :: mask_comp            !< Mask component.
 
-   if (self%form == FORM_BUTCHER) &
+   if (self%form == FORM_BUTCHER .and. .not. self%on_q(k)) &
       call selah_stage_state(bx, k-1_I4P, dt, self%at_d(:,k), q, self%regs(:,:,:,:,:,2:), self%regs(:,:,:,:,:,1), &
                              mask, mask_comp)
    self%k_active = k
@@ -225,12 +252,15 @@ contains
    endsubroutine finish_step
 
    function stage_state(self) result(u)
-   !< The state of the active stage, with the field's bounds: the Butcher form's register; null for the other forms
-   !< (their stage state is q itself: state_aliases_q).
+   !< The state of the active stage, with the field's bounds: the Butcher form's register; null when the stage's state
+   !< is q itself (stage_state_is_q), so in every other form.
    class(stepper), intent(in) :: self         !< Stepper.
    real(R_P),      pointer    :: u(:,:,:,:,:) !< Stage state.
 
    u => null()
+   if (self%k_active > 0_I4P) then
+      if (self%on_q(self%k_active)) return
+   endif
    if (self%form == FORM_BUTCHER) &
       u(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,1)
    endfunction stage_state
@@ -300,4 +330,15 @@ contains
 
    yes = self%form /= FORM_BUTCHER
    endfunction state_aliases_q
+
+   pure function stage_state_is_q(self, k) result(yes)
+   !< The state of stage k is q itself: the caller evaluates the residual of stage k on q. True for every stage of
+   !< every form but the Butcher one; in the Butcher form, for the stages whose row of A is zero when the stepper was
+   !< initialised with stages_on_q=.true.
+   class(stepper), intent(in) :: self !< Stepper.
+   integer(I4P),   intent(in) :: k    !< Stage.
+   logical                    :: yes  !< The stage's state is q.
+
+   yes = self%on_q(k)
+   endfunction stage_state_is_q
 endmodule selah_stepper

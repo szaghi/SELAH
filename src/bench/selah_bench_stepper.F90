@@ -24,6 +24,7 @@ program selah_bench_stepper
 !<| SELAH stepper, Ketcheson SSP(10,4), two registers | 39 |
 !<| SELAH kernels, Butcher SSP(5,4) + dq, the stepper's sequence without the stepper (the control of the stage-1 row) | 28 |
 !<| The state of stage 1 alone (no register summed), and a plain copy doing the same work | 2, 2 |
+!<| SELAH stepper, Butcher SSP(5,4) + dq, initialised with stages_on_q (stage 1 evaluated on q) | 26 |
 !<
 !< Timing as in selah_bench_kernels: an unreported pass of every operation, then PASSES passes with the order of each
 !< pair alternated; each operation 3 warm-up launches and the median of 7 trials of 20 launches, `!$acc wait` before
@@ -39,7 +40,7 @@ use selah
 use adam_fnl_rk_kernels
 use adam_flume_rk_residual
 implicit none
-integer(I4P), parameter :: NV=5, NI=16, NJ=16, NK=16, NGC=3, WARM=3, TRIALS=7, LAUNCHES=20, NOPS=10
+integer(I4P), parameter :: NV=5, NI=16, NJ=16, NK=16, NGC=3, WARM=3, TRIALS=7, LAUNCHES=20, NOPS=11
 real(R8P),    parameter :: DT=1.e-3_R8P
 character(*), parameter :: OP_NAME(NOPS) = [character(48) :: &
                            'ADAM SSP(5,4) step',                               &
@@ -51,8 +52,9 @@ character(*), parameter :: OP_NAME(NOPS) = [character(48) :: &
                            'SELAH stepper SSP(10,4) Ketcheson 2 registers',    &
                            'SELAH SSP(5,4) + dq (kernels, the control of 5)',  &
                            'stage state of stage 1 (no register): u = q + 0',  &
-                           'copy u = q']
-integer(I4P), parameter :: OP_FIELDS(NOPS) = [47, 53, 27, 28, 26, 77, 39, 28, 2, 2]
+                           'copy u = q',                                       &
+                           'SELAH stepper SSP(5,4) + dq, stages_on_q']
+integer(I4P), parameter :: OP_FIELDS(NOPS) = [47, 53, 27, 28, 26, 77, 39, 28, 2, 2, 26]
 integer(I4P)            :: nb
 real(R8P), pointer      :: q_d(:,:,:,:,:)=>null(), r_d(:,:,:,:,:)=>null(), dq_d(:,:,:,:,:)=>null()
 real(R8P), pointer      :: u_d(:,:,:,:,:)=>null()
@@ -61,7 +63,7 @@ real(R8P), pointer      :: reg2_d(:,:,:,:,:,:)=>null()
 real(R8P), pointer      :: alph_d(:,:)=>null(), beta_d(:)=>null(), at_d(:,:)=>null()
 type(butcher_tableau)   :: bt54, bt104
 type(box)               :: bx
-type(stepper)           :: st54, st104, stk
+type(stepper)           :: st54, st104, stk, stq
 real(R8P)               :: cells, t(NOPS), ratio
 character(32)           :: arg
 integer(I4P)            :: ierr, passes, pass, op
@@ -87,6 +89,7 @@ call dev_assign_to_device(dst=at_d, src=transpose(bt54%a)) ! column s = row s of
 call st54%initialize(SCHEME_SSP_54, FORM_BUTCHER, lb=lbound(q_d), ub=ubound(q_d), registers=reg54_d)
 call st104%initialize(SCHEME_SSP_104, FORM_BUTCHER, lb=lbound(q_d), ub=ubound(q_d), registers=reg104_d)
 call stk%initialize(SCHEME_SSP_104, FORM_KETCHESON_2R, lb=lbound(q_d), ub=ubound(q_d), registers=reg2_d)
+call stq%initialize(SCHEME_SSP_54, FORM_BUTCHER, lb=lbound(q_d), ub=ubound(q_d), registers=reg54_d, stages_on_q=.true.)
 
 print '(A,I0,A,F7.1,A)', 'blocks ', nb, ', field ', 8._R8P*NV*(NI+2*NGC)*(NJ+2*NGC)*(NK+2*NGC)*nb/1.e6_R8P, ' MB'
 print '(A,F6.3,A,F6.3)', 'SSP coefficients: SSP(5,4) ', bt54%ssp_coefficient, ', SSP(10,4) ', bt104%ssp_coefficient
@@ -118,6 +121,8 @@ do pass=1, passes
    call pair_out('SELAH stage 1 on q / SELAH + dq, kernels', 5, 8)
    call pair_out('Ketcheson / Butcher SSP(10,4)', 7, 6)
    call pair_out('stage 1 stage state / copy', 9, 10)
+   call pair_out('stepper stages_on_q / stepper, + dq', 11, 4)
+   call pair_out('stepper stages_on_q / kernels stage 1 on q', 11, 5)
    ! equal simulated time, dt proportional to the SSP coefficient: steps per unit time scale as 1/C
    ratio = (t(7) / bt104%ssp_coefficient) / (t(3) / bt54%ssp_coefficient)
    print '(A,F6.3,A,F6.3,A,F6.3)', 'equal simulated time, SSP(10,4) Ketcheson / SSP(5,4) Butcher: integrator ', ratio, &
@@ -201,6 +206,7 @@ contains
    case(7) ; call drive(stk, .false.)
    case(9) ; call selah_stage_state(bx, 0_I4P, DT, at_d(:,1), q_d, reg54_d(:,:,:,:,:,2:), u_d)
    case(10); call selah_copy(bx, q_d, u_d)
+   case(11); call drive(stq, .true.)
    case(8) ! op 4 without the stepper: stage states 1..5 from q, then the update with dq
       do s=1, 5
          call selah_stage_state(bx, s-1, DT, at_d(:,s), q_d, reg54_d(:,:,:,:,:,2:), u_d)
