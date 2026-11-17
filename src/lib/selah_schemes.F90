@@ -51,18 +51,18 @@ contains
 
    select case(trim(adjustl(scheme)))
    case(SCHEME_EULER)
-      call literal(1_I4P, 1_I4P)
+      bt = zero_tableau(1_I4P, 1_I4P)
       bt%b(1) = 1._R_P
       bt%ssp_coefficient = ssp_coefficient(shu_osher(scheme))
    case(SCHEME_SSP_22)
-      call literal(2_I4P, 2_I4P)
+      bt = zero_tableau(2_I4P, 2_I4P)
       bt%b(1) = 0.5_R_P
       bt%b(2) = 0.5_R_P
       bt%a(2,1) = 1._R_P
       bt%c(2) = 1._R_P
       bt%ssp_coefficient = ssp_coefficient(shu_osher(scheme))
    case(SCHEME_SSP_33)
-      call literal(3_I4P, 3_I4P)
+      bt = zero_tableau(3_I4P, 3_I4P)
       bt%b(1) = 1._R_P/6._R_P
       bt%b(2) = 1._R_P/6._R_P
       bt%b(3) = 2._R_P/3._R_P
@@ -74,7 +74,7 @@ contains
    case(SCHEME_SSP_54, SCHEME_SSP_104)
       bt = butcher_from_shu_osher(shu_osher(scheme), order=4_I4P)
    case(SCHEME_RK4)
-      call literal(4_I4P, 4_I4P)
+      bt = zero_tableau(4_I4P, 4_I4P)
       bt%a(2,1) = 0.5_R_P
       bt%a(3,2) = 0.5_R_P
       bt%a(4,3) = 1._R_P
@@ -85,19 +85,6 @@ contains
    case(SCHEME_LSRK_54)
       bt = butcher_from_williamson_2n(williamson_2n(scheme), order=4_I4P)
    endselect
-   contains
-      pure subroutine literal(s, p)
-      !< Allocate a zero tableau of s stages and declared order p.
-      integer(I4P), intent(in) :: s !< Stages.
-      integer(I4P), intent(in) :: p !< Order.
-
-      bt%stages = s
-      bt%order = p
-      allocate(bt%a(s,s), bt%b(s), bt%c(s))
-      bt%a = 0._R_P
-      bt%b = 0._R_P
-      bt%c = 0._R_P
-      endsubroutine literal
    endfunction butcher
 
    pure function shu_osher(scheme) result(so)
@@ -113,7 +100,7 @@ contains
       ! Spiteri & Ruuth (2002, SIAM J. Numer. Anal. 40, 469), SSP coefficient 1.508; the 15 digits printed by
       ! Isherwood, Grant & Gottlieb (2018, arXiv:1810.04800, section 4), as in ADAM's ssp_tableau. Every coefficient is
       ! non-negative and each row of alpha sums to 1.
-      call zero(5_I4P)
+      so = zero_shu_osher(5_I4P)
       so%alpha(2,1) = 1._R_P
       so%beta(2,1) = 0.391752226571890_R_P
       so%alpha(3,1) = 0.444370493651235_R_P ; so%alpha(3,2) = 0.555629506348765_R_P
@@ -130,7 +117,7 @@ contains
       ! u^n = Y1: five forward-Euler steps of dt/6; q2 = (u^n + 9 q1)/25 and q1 = 15 q2 - 5 q1; four more Euler steps;
       ! u^{n+1} = q2 + 3/5 q1 + dt/10 F(q1). Written as Shu–Osher stages, the stage after the fifth Euler step is
       ! Y6 = 3/5 Y1 + 2/5 Y5 + dt/15 F(Y5) and u^{n+1} = Y11 = 1/25 Y1 + 9/25 Y5 + 3/5 Y10 + dt (3/50 F(Y5) + 1/10 F(Y10)).
-      call zero(10_I4P)
+      so = zero_shu_osher(10_I4P)
       do i=2, 5
          so%alpha(i,i-1) = 1._R_P
          so%beta(i,i-1) = 1._R_P/6._R_P
@@ -144,16 +131,6 @@ contains
       so%alpha(11,1) = 1._R_P/25._R_P ; so%alpha(11,5) = 9._R_P/25._R_P ; so%alpha(11,10) = 3._R_P/5._R_P
       so%beta(11,5) = 3._R_P/50._R_P ; so%beta(11,10) = 1._R_P/10._R_P
    endselect
-   contains
-      pure subroutine zero(s)
-      !< Allocate a zero Shu–Osher form of s stages.
-      integer(I4P), intent(in) :: s !< Stages.
-
-      so%stages = s
-      allocate(so%alpha(s+1,s), so%beta(s+1,s))
-      so%alpha = 0._R_P
-      so%beta = 0._R_P
-      endsubroutine zero
    endfunction shu_osher
 
    pure function shu_osher_2r(scheme) result(r)
@@ -193,4 +170,34 @@ contains
                                 2277821191437._R_P/14882151754819._R_P])
    endselect
    endfunction williamson_2n
+
+   ! private procedures
+   pure function zero_tableau(s, p) result(bt)
+   !< A zero Butcher tableau of s stages and declared order p.
+   !<
+   !< A module procedure, not an internal one: an internal procedure of a pure function is pure, and a pure procedure
+   !< may not define the host's result through host association (ifx 2026.2 rejects it; gfortran 16.2 and nvfortran
+   !< 26.9 accept it silently).
+   integer(I4P), intent(in) :: s  !< Stages.
+   integer(I4P), intent(in) :: p  !< Order.
+   type(butcher_tableau)    :: bt !< Tableau.
+
+   bt%stages = s
+   bt%order = p
+   allocate(bt%a(s,s), bt%b(s), bt%c(s))
+   bt%a = 0._R_P
+   bt%b = 0._R_P
+   bt%c = 0._R_P
+   endfunction zero_tableau
+
+   pure function zero_shu_osher(s) result(so)
+   !< A zero Shu–Osher form of s stages (a module procedure: see zero_tableau).
+   integer(I4P), intent(in) :: s  !< Stages.
+   type(shu_osher_form)     :: so !< Shu–Osher form.
+
+   so%stages = s
+   allocate(so%alpha(s+1,s), so%beta(s+1,s))
+   so%alpha = 0._R_P
+   so%beta = 0._R_P
+   endfunction zero_shu_osher
 endmodule selah_schemes
