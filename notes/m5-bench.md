@@ -105,6 +105,10 @@ When accuracy limits the step, the comparison is not this one, and it was not me
    q itself, so the copy into the stage-state register is avoidable. The stepper's API does not allow it yet: see the
    proposal in the night log.
 
+   *Follow-up, after v0.1.0:* the stepper now offers it as an opt-in, `stages_on_q=.true.` with the query
+   `stage_state_is_q(k)`. Job 1368116 measured 2.552 ms against 2.716 ms (0.940), which is 1.002 of the
+   kernels-only path above, and 0.515 of ADAM FLUME's step with its residual kernel.
+
 ## Jobs
 
 | Job | Content | Outcome |
@@ -114,3 +118,5 @@ When accuracy limits the step, the comparison is not this one, and it was not me
 | 1368098 | + the empty-sum stage state against a copy | 1.759: the cause of the extra saving |
 | 1368099 | tests-nvf-oac, the copy fix | 10/10 |
 | 1368100 | bench, the copy fix | the tables above |
+| 1368115 | tests-nvf-oac, `stages_on_q` | 10/10 (stepper 248 checks) |
+| 1368116 | bench + the stepper with `stages_on_q` | 2.552 ms, 0.940 of the step without it |

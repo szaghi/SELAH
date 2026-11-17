@@ -49,6 +49,7 @@ Field accesses per step over the interior, counted from the code before the runs
 | ADAM FLUME SSP(5,4) + its step residual kernel | 53 | 4.948 | 449 |
 | SELAH stepper SSP(5,4), Butcher | 27 | 2.688 | 421 |
 | SELAH stepper SSP(5,4), Butcher, step residual fused | 28 | 2.714 | 433 |
+| the same, `stages_on_q=.true.` (stage 1 evaluated on q; job 1368116) | 26 | 2.552 | 427 |
 | SELAH stepper SSP(10,4), Butcher | 77 | 6.399 | 505 |
 | SELAH stepper SSP(10,4), Ketcheson's two registers | 39 | 2.322 | 705 |
 
@@ -57,6 +58,8 @@ Field accesses per step over the interior, counted from the code before the runs
   every residual into its register (the caller writes it in place, into `rhs_register()`), and the rereading of every
   stage for the step residual (fused into the update).
 - **The stepper costs nothing**: the same kernels called without it take 0.999 of the time.
+- **Or no copy at all.** With `stages_on_q=.true.` the caller evaluates stage 1 on `q` and the stepper skips the
+  copy: 0.940 of the step, 0.515 of ADAM FLUME's (see [Stepper](./stepper#stages-on-q)).
 - **The state of the first stage is a copy.** The summing kernel with nothing to sum ran at 0.57 of a copy's speed;
   `selah_stage_state` now hands that case to the copy kernel, which made the SSP(5,4) step 4.3% faster.
 
