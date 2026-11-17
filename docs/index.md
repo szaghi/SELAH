@@ -4,7 +4,7 @@ layout: home
 hero:
   name: SELAH
   text: Stage-wise Evolution Library for Accelerators and HPC
-  tagline: The time integrators of ADAM, carved out as stage-wise operators for block-structured field solvers, on CPUs and GPUs, in modern Fortran. Every claim verified.
+  tagline: Time integrators as stage-wise operators for block-structured field solvers, on CPUs and GPUs, in modern Fortran. Every claim verified.
   image:
     light: /logo.svg
     dark: /logo-dark.svg
@@ -32,7 +32,7 @@ features:
     link: /guide/schemes
     linkText: Schemes
   - title: Kernels over your arrays
-    details: Stage operations on block-structured fields with ghost cells, in two layouts, masked or not. They write the box and nothing else, and are bitwise ADAM's.
+    details: Stage operations on block-structured fields with ghost cells, in two layouts, masked or not. They write the box and nothing else.
     link: /guide/kernels
     linkText: Kernels
   - title: A stepper you drive
@@ -44,7 +44,7 @@ features:
     link: /guide/concepts#storage-forms
     linkText: Storage forms
   - title: CPU and GPU, one source
-    details: One kernel source for the host and OpenACC through FUNDAL. On an A30, an SSP(5,4) step with its residual costs 0.52 of ADAM's.
+    details: One kernel source for the host and OpenACC through FUNDAL. On an A30 the stepper costs nothing over its kernels, and the step residual comes in the update's pass.
     link: /guide/performance
     linkText: Performance
   - title: Evidence, not adjectives

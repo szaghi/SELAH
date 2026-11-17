@@ -1,15 +1,20 @@
 <div align="center">
 
-# SELAH
+<picture>
+  <source media="(prefers-color-scheme: dark)"  srcset="docs/public/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/public/logo.svg">
+  <img src="docs/public/logo.svg" alt="SELAH" width="320">
+</picture>
 
-#### *the time integrators of ADAM, carved out as stage-wise operators, on every CPU and GPU*
+#### *time integrators as stage-wise operators, the pause between stages left to your solver, on every CPU and GPU*
 
 ### **S**tage-wise **E**volution **L**ibrary for **A**ccelerators and **H**PC
 
-> Time-evolution operators for block-structured field solvers, in modern Fortran. Extracted from the Runge–Kutta
-> machinery of ADAM and successor of FOODIE: verified scheme tableaux, bandwidth-bound kernels over the caller's
-> arrays, and a stepper the caller drives one stage at a time, with no dynamic dispatch where the cells are swept.
+> Time-evolution operators for block-structured field solvers, in modern Fortran. Successor of FOODIE: verified scheme
+> tableaux, bandwidth-bound kernels over the caller's arrays, and a stepper the caller drives one stage at a time, with
+> no dynamic dispatch where the cells are swept.
 
+[![Version](https://img.shields.io/github/v/release/szaghi/SELAH?label=version)](https://github.com/szaghi/SELAH/releases)
 [![CI](https://github.com/szaghi/SELAH/actions/workflows/ci.yml/badge.svg)](https://github.com/szaghi/SELAH/actions/workflows/ci.yml)
 [![Matrix](https://github.com/szaghi/SELAH/actions/workflows/matrix.yml/badge.svg)](https://github.com/szaghi/SELAH/actions/workflows/matrix.yml)
 [![Fortran](https://img.shields.io/badge/Fortran-modern-734f96?logo=fortran&logoColor=white)](https://fortran-lang.org/)
@@ -18,53 +23,90 @@
 [![License: BSD-3](https://img.shields.io/badge/license-BSD--3--Clause-blue)](LICENSE.bsd-3.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE.mit.md)
 
+<div>
+<table>
+<tr>
+<td><b>🧮 A verified catalogue</b><br><sub>Eight Runge–Kutta schemes (euler, SSP(2,2), SSP(3,3), SSP(5,4), SSP(10,4), rk4, and the low-storage LSRK(3,3) and LSRK(5,4)) and four splittings (Strang, Yoshida, Blanes–Moan S6 and S10). Order conditions in quadruple precision, SSP coefficients computed, never typed in. <a href="https://szaghi.github.io/SELAH/guide/schemes">Schemes</a> · <a href="https://szaghi.github.io/SELAH/guide/api">API</a></sub></td>
+<td><b>⚡ Kernels over your arrays</b><br><sub>Stage and update operations on block-structured fields with ghost cells, in two layouts, masked or not: they write the cells of the box and nothing else. One source for the host, OpenMP and OpenACC. <a href="https://szaghi.github.io/SELAH/guide/kernels">Kernels</a> · <a href="https://szaghi.github.io/SELAH/guide/performance">Performance</a></sub></td>
+</tr>
+<tr>
+<td><b>🎛️ A stepper you drive</b><br><sub><code>begin_stage</code>, <code>end_stage</code>, <code>finish_step</code> around your own ghost fill and residual, under a stage contract an AMR orchestrator can rely on; <code>stage_weight</code> for flux registers, the step residual fused in the update. <a href="https://szaghi.github.io/SELAH/guide/stepper">Stepper</a> · <a href="https://szaghi.github.io/SELAH/guide/concepts">Concepts</a></sub></td>
+<td><b>💾 Low storage, same answer</b><br><sub>Two-register, Williamson 2N and Ketcheson forms in 2 registers instead of s + 1, equal to the Butcher form to round-off. SSP(10,4) in two registers: half the residual evaluations of SSP(5,4) per unit time at the strong-stability limit. <a href="https://szaghi.github.io/SELAH/verification/contracts/forms">Storage forms</a></sub></td>
+</tr>
+<tr>
+<td><b>🔬 Verification you can read</b><br><sub>Twenty-one programs, also the test suite: order conditions, observed orders in every storage form, stability regions, strong stability, long-time energy of the splittings, conservation, a golden file of 1312 values; figures and animations on every case page. <a href="https://szaghi.github.io/SELAH/verification/">Verification</a></sub></td>
+<td><b>🧰 Three compilers, CPU and GPU</b><br><sub>gfortran, nvfortran and ifx, debug and optimised, double and single precision, plus the OpenACC build on an NVIDIA A30; built with FoBiS or fpm. A mutation run catches 28 of 28 planted defects. <a href="https://szaghi.github.io/SELAH/guide/installation">Installation</a> · <a href="https://szaghi.github.io/SELAH/verification/contracts/mutation">Mutation testing</a></sub></td>
+</tr>
+</table>
+</div>
+
+**[Full documentation](https://szaghi.github.io/SELAH/)**: [guide](https://szaghi.github.io/SELAH/guide/) · [tutorial](https://szaghi.github.io/SELAH/tutorial/) · [cookbook](https://szaghi.github.io/SELAH/cookbook/) · [verification](https://szaghi.github.io/SELAH/verification/) · [API reference](https://szaghi.github.io/SELAH/api/)
+
 </div>
 
 ---
 
-> [!NOTE]
-> **v0.1.0** (2026-11-17): L0, the coefficients (Runge–Kutta and splitting schemes, storage forms); L1, the kernels
-> (bitwise ADAM's FNL kernels, on the host and on an A30); L2, the stepper a caller drives stage by stage under a tested
-> contract. Through the stepper an SSP(5,4) step with its step residual costs 0.52 of ADAM's on the A30. On `main`
-> since: `stages_on_q`, the documentation with its tutorial, cookbook and verification section. Next: the wiring into
-> ADAM. The design is in [notes/PLAN.md](notes/PLAN.md); the documentation at https://szaghi.github.io/SELAH.
+## Quick start
+
+```bash
+git clone https://github.com/szaghi/SELAH && cd SELAH
+fobis fetch                                                   # PENF and FUNDAL, into src/third_party/
+fobis build --mode static-gnu                                 # lib/gnu/static/libselah.a
+fobis build --mode tests-gnu && bash scripts/run_tests.sh     # the verification programs
+```
+
+as a FoBiS dependency, in the `fobos` of your project (then `fobis fetch && fobis build`):
+
+```ini
+[dependencies]
+deps_dir = src/third_party
+PENF     = https://github.com/szaghi/PENF :: branch=master    # SELAH's own dependencies: fobis fetch is not transitive
+FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
+SELAH    = https://github.com/szaghi/SELAH :: tag=v0.1.0
+```
+
+or as an fpm dependency, in your `fpm.toml`:
+
+```toml
+[dependencies]
+SELAH = { git = "https://github.com/szaghi/SELAH", tag = "v0.1.0" }
+```
+
+One step, driven stage by stage: the stepper builds the stage states and the update, your code fills the ghost cells
+and writes the residual:
+
+```fortran
+use selah
+type(stepper) :: st
+
+call st%initialize(SCHEME_SSP_54, FORM_BUTCHER, lb=lbound(q), ub=ubound(q))
+call st%begin_step(bx, q)
+do k=1, st%stages()
+   call st%begin_stage(k, bx, dt, q)
+   u => st%stage_state() ; r => st%rhs_register()
+   call fill_ghosts(u)            ! yours
+   call residual(u, r)            ! yours
+   call st%end_stage(k, bx, dt, q)
+enddo
+call st%finish_step(bx, dt, q)
+```
+
+The [quick start](https://szaghi.github.io/SELAH/guide/quickstart) has the whole program and its output; the
+[tutorial](https://szaghi.github.io/SELAH/tutorial/) goes from a step written by hand to a production loop on the GPU.
 
 ## The name
 
 *Selah* is the mark that appears 71 times in the Psalms and 3 times in Habakkuk, usually read as a pause: the music
-stops and the singer breathes. SELAH's stage boundaries are such pauses. The caller's orchestrator acts there (ghost
-exchange, AMR seam fill, reflux) before the integrator goes on.
-
-## Design in one paragraph
-
-Four layers (details in [notes/PLAN.md](notes/PLAN.md)):
-
-| Layer | What it holds |
-|---|---|
-| **L0** tableaux | Butcher, Shu–Osher, low-storage and splitting coefficients, verified in quadruple precision |
-| **L1** kernels | stage and update operations over the caller's arrays: interior-only boxes and flat arrays, one source for host OpenMP, OpenACC and OpenMP offload |
-| **L2** stepper | `begin_stage` / `end_stage` / `finish_step`, driven by the caller, under a documented stage contract |
-| **L3** adapters | in the consumer (ADAM), not in SELAH |
-
-## Build
-
-```bash
-fobis fetch                      # PENF and FUNDAL
-fobis build --mode tests-gnu     # the library and the tests
-bash scripts/run_tests.sh
-fobis build                      # the static library, lib/gnu/static/libselah.a
-fobis build --lmodes             # every mode (gfortran, nvfortran, ifx; R8P and R4P; OpenACC)
-```
+stops and the singer breathes. SELAH's stage boundaries are such pauses. The solver acts there (ghost exchange, AMR
+seam fill, reflux) before the integrator goes on.
 
 ## Authors
 
 **[Stefano Zaghi](https://github.com/szaghi)** · stefano.zaghi@gmail.com
-> *Chief Yak Shaver & Keeper of the Time Step*: believes every problem is one more library away from being solved,
-> and keeps proving it
+> *Chief Yak Shaver & Keeper of the Time Step* — believes every problem is one more library away from being solved, and keeps proving it
 
 **[Claude](https://claude.ai)** (Anthropic)
-> *Tireless Rubber Duck & Professional Pedant*: AI pair programmer; checks the order conditions so humans don't have
-> to, and has an opinion on every comma
+> *Tireless Rubber Duck & Professional Pedant* — AI pair programmer; checks the order conditions so humans don't have to, and has an opinion on every comma
 
 ## License
 

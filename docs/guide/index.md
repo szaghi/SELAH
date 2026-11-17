@@ -7,9 +7,8 @@ title: About
 SELAH (**S**tage-wise **E**volution **L**ibrary for **A**ccelerators and **H**PC) provides time-evolution operators
 for block-structured field solvers on CPUs and GPUs: explicit Runge–Kutta schemes, their low-storage forms and
 splitting schemes. The schemes come as coefficients, kernels and a stepper that a solver drives one stage at a time.
-SELAH is carved out of the Runge–Kutta machinery of [ADAM](https://github.com/szaghi/adam), and is the kernel-level
-successor of [FOODIE](https://github.com/szaghi/FOODIE), whose operator-overloaded integrands are elegant but cost too
-much where the cells are swept.
+SELAH is the kernel-level successor of [FOODIE](https://github.com/szaghi/FOODIE), whose operator-overloaded
+integrands are elegant but cost too much where the cells are swept.
 
 *Selah* is the mark that appears 71 times in the Psalms and 3 times in Habakkuk, usually read as a pause: the music
 stops and the singer breathes. SELAH's stage boundaries are such pauses. The solver acts there (ghost exchange, AMR seam
@@ -41,8 +40,6 @@ You can use any layer alone: the coefficients for your own kernels, the kernels 
 - the 2N stage that no longer reads its register on the first stage;
 - the validation of the caller's registers;
 - this documentation.
-
-The wiring into ADAM is next.
 
 ## Design principles
 
