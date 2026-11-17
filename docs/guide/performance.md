@@ -1,5 +1,6 @@
 ---
 title: Performance
+icon: cpu-gpu
 ---
 
 # Performance

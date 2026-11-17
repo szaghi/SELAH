@@ -1,5 +1,6 @@
 ---
 title: Installation
+icon: cpu-gpu
 ---
 
 # Installation

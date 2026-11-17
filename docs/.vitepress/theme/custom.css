@@ -274,3 +274,31 @@
   border-radius: 50%;
   padding: 0;
 }
+
+
+/* ---------- Layout (not identity): the identity's icons in the pages ----------
+   <SelahIcon> (SelahIcon.vue) draws the light or the dark drawing of an icon, by theme; inline it sits on the text's
+   baseline. The page icon of a guide page (frontmatter `icon:`) stands above the title. */
+.selah-icon {
+  display: inline-block;
+  vertical-align: -0.35em;
+  line-height: 0;
+}
+.selah-icon img {
+  width: 100%;
+  height: 100%;
+}
+.selah-icon .selah-icon-dark { display: none; }
+.dark .selah-icon .selah-icon-light { display: none; }
+.dark .selah-icon .selah-icon-dark { display: inline; }
+.vp-doc h2 .selah-icon,
+.vp-doc h3 .selah-icon { margin-right: 0.35em; }
+/* <SelahIcon float> alone on a line before a paragraph: the paragraph wraps around it */
+.vp-doc .selah-icon-float {
+  float: left;
+  margin: 0.15em 0.7em 0.2em 0;
+}
+.selah-page-icon {
+  margin: 0 0 4px;
+  line-height: 0;
+}

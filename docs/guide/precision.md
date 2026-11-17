@@ -1,5 +1,6 @@
 ---
 title: Precision
+icon: order-conditions
 ---
 
 # Precision

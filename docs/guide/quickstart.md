@@ -1,5 +1,6 @@
 ---
 title: Quick start
+icon: stepper
 ---
 
 # Quick start

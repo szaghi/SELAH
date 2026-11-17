@@ -1,5 +1,6 @@
 ---
 title: Stepper
+icon: stepper
 ---
 
 # Stepper

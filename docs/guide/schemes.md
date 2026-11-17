@@ -1,5 +1,6 @@
 ---
 title: Schemes
+icon: tableaux
 ---
 
 # Schemes
@@ -20,6 +21,8 @@ read these coefficients.
 | `rk4`     | 4  | 4 | —           | Butcher       | — | Kutta (1901) |
 | `lsrk-33` | 3  | 3 | —           | Williamson 2N | Butcher | Williamson (1980) |
 | `lsrk-54` | 5  | 4 | —           | Williamson 2N | Butcher | Carpenter & Kennedy (1994), NASA TM-109112 |
+
+<SelahIcon name="ssp" :size="40" label="strong stability preserving" float />
 
 The SSP coefficient is computed from the Shu–Osher form (`ssp_coefficient`), never typed in. It is the minimum of
 $\alpha_{ik}/\beta_{ik}$ over the coefficients SELAH stores: another Shu–Osher representation of the same tableau can
@@ -49,6 +52,8 @@ less storage and no access to the per-stage residuals.
 
 ### Storage
 
+<SelahIcon name="low-storage" :size="40" label="low storage" float />
+
 `registers_needed(scheme, form)` counts the field-sized buffers a step needs besides the solution, the residual
 buffer included:
 
@@ -73,6 +78,8 @@ Printed from the library itself (`docs/examples/src/tableaux.F90`, regenerated w
 unallocated.
 
 ## Splitting schemes
+
+<SelahIcon name="splitting" :size="40" label="splitting" float />
 
 For $u' = F_1(u) + F_2(u)$, a step is the product of the sub-flows of the two partitions, each over a fraction of
 $\Delta t$. Every scheme is a palindrome, stored as its half sequence, so its order is even:

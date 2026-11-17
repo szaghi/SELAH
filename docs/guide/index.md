@@ -1,5 +1,6 @@
 ---
 title: About
+icon: selah
 ---
 
 # About SELAH
@@ -18,9 +19,8 @@ fill, reflux) before the integrator goes on.
 
 ```mermaid
 flowchart LR
-  L0["L0 coefficients<br/>schemes, forms, conversions,<br/>registers_needed"] --> L1["L1 kernels<br/>box and flat, masked,<br/>host / OpenMP / OpenACC"]
-  L1 --> L2["L2 stepper<br/>a step driven stage by stage,<br/>under the stage contract"]
-  L2 -.-> S["your solver<br/>time loop, ghosts, residual"]
+  L0[L0 coefficients] --> L1[L1 kernels] --> L2[L2 stepper]
+  L2 -.->|stage window| S[your solver: ghosts, residual]
   S -.-> L2
 ```
 

@@ -9,6 +9,7 @@ import { h, nextTick, watch } from 'vue'
 import { onContentUpdated, useData, useRoute, withBase } from 'vitepress'
 import { pageRedirects } from './redirects'
 import { data as darkFigures } from './dark-figures.data'
+import SelahIcon from './SelahIcon.vue'
 import './custom.css'
 
 // The twins are swapped on the client only, after the content is mounted (the server-rendered page always carries the
@@ -64,8 +65,20 @@ const Layout = {
           { immediate: true })
     onContentUpdated(() => swapFigures(isDark.value, site.value.base))
     watch(isDark, (dark) => nextTick(() => swapFigures(dark, site.value.base)))
-    return () => h(DefaultTheme.Layout)
+    // a page with `icon: <name>` in its frontmatter shows that icon of the identity above its title
+    const { frontmatter } = useData()
+    return () => h(DefaultTheme.Layout, null, {
+      'doc-before': () => frontmatter.value.icon
+        ? h('div', { class: 'selah-page-icon' }, [h(SelahIcon, { name: frontmatter.value.icon, size: 56 })])
+        : null,
+    })
   },
 }
 
-export default { extends: DefaultTheme, Layout }
+export default {
+  extends: DefaultTheme,
+  Layout,
+  enhanceApp({ app }) {
+    app.component('SelahIcon', SelahIcon)
+  },
+}
