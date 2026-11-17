@@ -11,12 +11,16 @@ use penf, only : I4P, R8P
 use selah_kind_parameters, only : R_P
 use selah_splittings
 use selah_test_tools, only : QP, TOL_COEF, check, failures, observed_orders
+use selah_vv_cases
 implicit none
+integer                     :: u_ord   !< Report file (SELAH_VV_DIR): splitting-orders.dat.
 type(splitting_composition) :: sc
 character(:), allocatable   :: name ! not associate(name=>trim(...)): gfortran 15.1-16.2 frees that temporary
                                     ! twice in a loop (a reduced reproducer is in the night log of 2026-11-17)
 integer(I4P)                :: s, i
 
+if (vv_report()) call vv_open('splitting-orders.dat', u_ord, &
+                              'scheme first problem(1 oscillator, 2 pendulum) steps error, 4 halvings')
 do s=1, size(SPLITTING_SCHEMES)
    sc = splitting(SPLITTING_SCHEMES(s))
    name = trim(SPLITTING_SCHEMES(s))
@@ -33,6 +37,7 @@ do s=1, size(SPLITTING_SCHEMES)
    call check_orders(name, sc%order)
 #endif
 enddo
+if (vv_report()) close(u_ord)
 sc = splitting('no-such-scheme')
 call check(sc%flows == 0, 'unknown name: 0 flows')
 
@@ -58,6 +63,7 @@ contains
             errors(k) = error_at_one(sc, problem, n0 * 2_I4P**(k-1))
          enddo
          orders = observed_orders(errors)
+         if (vv_report()) write(u_ord, '(A,2I3,4(I5,ES14.6))') name, first, problem, (n0 * 2**(k-1), errors(k), k=1, 4)
          print '(A,I1,A,I1,A,3F7.3,A,ES9.2)', '        '//name//' first=', first, ' problem ', problem, &
                                              ' observed orders:', orders, '  finest error', errors(4)
          call check(orders(3) >= real(p, R8P) - 0.2_R8P, &

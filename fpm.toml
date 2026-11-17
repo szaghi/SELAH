@@ -91,3 +91,28 @@ main = "selah_test_stepper.F90"
 name = "selah_test_stepper_options"
 source-dir = "src/tests"
 main = "selah_test_stepper_options.F90"
+
+[[test]]
+name = "selah_test_golden"
+source-dir = "src/tests"
+main = "selah_test_golden.F90"
+
+[[test]]
+name = "selah_vv_stability"
+source-dir = "src/tests"
+main = "selah_vv_stability.F90"
+
+[[test]]
+name = "selah_vv_ssp_tvd"
+source-dir = "src/tests"
+main = "selah_vv_ssp_tvd.F90"
+
+[[test]]
+name = "selah_vv_splitting_energy"
+source-dir = "src/tests"
+main = "selah_vv_splitting_energy.F90"
+
+[[test]]
+name = "selah_vv_forms"
+source-dir = "src/tests"
+main = "selah_vv_forms.F90"

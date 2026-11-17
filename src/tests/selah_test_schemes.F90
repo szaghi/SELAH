@@ -12,10 +12,16 @@ use selah_kind_parameters, only : R_P
 use selah_tableaux
 use selah_schemes
 use selah_test_tools
+use selah_vv_cases
 implicit none
+integer               :: u_res, u_ord !< Report files (SELAH_VV_DIR): order-conditions.dat, scalar-orders.dat.
 type(butcher_tableau) :: bt
 integer(I4P)          :: s
 
+if (vv_report()) then
+   call vv_open('order-conditions.dat', u_res, 'scheme order residuals of the 8 conditions (trees of 1..4 nodes), in QP')
+   call vv_open('scalar-orders.dat', u_ord, 'scheme problem(1: y''=-y, 2: y''=-y^2) steps error, 8..128 steps')
+endif
 do s=1, size(RK_SCHEMES)
    bt = butcher(RK_SCHEMES(s))
    print '(A)', trim(RK_SCHEMES(s))//':'
@@ -39,6 +45,9 @@ call check(maxval(abs(bt%c - [0._R_P, 1432997174477._R_P/9575080441755._R_P, 252
 bt = butcher('no-such-scheme')
 call check(bt%stages == 0, 'unknown name: 0 stages')
 
+if (vv_report()) then
+   close(u_res) ; close(u_ord)
+endif
 if (failures > 0) error stop 'selah_test_schemes: failed'
 print '(A)', 'selah_test_schemes: ok'
 
@@ -53,11 +62,15 @@ contains
 
    p = bt%order
    res = order_residuals(bt)
+   if (vv_report()) write(u_res, '(A,I3,8ES12.3)') name, p, res
    call check(maxval(res(1:conditions_number(p))) <= TOL_COEF, name//': order conditions up to the declared order')
    print '(A,ES9.2)', '        '//name//' largest residual up to the declared order:', maxval(res(1:conditions_number(p)))
    if (p < 4) call check(maxval(res(conditions_number(p)+1:conditions_number(p+1))) > 1.e-6_R8P, &
                          name//': some condition of the next order fails (the order is exact)')
    call check(maxval(abs(bt%c - sum(bt%a, dim=2))) <= TOL_COEF, name//': c = A.1')
+   so = shu_osher(name)
+   if (so%stages > 0) call check(maxval(abs(sum(so%alpha(2:,:), dim=2) - 1._R_P)) <= TOL_COEF, &
+                                 name//': Shu-Osher form consistent, rows 2..s+1 of alpha sum to 1')
    call check(is_explicit(bt), name//': explicit')
    select case(name)
    case(SCHEME_EULER, SCHEME_SSP_22, SCHEME_SSP_33)
@@ -77,6 +90,7 @@ contains
          errors(k) = integrate_scalar(bt, problem, 8_I4P * 2_I4P**(k-1))
       enddo
       orders = observed_orders(errors)
+      if (vv_report()) write(u_ord, '(A,I3,5(I5,ES14.6))') name, problem, (8 * 2**(k-1), errors(k), k=1, 5)
       print '(A,I1,A,4F7.3)', '        '//name//' problem ', problem, ' observed orders:', orders
       call check(orders(4) >= real(p, R8P) - 0.2_R8P, name//': observed order on problem '//merge('1','2',problem==1))
    enddo

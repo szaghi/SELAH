@@ -134,8 +134,10 @@ template  = template-tests template-nvf template-debug
 help      = Tests, nvfortran, OpenACC on the GPU ($GPU_CC; medooza: --varset iac); the host-array kernel tests excluded
 template  = template-tests template-nvf template-release
 preproc   = -DFUNDAL_NO_MPI -DDEV_OAC -DCOMPILER_NVF
-# these pass host arrays to the kernels: their device twins are selah_test_device_*
-exclude   = src/tests/selah_test_kernels.F90 src/tests/selah_test_kernels_adam.F90
+# these pass host arrays to the kernels or to the stepper (whose registers are device memory in this build): their
+# device twins are selah_test_device_*, selah_test_stepper and selah_test_stepper_options
+exclude   = src/tests/selah_test_kernels.F90 src/tests/selah_test_kernels_adam.F90 src/tests/selah_vv_ssp_tvd.F90
+            src/tests/selah_vv_splitting_energy.F90 src/tests/selah_vv_forms.F90 src/tests/selah_test_golden.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -230,7 +232,8 @@ template  = template-r4-tests template-tests template-nvf template-release
 preproc   = -DFUNDAL_NO_MPI -D_R_P_IS_R4P -DDEV_OAC -DCOMPILER_NVF
 exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
             src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
-            src/tests/selah_test_kernels.F90 src/tests/selah_test_device_adam.F90
+            src/tests/selah_test_kernels.F90 src/tests/selah_test_device_adam.F90 src/tests/selah_vv_ssp_tvd.F90
+            src/tests/selah_vv_splitting_energy.F90 src/tests/selah_vv_forms.F90 src/tests/selah_test_golden.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -292,10 +295,11 @@ preproc = -DFUNDAL_NO_MPI -D_R_P_IS_R4P
 [template-r4-tests]
 template  = template-r4
 build_dir = exe-r4/
-# ADAM's coefficients and the bitwise comparison with them are R8P only, as in ADAM
+# ADAM's coefficients and the bitwise comparison with them are R8P only, as in ADAM; the long-time energy of the
+# high-order splittings (errors near 1e-8) is below the round-off of 62832 R4P steps
 exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
             src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
-            src/tests/selah_test_device_adam.F90
+            src/tests/selah_test_device_adam.F90 src/tests/selah_vv_splitting_energy.F90
 
 [template-bench]
 src       = src/lib/ src/bench/ src/tests/

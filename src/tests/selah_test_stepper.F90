@@ -27,7 +27,9 @@ use fundal, only : dev_init
 #endif
 use selah
 use selah_test_tools, only : check, failures
+use selah_vv_cases
 implicit none
+integer                 :: u_ord, u_tel !< Report files (SELAH_VV_DIR): stepper-orders.dat, telescoping.dat.
 integer(I4P), parameter :: NI=16, NB=4, NGC=1                 !< Cells per block, blocks, ghosts.
 real(R_P),    parameter :: PI = acos(-1._R_P)
 real(R_P),    parameter :: DX = 1._R_P / real(NI*NB, R_P)     !< Cell size.
@@ -39,9 +41,16 @@ integer(I4P)            :: s
 call dev_init(require_device=.true.)
 print '(A)', 'device build'
 #endif
+if (vv_report()) then
+   call vv_open('stepper-orders.dat', u_ord, 'scheme form steps error (periodic advection, 4 halvings)')
+   call vv_open('telescoping.dat', u_tel, 'scheme form step mass_change+dt*sum_k(w_k*flux_k) uniform_weights_defect')
+endif
 do s=1, size(RK_SCHEMES)
    call rk_scheme(trim(RK_SCHEMES(s)))
 enddo
+if (vv_report()) then
+   close(u_ord) ; close(u_tel)
+endif
 do s=1, size(SPLITTING_SCHEMES)
    call split_scheme(trim(SPLITTING_SCHEMES(s)))
 enddo
@@ -80,6 +89,7 @@ contains
          errors(k) = advect(name, form_of(trim(RK_FORMS(f))), n * 2_I4P**(k-1), .true., on_q)
       enddo
       orders = log(errors(1:3) / errors(2:4)) / log(2._R_P)
+      if (vv_report()) write(u_ord, '(A,1X,A,4(I6,ES14.6))') name, trim(RK_FORMS(f)), (n * 2**(k-1), errors(k), k=1, 4)
       print '(A,3F7.3)', '        '//tag//' observed orders:', orders
       call check(orders(3) >= real(bt%order, R_P) - 0.2_R_P, tag//': observed order through the stepper')
 #endif
@@ -109,7 +119,7 @@ contains
    type(box)                :: bx
    real(R_P), pointer       :: q_d(:,:,:,:,:)=>null(), u_d(:,:,:,:,:)=>null(), r_d(:,:,:,:,:)=>null()
    real(R_P), allocatable   :: q(:,:,:,:,:), h(:,:,:,:,:)
-   real(R_P)                :: dt, t, c, m0, m1, flux, x
+   real(R_P)                :: dt, t, c, m0, m1, flux, flux_u, fb, x
    integer(I4P)             :: step, k, i, b, ierr
    logical                  :: ghosts_ok, distinct_ok, telescoping_ok, on_q_ok
 
@@ -138,7 +148,7 @@ contains
    if (.not. periodic) call sentinel_registers(st)
    do step=1, nsteps
       if (.not. periodic) m0 = mass(q_d)
-      flux = 0._R_P
+      flux = 0._R_P ; flux_u = 0._R_P
       call st%begin_step(bx, q_d)
       do k=1, st%stages()
          call st%begin_stage(k, bx, dt, q_d)
@@ -152,13 +162,19 @@ contains
          if (associated(r_d, u_d)) distinct_ok = .false.
          call fill_ghosts(u_d, periodic)                   ! the caller's ghost fill (clause 3)
          call residual(u_d, r_d)                           ! the caller's residual (clause 4)
-         if (.not. periodic) flux = flux + st%stage_weight(k) * boundary_flux(u_d)
+         if (.not. periodic) then
+            fb = boundary_flux(u_d)
+            flux = flux + st%stage_weight(k) * fb
+            flux_u = flux_u + fb / st%stages()   ! uniform weights: the control of the report
+         endif
          call st%end_stage(k, bx, dt, q_d)
       enddo
       call st%finish_step(bx, dt, q_d)
       if (.not. periodic) then
          m1 = mass(q_d)
          if (abs((m1 - m0) + dt * flux) > 256._R_P * epsilon(1._R_P) * max(abs(m1), 1._R_P)) telescoping_ok = .false.
+         if (vv_report() .and. .not. on_q) write(u_tel, '(A,1X,A,I4,2ES14.5)') name, form, step, &
+                                               abs((m1 - m0) + dt * flux), abs((m1 - m0) + dt * flux_u)
          if (.not. registers_untouched(st)) ghosts_ok = .false.
       endif
    enddo

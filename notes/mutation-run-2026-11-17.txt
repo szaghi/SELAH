@@ -1,0 +1,44 @@
+# SELAH mutation run, 2026-11-17 (night docs-refactor): python3 scripts/mutation_test.py, mode tests-gnu, gfortran 16.2
+# Run 1: all 28 mutants on the tree of step 05 (its 'killed by' lists also name the failing checks: the report filter
+# was narrowed to program names afterwards). Survivor: ssp104-alpha, a coefficient of the Shu-Osher form that neither
+# the Butcher tableau (row of u^n) nor the SSP coefficient (beta = 0) reads. Fix: selah_test_schemes checks that every
+# row 2..s+1 of alpha sums to 1. Run 2: that mutant alone on the fixed suite: killed.
+
+## Run 1
+baseline green in /tmp/claude-1000/-home-stefano/826e9a1a-321d-464e-b4f3-cd8db280c82a/scratchpad/mutants
+ssp22-weight                 killed by golden, selah_test_adam_parity, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_forms, selah_vv_stability, ssp-22, ssp-22:
+ssp33-weight                 killed by golden, selah_test_adam_parity, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_forms, selah_vv_ssp_tvd, selah_vv_stability, ssp-33, ssp-33:
+rk4-weight                   killed by golden, rk4, rk4:, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_stability
+ssp54-shu-osher-beta         killed by golden, selah_test_adam_parity, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_stability, ssp-54, ssp-54:
+ssp104-alpha                 SURVIVED
+ssp33-two-register-c         killed by golden, selah_test_adam_parity, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_forms, ssp-33, ssp-33:
+lsrk33-A                     killed by golden, lsrk-33, lsrk-33:, selah_test_golden, selah_test_schemes, selah_test_stepper, selah_vv_stability
+lsrk54-B                     killed by lsrk-54:, selah_test_schemes
+yoshida-w1                   killed by golden, selah_test_golden, selah_test_splittings, selah_test_stepper, yoshida-4:
+blanes-moan-s6-a1            killed by blanes-moan-s6:, golden, selah_test_golden, selah_test_splittings, selah_test_stepper
+ssp-coefficient-max          killed by SSP-22, SSP-33, euler:, selah_test_schemes, selah_test_tableau_forms, ssp-104:, ssp-22:, ssp-33:, ssp-54:
+axpy-sign                    killed by axpy, blanes-moan-s10:, blanes-moan-s6:, golden, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_stepper, selah_vv_forms, ssp-104, strang:, v-first, v-last, yoshida-4:
+lincomb-beta                 killed by golden, lincomb, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_stepper, selah_vv_forms, ssp-104, v-first, v-last
+stage-state-dt               killed by CPU, FNL, device, golden, lsrk-33, lsrk-54, rk4, rk4:, selah_test_device_adam, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_kernels_adam, selah_test_stepper, selah_test_stepper_options, selah_vv_forms, selah_vv_splitting_energy, selah_vv_ssp_tvd, ssp-104, ssp-104:, ssp-22, ssp-22:, ssp-33, ssp-33:, ssp-54, ssp-54:, stage_state, v-first, v-last
+step-update-dq-zero          killed by CPU, euler, golden, lsrk-33, lsrk-54, rk4, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_kernels_adam, selah_test_stepper_options, ssp-104, ssp-22, ssp-33, ssp-54, step_update, v-first, v-last
+shu-osher-2r-swap            killed by CPU, FNL, device, golden, selah_test_device_adam, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_kernels_adam, selah_test_stepper, selah_vv_forms, shu_osher_2r, shu_osher_2r_stage, ssp-104, ssp-33, v-first, v-last
+williamson-a0-reads          killed by golden, lsrk-33, lsrk-54, selah_test_device_kernels, selah_test_golden, selah_test_kernels, selah_test_stepper, selah_test_stepper_options, selah_vv_forms, v-first, v-last
+mask-sign                    killed by axpy, selah_test_device_kernels, selah_test_kernels, selah_test_stepper_options, ssp-104, v-first
+box-ghost-bound              killed by CPU, FNL, blanes-moan-s10:, blanes-moan-s6:, device, euler, golden, lsrk-33, lsrk-54, rk4, selah_test_device_adam, selah_test_golden, selah_test_kernels_adam, selah_test_stepper, selah_test_stepper_options, selah_vv_forms, ssp-104, ssp-22, ssp-33, ssp-54, strang:, yoshida-4:
+stage-state-copy-n1          killed by CPU, FNL, device, golden, lsrk-33, lsrk-54, rk4, selah_test_device_adam, selah_test_golden, selah_test_kernels_adam, selah_test_stepper, selah_vv_forms, selah_vv_ssp_tvd, ssp-104, ssp-104:, ssp-22, ssp-33, ssp-54
+registers-butcher            killed by euler, euler:, lsrk-33, lsrk-33:, lsrk-54, lsrk-54:, rk4, rk4:, selah_test_stepper, selah_test_storage, ssp-104, ssp-104:, ssp-22, ssp-22:, ssp-33, ssp-33:, ssp-54, ssp-54:
+rhs-slot                     killed by euler, golden, lsrk-33, lsrk-54, rk4, rk4:, selah_test_golden, selah_test_stepper, selah_test_stepper_options, selah_vv_forms, selah_vv_splitting_energy, selah_vv_ssp_tvd, ssp-104, ssp-104:, ssp-22, ssp-22:, ssp-33, ssp-33:, ssp-54, ssp-54:
+stage-weight-c               killed by euler, lsrk-33, lsrk-54, rk4, selah_test_stepper, ssp-104, ssp-22, ssp-33, ssp-54
+ketcheson-euler-step         killed by golden, selah_test_golden, selah_test_stepper, selah_vv_forms, ssp-104
+ketcheson-combination        killed by golden, selah_test_golden, selah_test_stepper, selah_vv_forms, ssp-104
+stages-on-q-all              killed by lsrk-33, lsrk-54, rk4, selah_test_stepper, selah_vv_ssp_tvd, ssp-104, ssp-104:, ssp-22, ssp-33, ssp-54, ssp-54:
+two-register-no-qn           killed by euler, golden, selah_test_golden, selah_test_stepper, selah_test_stepper_options, selah_vv_forms, ssp-104, ssp-22, ssp-33
+splitting-subflow            killed by blanes-moan-s10:, blanes-moan-s6:, golden, selah_test_golden, selah_test_stepper, strang:, yoshida-4:
+27 of 28 mutants killed
+survivors: ssp104-alpha
+
+## Run 2 (--only ssp104-alpha, after the fix)
+ssp104-alpha                 killed by selah_test_schemes
+1 of 1 mutants killed
+
+## Result: 28 of 28 mutants killed

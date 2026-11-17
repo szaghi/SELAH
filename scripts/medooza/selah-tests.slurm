@@ -26,8 +26,9 @@ set -uo pipefail
 SRC=${SELAH_SRC:-/home/szaghi/selah}
 MODE=${SELAH_MODE:-tests-nvf-oac}
 VARSET=${SELAH_VARSET:-iac}
-RUN_GLOB=${SELAH_RUN_GLOB:-selah_test_*}
+RUN_GLOB=${SELAH_RUN_GLOB:-selah_*}
 RUN=${SELAH_RUN:-/ifs/hpc/home/szaghi/selah-tests/$SLURM_JOB_ID}
+export SELAH_SRC="$SRC" # the golden test finds src/tests/golden/ from the run directory
 
 source /ifs/hpc/home/szaghi/nvidia/nvhpc.sh || exit 1
 export PATH=$HOME/.local/bin:$PATH
