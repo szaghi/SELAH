@@ -4,9 +4,9 @@ title: Stepper
 
 # Stepper
 
-SELAH's L2 layer is the stepper: one time step that the caller drives one stage at a time. The stepper owns the
-registers and the coefficients. The caller owns the solution, the time loop, the ghost cells and the residual. The
-stepper never calls back.
+SELAH's L2 layer is the stepper (`type(stepper)`): one time step that the caller drives one stage at a time. The stepper
+owns the registers and the coefficients. The caller owns the solution, the time loop, the ghost cells and the residual.
+The stepper never calls back.
 
 ## A step
 
@@ -23,26 +23,49 @@ do k=1, st%stages()
    ! fill its ghost cells (exchange, seams, boundaries), then write its residual into st%rhs_register()
    call st%end_stage(k, bx, dt, q)
 enddo
-call st%finish_step(bx, dt, q)        ! the Butcher form also returns the step residual: dq=...
+call st%finish_step(bx, dt, q)        ! the Butcher form can also return the step residual: dq=...
+! ... at the end:
+call st%destroy
 ```
 
-Every call takes the box (see [Kernels](./kernels)), and the stage calls take an optional mask. A splitting scheme also
-needs the components of its two partitions (`partitions=`). For each flow, `stage_partition(k)` tells which partition
-to compute the residual of.
+Every call takes the box (see [Concepts](./concepts#the-box)), and all four step calls take an optional `mask` and
+`mask_comp`. Pass the same mask to all four. A splitting also needs its two partitions (`partitions=`), and for each
+flow `stage_partition(k)` says which partition to compute the residual of. The rules the two sides keep are the
+[stage contract](./concepts#the-stage-contract).
 
-## The stage contract
+## Procedures
 
-1. Between `begin_stage(k)` and `end_stage(k)`, the stage state holds the state of stage k in the cells of the box. It
-   is `q` itself when `stage_state_is_q(k)`, else `stage_state()`. Every form but the Butcher one keeps the stage
-   state in `q` (`state_aliases_q()`); the Butcher form does so for its first stage when asked (below).
-2. The stepper never writes a ghost cell, of any register or of `q`.
-3. The caller may write the ghost cells of the stage state during that window: ghost exchange, AMR seam fill,
-   physical boundaries.
-4. `rhs_register()` is written by the caller only, in the cells of the box, and is distinct from the stage state.
-5. After `finish_step` the registers are scratch.
+| Procedure | What it does | Preconditions and notes |
+|---|---|---|
+| `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q])` | sets the scheme and form; allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `registers` (see below). Calls `destroy` first, so a stepper can be re-initialised |
+| `begin_step(bx, q [, mask, mask_comp])` | opens a step: the two-register and Ketcheson forms keep a copy of $q^n$ | |
+| `begin_stage(k, bx, dt, q [, mask, mask_comp])` | opens stage `k`: the Butcher form builds its state into its register (unless `stage_state_is_q(k)`) | `k` from 1 to `stages()`, in order |
+| `stage_state()` | pointer to the stage state, with the field's bounds | Butcher form only; **null** on a stage evaluated on `q`, and always null in the other forms (their state is `q`). Valid until `end_stage` |
+| `rhs_register()` | pointer to the register the caller writes the residual of the active stage into, with the field's bounds | write the cells of the box; for a splitting, the components of `stage_partition(k)`. Valid until `end_stage` |
+| `end_stage(k, bx, dt, q [, mask, mask_comp])` | closes stage `k`: the two-register, 2N, Ketcheson and splitting forms advance `q` here | |
+| `finish_step(bx, dt, q [, dq] [, mask, mask_comp])` | closes the step: the Butcher form computes $q^{n+1}$, and `dq` $= \sum_k b_k F_k$ in the same pass if asked | `dq` with any form other than Butcher stops the program; `dq` is 0 where the mask is inactive |
+| `stage_state_is_q(k)` | the state of stage `k` is `q` itself: evaluate its residual on `q` | true for every stage of the forms other than Butcher; for the zero rows of A with `stages_on_q` |
+| `stages()` | the stages of a step (the flows of a splitting) | |
+| `stage_time(k)` | the abscissa $c_k$ (fraction of the step) | 0 for a splitting |
+| `stage_weight(k)` | the effective Butcher weight $b_k$; for a splitting, the fraction of the step of flow `k` | in every Runge–Kutta form, the low-storage ones included |
+| `stage_partition(k)` | the partition flow `k` advances (1 or 2) | 0 for a Runge–Kutta form |
+| `state_aliases_q()` | the form keeps the stage state in `q` (every form but Butcher) | the per-stage `stage_state_is_q(k)` generalises it |
+| `destroy()` | frees what the stepper owns | no finalizer: call it |
 
-`stage_weight(k)` is the effective Butcher weight b_k of stage k, in every Runge–Kutta form. A flux register
-accumulates the boundary fluxes of each stage with this weight. `stage_time(k)` is the abscissa c_k.
+## The caller's registers
+
+`initialize(..., registers=pool)` takes the registers from the caller instead of allocating them. The stepper checks
+two things and stops on a mismatch:
+- the array is rank 6, with the field's bounds `lb:ub` on dimensions 1–5;
+- its slots are numbered from 1 on dimension 6, and there are at least `registers_needed(scheme, form)` of them.
+
+It cannot check the rest:
+- the actual must be a pointer or a target;
+- in a device build it must be device memory;
+- two steppers in use at the same time need two pools.
+
+The stepper never frees a caller's pool, and does not need it zeroed: no form reads a register before writing it
+([C3](/verification/contracts/stage-contract)).
 
 ## Stages on q
 
@@ -65,60 +88,30 @@ do k=1, st%stages()
 enddo
 ```
 
-During such a stage `stage_state()` is null, so that a caller that does not ask `stage_state_is_q(k)` fails at once
-instead of reading a stale register. The caller then writes the ghost cells of `q` at stage 1 (clause 3), which the
-plain Butcher form leaves alone. On the A30 the option takes 6% off the integrator's SSP(5,4) step: 2.552 ms against 2.716 ms (see
-[Performance](./performance)).
+During such a stage `stage_state()` is null, so a caller that does not ask `stage_state_is_q(k)` fails at once
+instead of reading a stale register. The caller then writes the ghost cells of `q` at stage 1 (contract clause 3),
+which the plain Butcher form leaves alone. The solution is bitwise that of the plain Butcher form. On the A30 the option
+takes 6% off the integrator's SSP(5,4) step ([Performance](./performance)).
 
 ## Forms
 
-| Form | Registers | Schemes | Where the work happens |
-|------|-----------|---------|------------------------|
-| `FORM_BUTCHER` | s + 1 | every RK scheme | `begin_stage`: the stage state from q and the earlier residuals; `finish_step`: the update (and dq) |
-| `FORM_SHU_OSHER_2R` | 2 | `euler`, `ssp-22`, `ssp-33` | `end_stage`: q = a q⁰ + b q + Δt c R |
-| `FORM_WILLIAMSON_2N` | 2 | `lsrk-33`, `lsrk-54` | `end_stage`: ΔQ = A ΔQ + Δt R; q += B ΔQ |
-| `FORM_KETCHESON_2R` | 2 | `ssp-104` | `end_stage`: Ketcheson's two-register recipe |
-| `FORM_SPLITTING` | 1 | every splitting | `end_stage`: the flow's partition, q += c Δt R |
+| Form | Registers | Schemes |
+|------|-----------|---------|
+| `FORM_BUTCHER` | s + 1 | every Runge–Kutta scheme |
+| `FORM_SHU_OSHER_2R` | 2 | `euler`, `ssp-22`, `ssp-33` |
+| `FORM_WILLIAMSON_2N` | 2 | `lsrk-33`, `lsrk-54` |
+| `FORM_KETCHESON_2R` | 2 | `ssp-104` |
+| `FORM_SPLITTING` | 1 | every splitting |
 
-The stepper allocates the registers through FUNDAL: device memory in a device build. A caller that already holds
-registers passes them instead (`registers=`, a rank-6 array with the field's bounds and enough slots).
+What each register holds, and where each form does its work: [Concepts](./concepts#storage-forms).
 
 ## Verification
 
-All numbers come from `selah_test_stepper`, 248 checks (2026-11-17). The program drives the stepper the way a solver
-would: a 1-D finite-volume advection on 4 blocks of 16 cells, whose ghost fill and residual run on the device in a
-device build.
-
-**Order.** On a periodic domain, the central residual of a sine has an exact semi-discrete solution, so the error is
-the time integrator's alone. Every scheme in every form reaches its order on the last pair of steps:
-
-| Scheme | Butcher form | Other form |
-|---|---|---|
-| `euler` | 1.007 | 1.007 (two-register) |
-| `ssp-22` | 2.000 | 2.000 (two-register) |
-| `ssp-33` | 3.000 | 3.000 (two-register) |
-| `ssp-54` | 4.001 | — |
-| `ssp-104` | 4.000 | 4.000 (Ketcheson) |
-| `rk4` | 4.000 | — |
-| `lsrk-33` | 3.000 | 3.000 (2N) |
-| `lsrk-54` | 4.001 | 4.001 (2N) |
-
-The splittings, on a two-partition oscillator: `strang` 2.000, `yoshida-4` 4.000, `blanes-moan-s6` 4.000,
-`blanes-moan-s10` 6.000.
-
-**Stages on q.** With `stages_on_q=.true.` (the `butcher-q` rows of the test), every scheme keeps its order;
-`stage_state_is_q(k)` is true exactly for the zero rows of A (and for every stage of the other forms); `stage_state()`
-is null during those stages; the solution in the cells is bitwise that of the plain Butcher form. Flagging every
-stage on q instead (a mutation) fails that bitwise check for all 7 multi-stage schemes.
-
-**Contract.** Through whole steps:
-- ghost cells that the caller never fills keep a sentinel, in `q` and in every register;
-- the residual register is never the stage state;
-- `state_aliases_q` is false for the Butcher form only.
-
-**Telescoping.** With inflow on the left and outflow on the right, the change in mass over a step equals
-−Δt Σₖ stage_weight(k)·(F_right − F_left)ₖ to round-off, in every Runge–Kutta form, the derived weights of the
-two-register, 2N and Ketcheson forms included. With uniform weights in place of `stage_weight`, the check fails for
-every scheme whose weights are not uniform.
-
-The tests pass with gfortran 16.2 (serial, debug, OpenMP), nvfortran 26.9, ifx 2026.2, and on an NVIDIA A30.
+| What | Case |
+|---|---|
+| every scheme reaches its order in every form, through the stepper | [A3](/verification/accuracy/stepper-orders) |
+| the stage contract, stages on q, masks, caller registers, the error stops | [C3](/verification/contracts/stage-contract) |
+| the forms agree with the Butcher form to round-off | [C2](/verification/contracts/forms) |
+| `stage_weight` telescopes the stage fluxes to the mass change | [P4](/verification/properties/conservation) |
+| the stepper on an A30 | [C5](/verification/contracts/device) |
+| the stepper's own cost: none (0.999 of the same kernels called directly) | [Performance](./performance) |

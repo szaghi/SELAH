@@ -32,7 +32,7 @@ caps the composition at first order.
 
 ::: tip What you learned
 Partitions, flows, `stage_partition`, and when the declared order holds.
-Reference: [Schemes: splittings](/guide/schemes#splittings), [A4](/verification/accuracy/splittings).
+Reference: [Schemes: splittings](/guide/schemes#splitting-schemes), [A4](/verification/accuracy/splittings).
 :::
 
 Next: [7. Masks](./07-masks).

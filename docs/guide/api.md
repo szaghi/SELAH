@@ -4,7 +4,9 @@ title: API
 
 # API
 
-`use selah` gives everything below. The full generated reference is under [API Reference](/api/).
+`use selah` gives everything below, and nothing else: this page lists every name the facade exports (a check in the
+documentation gate compares the two). The generated reference, module by module with every argument's description, is
+under [API Reference](/api/).
 
 ## Kinds
 
@@ -33,8 +35,22 @@ title: API
 | `williamson_2n(scheme)` | the 2N form of `lsrk-33`, `lsrk-54` |
 | `splitting(scheme[, first])` | a splitting scheme, `first` the partition of the first flow (default 1) |
 
-An unknown name returns a form of 0 stages (0 flows). The names are the constants `SCHEME_*`; the lists of all of
-them are `RK_SCHEMES` and `SPLITTING_SCHEMES`.
+An unknown name returns a form of 0 stages (0 flows).
+
+### Names
+
+| Constant | Value | | Constant | Value |
+|---|---|---|---|---|
+| `SCHEME_EULER` | `'euler'` | | `SCHEME_STRANG` | `'strang'` |
+| `SCHEME_SSP_22` | `'ssp-22'` | | `SCHEME_YOSHIDA_4` | `'yoshida-4'` |
+| `SCHEME_SSP_33` | `'ssp-33'` | | `SCHEME_BLANES_MOAN_S6` | `'blanes-moan-s6'` |
+| `SCHEME_SSP_54` | `'ssp-54'` | | `SCHEME_BLANES_MOAN_S10` | `'blanes-moan-s10'` |
+| `SCHEME_SSP_104` | `'ssp-104'` | | `FORM_BUTCHER` | `'butcher'` |
+| `SCHEME_RK4` | `'rk4'` | | `FORM_SHU_OSHER_2R` | `'shu-osher-2r'` |
+| `SCHEME_LSRK_33` | `'lsrk-33'` | | `FORM_WILLIAMSON_2N` | `'williamson-2n'` |
+| `SCHEME_LSRK_54` | `'lsrk-54'` | | `FORM_KETCHESON_2R` | `'ketcheson-2r'` |
+| `RK_SCHEMES` | the 8 Runge–Kutta names, `character(7)`, blank-padded: `trim` them | | `FORM_SPLITTING` | `'splitting'` |
+| `SPLITTING_SCHEMES` | the 4 splitting names, `character(15)`, blank-padded | | `LAYOUT_V_FIRST`, `LAYOUT_V_LAST` | 1, 2 |
 
 ### Conversions and queries
 
@@ -65,9 +81,12 @@ them are `RK_SCHEMES` and `SPLITTING_SCHEMES`.
 | `selah_williamson_2n_stage([bx,] dt, a, b, r, dqr, q [, mask, mask_comp])` | dqr = a dqr + dt r; q = q + b dqr |
 
 With the box the arrays are rank 5 (`regs` rank 6) with the box's lower bounds; without it, rank 1 (`regs` rank 2).
-See [Kernels](./kernels).
+Every output is `intent(inout)`; outputs must not alias inputs; on a device every array is contiguous device memory.
+See [Kernels](./kernels) for the rules and the two shortcuts (`n = 0`, `a = 0`).
 
 ## L2: stepper
+
+The type `stepper`: one time step driven stage by stage.
 
 | Procedure of `type(stepper)` | Purpose |
 |------------------------------|---------|
@@ -82,7 +101,8 @@ See [Kernels](./kernels).
 | `stages()`, `stage_time(k)`, `stage_weight(k)`, `stage_partition(k)`, `state_aliases_q()` | queries |
 | `destroy()` | free what the stepper owns |
 
-See [Stepper](./stepper) for the contract.
+Every procedure, with its preconditions: [Stepper](./stepper#procedures). The components of `type(stepper)` are
+public but are not part of the API.
 
 ## Example: an SSP(3,3) step with the kernels
 

@@ -20,6 +20,8 @@ nvfortran 26.9, OpenACC `-gpu=cc80,cuda12.9`). The programs are `src/bench/selah
 
 ## Results
 
+![SELAH against ADAM, kernel by kernel](/guide/perf-kernels.png)
+
 | Operation | SELAH/ADAM | SELAH [GB/s] | of triad |
 |---|---|---|---|
 | stage state (stage 5 of SSP(5,4)) | 0.969 | 536 | 0.66 |
@@ -39,6 +41,10 @@ ratio, 0.787. This row still copies each residual into its register, as ADAM doe
 every 256 contiguous values; the triad streams 3 contiguous arrays.
 
 ## Whole steps through the stepper
+
+![Whole steps on the A30](/guide/perf-steps.png)
+
+*Time per step and field accesses per step, job 1368116 (pass 2): ADAM in brown, SELAH in blue.*
 
 The stepper driven as a solver drives it, the residual left in its register (the caller's work, the same on both sides).
 Field accesses per step over the interior, counted from the code before the runs; job 1368100.

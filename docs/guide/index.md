@@ -5,19 +5,44 @@ title: About
 # About SELAH
 
 SELAH (**S**tage-wise **E**volution **L**ibrary for **A**ccelerators and **H**PC) provides time-evolution operators
-for block-structured field solvers on CPUs and GPUs. It is carved out of the Runge–Kutta machinery of
-[ADAM](https://github.com/szaghi/adam) and is the kernel-level successor of
-[FOODIE](https://github.com/szaghi/FOODIE). FOODIE's operator-overloaded, polymorphic integrands are elegant, but
-they cost too much where the cells are swept.
+for block-structured field solvers on CPUs and GPUs: explicit Runge–Kutta schemes, their low-storage forms and
+splitting schemes. The schemes come as coefficients, kernels and a stepper that a solver drives one stage at a time.
+SELAH is carved out of the Runge–Kutta machinery of [ADAM](https://github.com/szaghi/adam), and is the kernel-level
+successor of [FOODIE](https://github.com/szaghi/FOODIE), whose operator-overloaded integrands are elegant but cost too
+much where the cells are swept.
 
 *Selah* is the mark that appears 71 times in the Psalms and 3 times in Habakkuk, usually read as a pause: the music
-stops and the singer breathes. SELAH's stage boundaries are such pauses. The caller's orchestrator acts there (ghost
-exchange, AMR seam fill, reflux) before the integrator goes on.
+stops and the singer breathes. SELAH's stage boundaries are such pauses. The solver acts there (ghost exchange, AMR seam
+fill, reflux) before the integrator goes on.
+
+## The three layers
+
+```mermaid
+flowchart LR
+  L0["L0 coefficients<br/>schemes, forms, conversions,<br/>registers_needed"] --> L1["L1 kernels<br/>box and flat, masked,<br/>host / OpenMP / OpenACC"]
+  L1 --> L2["L2 stepper<br/>a step driven stage by stage,<br/>under the stage contract"]
+  L2 -.-> S["your solver<br/>time loop, ghosts, residual"]
+  S -.-> L2
+```
+
+- **L0, the coefficients** ([Schemes](./schemes)): eight Runge–Kutta schemes and four splittings, each in the form its
+  source publishes, the other forms derived from it, every value verified.
+- **L1, the kernels** ([Kernels](./kernels)): the stage operations over your arrays (a box of a block-structured field,
+  or a flat array), one source for every backend.
+- **L2, the stepper** ([Stepper](./stepper)): the registers and the sequence of kernels of one step, in five storage
+  forms, called around your own ghost fill and residual.
+
+You can use any layer alone: the coefficients for your own kernels, the kernels for your own step, or the stepper.
 
 ## Status
 
-Milestone **M5**: L0, the coefficients ([Schemes](./schemes)); L1, the kernels on the host and on the GPU
-([Kernels](./kernels), [Performance](./performance)); L2, the [Stepper](./stepper); see the [API](./api). The design (layers L0–L3, principles, milestones, risks) is in `notes/PLAN.md` of the repository.
+**v0.1.0** (2026-11-17). On `main`, not yet released:
+- `stages_on_q` and `stage_state_is_q` ([Stepper](./stepper#stages-on-q));
+- the 2N stage that no longer reads its register on the first stage;
+- the validation of the caller's registers;
+- this documentation.
+
+The wiring into ADAM is next.
 
 ## Design principles
 
@@ -26,5 +51,12 @@ Milestone **M5**: L0, the coefficients ([Schemes](./schemes)); L1, the kernels o
 3. Kernels act on plain contiguous arrays with explicit lower bounds.
 4. Box kernels update the interior only; the integrator never writes a ghost cell.
 5. One working precision per build (PENF's `R_P`: R8P by default, R4P with `-D_R_P_IS_R4P`).
-6. One kernel source for host OpenMP, OpenACC and OpenMP offload.
-7. The floating-point summation order of every kernel is specified, so golden tests can be bitwise.
+6. One kernel source for the host (OpenMP or not) and OpenACC, through FUNDAL's macros.
+7. The summation order of every kernel is specified (a private sum, then one store), so golden tests can be bitwise.
+
+## Where to go
+
+- New to SELAH: the [Quick start](./quickstart), then the [Tutorial](/tutorial/).
+- A specific task: the [Cookbook](/cookbook/).
+- The evidence behind every claim: [Verification](/verification/).
+- Every public entity: [API](./api), and the generated [API reference](/api/).

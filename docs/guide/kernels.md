@@ -45,40 +45,31 @@ cells are left untouched, except the step residual, which is 0 there.
 **Summation order.** A sum over registers is formed privately and stored once, as ADAM's FNL kernels do. The results
 are therefore bitwise those of ADAM's device path (see Verification).
 
-**Backends.** One source serves the host (plain loops, or OpenMP with `-fopenmp`), OpenACC and OpenMP offload,
+**Rules the kernels do not check.**
+- **No aliasing.** An output must not alias an input: `selah_axpy(bx, a, y, y)` is undefined. The kernels are
+  written for distinct arrays.
+- **Bounds.** A box kernel's arrays must have the box's lower bounds, `bx%lb` (`regs` with its slots on dimension 6,
+  from 1). A flat kernel loops over the size of its output, so every array must have at least that size.
+- **Contiguity on a device.** A device kernel receives its arrays by address (`deviceptr`), so they must be contiguous
+  device memory, the coefficient arrays included. On the host a strided section such as `bt%a(s,:)` works. On a GPU,
+  pass a contiguous copy: the stepper keeps the transpose of A for this reason.
+- **`mask_comp` without `mask`** is ignored.
+
+**Two shortcuts.** `selah_stage_state` with `n = 0` is a copy, which runs at the speed of a copy. The 2N stage with
+`a = 0` (the first stage of every 2N scheme) writes $\Delta Q = \Delta t\, r$ without reading $\Delta Q$: its
+previous content, NaN included, cannot reach the step.
+
+**Backends.** One source serves the host (plain loops, or OpenMP with `-fopenmp`) and OpenACC,
 through FUNDAL's `fundal.H` macros in the directive style of ADAM's FNL kernels. Each loop body is an `.INC` file,
-included unmasked and once per layout masked. In a device build every array argument must be device resident, the
-coefficients included.
+included unmasked and once per layout masked. OpenMP offload has the directives but no build mode yet
+([Installation](./installation#backends)).
 
 ## Verification
 
-All numbers come from the test programs (2026-11-17).
-
-**Cell by cell** (`selah_test_kernels`, 270 checks). The fields have 3 components and 4×3×2 interior cells with 2
-ghost cells, in a pool of 6 blocks, in both layouts. Every kernel runs on 3 and then 5 active blocks, unmasked and
-masked, and on a component range. The checks:
-
-- every cell of the box holds the reference value, within 16 ε;
-- every other cell (ghosts, inactive pool slots, components outside the range, masked-out cells) is **bitwise
-  untouched**;
-- the step residual is exactly 0 on masked cells.
-
-A mutant kernel that writes one ghost layer is caught. The tests pass with gfortran 16.2 (serial, debug, and
-OpenMP with 4 threads), nvfortran 26.9 and ifx 2026.2.
-
-**Against ADAM** (`selah_test_kernels_adam`).
-
-| Path | Oracle | Result |
-|------|--------|--------|
-| FNL (`LAYOUT_V_LAST`) | ADAM's `adam_fnl_rk_kernels.F90`, byte-exact copy | an SSP(5,4) step (stage states, solution) and a two-register SSP(3,3) step, unmasked and masked: **bitwise equal** on gfortran, nvfortran and ifx |
-| CPU (`LAYOUT_V_FIRST`) | ADAM's `rk_object` loops, transcribed | first stage and two-register stages bitwise; later stages, dq and solution within **1.00 ε** |
-
-ADAM's CPU loops sum term by term in place, a different order from its FNL kernels. Under FMA contraction (nvfortran)
-even a one-term stage can differ: ADAM's in-place update contracts into one rounding, while SELAH's private sum rounds
-twice. A mutant that re-associates the stage product is caught by the bitwise checks.
-
-**On the device** (NVIDIA A30, OpenACC; medooza jobs 1368085 and 1368089). `selah_test_device_kernels` runs every
-kernel on device arrays allocated through FUNDAL, with the same checks as on the host (39 checks).
-`selah_test_device_adam` runs SELAH's kernels and ADAM's FNL kernels on the same device fields: an SSP(5,4) step and a
-two-register step, unmasked and masked. They are **bitwise equal on the A30** (18 checks). Both tests refuse a silent
-host fallback. For the timings, see [Performance](./performance).
+| What | Case |
+|---|---|
+| every kernel, cell by cell: values in the box, every other cell bitwise untouched (316 checks) | [C3](/verification/contracts/stage-contract) |
+| ADAM's FNL kernels bitwise, ADAM's CPU loops within 4 ε (1.00 ε measured) | [C1](/verification/contracts/adam-equivalence) |
+| on an NVIDIA A30 | [C5](/verification/contracts/device) |
+| pinned values | [C4](/verification/contracts/golden) |
+| timings against ADAM | [Performance](./performance) |

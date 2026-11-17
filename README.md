@@ -22,12 +22,12 @@
 
 ---
 
-> [!WARNING]
-> **Pre-release (M5).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms), L1, the kernels
-> (bitwise ADAM's FNL kernels on an A30), and L2, the stepper a caller drives stage by stage under a tested contract,
-> are in. Through the stepper an SSP(5,4) step with its step residual costs 0.55 of ADAM's on the A30. Next: the
-> documentation and v0.1.0 (M6), then the wiring into ADAM (M7). The design and the milestones are in
-> [notes/PLAN.md](notes/PLAN.md).
+> [!NOTE]
+> **v0.1.0** (2026-11-17): L0, the coefficients (Runge–Kutta and splitting schemes, storage forms); L1, the kernels
+> (bitwise ADAM's FNL kernels, on the host and on an A30); L2, the stepper a caller drives stage by stage under a tested
+> contract. Through the stepper an SSP(5,4) step with its step residual costs 0.52 of ADAM's on the A30. On `main`
+> since: `stages_on_q`, the documentation with its tutorial, cookbook and verification section. Next: the wiring into
+> ADAM. The design is in [notes/PLAN.md](notes/PLAN.md); the documentation at https://szaghi.github.io/SELAH.
 
 ## The name
 
@@ -49,7 +49,7 @@ Four layers (details in [notes/PLAN.md](notes/PLAN.md)):
 ## Build
 
 ```bash
-fobis fetch                      # PENF
+fobis fetch                      # PENF and FUNDAL
 fobis build --mode tests-gnu     # the library and the tests
 bash scripts/run_tests.sh
 fobis build                      # the static library, lib/gnu/static/libselah.a

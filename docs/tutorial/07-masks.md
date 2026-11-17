@@ -27,7 +27,7 @@ Block 3 kept every value bit for bit.
 
 ::: tip What you learned
 Masks: the sign convention, the component, and that they apply to every stepper call.
-Reference: [Kernels: masks](/guide/kernels#masks).
+Reference: [Concepts: masks](/guide/concepts#masks).
 :::
 
 Next: [8. The flux register](./08-flux-register).

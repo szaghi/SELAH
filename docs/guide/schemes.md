@@ -21,7 +21,15 @@ read these coefficients.
 | `lsrk-33` | 3  | 3 | —           | Williamson 2N | Butcher | Williamson (1980) |
 | `lsrk-54` | 5  | 4 | —           | Williamson 2N | Butcher | Carpenter & Kennedy (1994), NASA TM-109112 |
 
-The SSP coefficient is computed from the Shu–Osher form (`ssp_coefficient`), never typed in.
+The SSP coefficient is computed from the Shu–Osher form (`ssp_coefficient`), never typed in. It is the minimum of
+$\alpha_{ik}/\beta_{ik}$ over the coefficients SELAH stores: another Shu–Osher representation of the same tableau can
+give a larger value. For the catalogue the stored forms are the optimal ones, so the value is the scheme's SSP
+coefficient ([P2](/verification/properties/ssp-coefficients)). For a tableau built by hand, 0 means "not computed" as
+well as "not SSP".
+
+The names are the constants `SCHEME_EULER`, `SCHEME_SSP_22`, …, `SCHEME_LSRK_54`; `RK_SCHEMES` lists them all. The
+entries of `RK_SCHEMES` are fixed-length strings padded with blanks: `trim` them before passing them on. An unknown
+name gives a tableau of 0 stages.
 
 ### The coefficient forms
 
@@ -55,6 +63,15 @@ buffer included:
 `ssp-104` is the reason the low-storage forms matter. In Butcher form it needs 11 buffers, but 2 in Ketcheson's. Its
 effective SSP coefficient per stage is 0.6, against 0.30 for `ssp-54`.
 
+### Every tableau
+
+Printed from the library itself (`docs/examples/src/tableaux.F90`, regenerated with the documentation):
+
+<<< @/examples/output/tableaux.txt{text}
+
+`butcher_tableau%b_hat`, the embedded weights of a pair, is reserved: no scheme of the catalogue has one, and it stays
+unallocated.
+
 ## Splitting schemes
 
 For $u' = F_1(u) + F_2(u)$, a step is the product of the sub-flows of the two partitions, each over a fraction of
@@ -67,35 +84,18 @@ $\Delta t$. Every scheme is a palindrome, stored as its half sequence, so its or
 | `blanes-moan-s6`  | 13 | 4 | Blanes & Moan (2002), S6 |
 | `blanes-moan-s10` | 21 | 6 | Blanes & Moan (2002), S10 |
 
+The flows apply left to right, flow 1 first, and `splitting(name, first=2)` starts with partition 2. Through the
+stepper a flow is one forward-Euler step of its partition, $y_p \mathrel{+}= c_k\,\Delta t\,R_p$. That is the exact
+flow of partition $p$ only when $R_p$ does not depend on partition $p$ itself, as with the positions and momenta of a
+separable Hamiltonian. Otherwise the composition is first order, whatever its declared order
+([A4](/verification/accuracy/splittings), [Tutorial 6](/tutorial/06-splittings)).
+
 ## Verification
 
-All numbers come from the test programs (gfortran 16.2.0, 2026-11-17); the tests also pass with nvfortran 26.9
-and ifx 2026.2.
-
-**Order conditions.** The eight conditions up to order 4 are evaluated in quadruple precision on the stored
-coefficients (R8P with nvfortran, which has no quad kind), so the residual is the tableau's. The largest residual up
-to the declared order:
-
-| `euler` | `ssp-22` | `ssp-33` | `ssp-54` | `ssp-104` | `rk4` | `lsrk-33` | `lsrk-54` |
-|---|---|---|---|---|---|---|---|
-| 0 | 0 | 5.6e-17 | 5.1e-16 | 6.0e-17 | 5.6e-17 | 1.2e-17 | 8.7e-17 |
-
-For the schemes of order below 4, some condition of the next order fails: the declared order is exact.
-
-**Observed order.** The orders measured on $y' = -y$ and $y' = -y^2$, between 64 and 128 steps on $[0, 1]$, all lie
-within 0.02 of the declared order. For the splittings, the system is $q' = p$, $p' = -V'(q)$ with exact sub-flows,
-measured with either partition first, on the harmonic oscillator and on the pendulum:
-
-| Scheme | Observed order, finest pair |
-|--------|-----------------------------|
-| `strang`          | 2.000 |
-| `yoshida-4`       | 3.999–4.000 |
-| `blanes-moan-s6`  | 4.000 |
-| `blanes-moan-s10` | 6.002–6.006 |
-
-**Published values reproduced.** The SSP coefficients (1, 1, 1, 1.508, 6), the weights of `ssp-104` (all 1/10) and
-its abscissas, and the abscissas of Carpenter & Kennedy.
-
-**Equivalence with ADAM.** The `euler`, `ssp-22`, `ssp-33` and `ssp-54` tableaux are bitwise ADAM's `ssp_tableau`,
-and the two-register forms are bitwise ADAM's `ark`, `brk`, `crk`. The test uses ADAM's code verbatim as its
-oracle (`src/tests/selah_adam_reference.F90`), so wiring SELAH's coefficients into ADAM changes no golden output.
+| What | Case |
+|---|---|
+| the order conditions, in quadruple precision | [A1](/verification/accuracy/order-conditions) |
+| the observed orders, scalar problems, through the stepper, splittings | [A2](/verification/accuracy/scalar-orders), [A3](/verification/accuracy/stepper-orders), [A4](/verification/accuracy/splittings) |
+| the stability regions | [A5](/verification/accuracy/stability) |
+| the SSP coefficients and strong stability | [P2](/verification/properties/ssp-coefficients), [P1](/verification/properties/ssp-tvd) |
+| ADAM's coefficients, bitwise | [C1](/verification/contracts/adam-equivalence) |

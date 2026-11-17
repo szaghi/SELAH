@@ -20,7 +20,8 @@ is welcome. The project follows a KISS (Keep It Simple and Stupid) philosophy.
    ```bash
    git checkout -b fix/my_contribution
    ```
-3. Test your changes with `fobis build && bash scripts/run_tests.sh`
+3. Test your changes: `fobis build --mode tests-gnu && bash scripts/run_tests.sh`, and the single-precision build
+   (`--mode tests-gnu-r4`, every program in `exe-r4/`)
 4. Check for unnecessary whitespace: `git diff --check`
 5. Submit a pull request with a clear commit message
 
@@ -103,3 +104,16 @@ Pushing the tag triggers the GitHub Actions release workflow, which automaticall
 Tests, coverage and this documentation site are not part of the release workflow: they run
 on every branch push (`ci.yml`, `docs.yml`), so the tagged commit has already been tested
 and its documentation deployed.
+
+## Changing what SELAH computes
+
+- **Golden values.** A change that moves results moves the golden values ([C4](/verification/contracts/golden)). Never
+  edit a golden file: write a new one (`selah_test_golden write src/tests/golden/selah_golden_v2.txt`), make it the
+  test's default, and say in the commit why the values moved.
+- **Verification data.** Run `bash scripts/run_vv.sh` and commit the regenerated figures and tables
+  (`docs/public/verification/`, `docs/verification/_tables/`). They are never edited by hand.
+- **Documentation examples.** Run `bash scripts/docs_examples.sh` and commit the regenerated snippets and outputs; the
+  Docs examples workflow fails when they drift.
+- **A new feature** needs a verification case (a program that asserts against something independent), a line on
+  [Test programs](/verification/unit-tests), and mutants in `scripts/mutation_test.py` that the suite kills
+  ([C6](/verification/contracts/mutation)).
