@@ -1,0 +1,5 @@
+$ cookbook_storage pool
+pool: 6 registers,    3.2 MiB
+ssp-54: uses 6 of the pool
+rk4: uses 5 of the pool
+ssp-33: uses 4 of the pool

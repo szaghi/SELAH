@@ -1,0 +1,6 @@
+$ cookbook_diagnostics contract
+stage 1: state is q T, stage_state() associated F
+stage 2: state is q F, stage_state() associated T
+stage 3: state is q F, stage_state() associated T
+stage 4: state is q F, stage_state() associated T
+stage 5: state is q F, stage_state() associated T

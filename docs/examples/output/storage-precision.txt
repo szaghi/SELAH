@@ -1,0 +1,3 @@
+$ cookbook_storage precision
+R_P: kind 8, decimal digits 15
+double precision build: T

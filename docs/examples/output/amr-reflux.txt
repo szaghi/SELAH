@@ -1,0 +1,3 @@
+$ cookbook_amr reflux
+mass drift without the correction:  5.51E-04
+mass drift with it:                 2.22E-16

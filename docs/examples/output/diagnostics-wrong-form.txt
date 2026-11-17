@@ -1,0 +1,3 @@
+$ cookbook_diagnostics wrong-form
+ERROR STOP selah stepper: scheme "rk4" has no form "shu-osher-2r"
+[exit status 1]

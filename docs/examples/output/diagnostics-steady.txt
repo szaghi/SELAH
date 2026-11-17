@@ -1,0 +1,2 @@
+$ cookbook_diagnostics steady
+converged in 47 steps: max |dq| =  6.79E-11, max |u - g| =  5.18E-11

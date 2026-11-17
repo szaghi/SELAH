@@ -1,0 +1,10 @@
+$ cookbook_schemes choose
+scheme   order  SSP   fewest registers  in form
+ euler       1   yes           2      butcher
+ ssp-22      2   yes           2      shu-osher-2r
+ ssp-33      3   yes           2      shu-osher-2r
+ ssp-54      4   yes           6      butcher
+ ssp-104     4   yes           2      ketcheson-2r
+ rk4         4    no           5      butcher
+ lsrk-33     3    no           2      williamson-2n
+ lsrk-54     4    no           2      williamson-2n

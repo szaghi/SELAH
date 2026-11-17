@@ -59,7 +59,7 @@ run() { # run [-s] ID COMMAND
   {
     printf '$ %s\n' "$cmd"
     (cd "$run_dir" && env -i HOME="$run_dir" PATH="$build/bin:/usr/bin:/bin" SHELL=/bin/bash LC_ALL=C \
-                     LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}" OMP_NUM_THREADS=1 GFORTRAN_UNBUFFERED_PRECONNECTED=y \
+                     LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}" OMP_NUM_THREADS=1 GFORTRAN_UNBUFFERED_PRECONNECTED=y GFORTRAN_ERROR_BACKTRACE=0 \
                      bash -c "$cmd" < /dev/null 2>&1) || status=$?
     if [ $show = 1 ]; then printf '[exit status %d]\n' "$status"; fi
   } | sed -E -e "s|$run_dir|$home|g" > "$ex/output/$id.txt"
