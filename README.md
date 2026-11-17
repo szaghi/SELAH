@@ -3,7 +3,7 @@
 <picture>
   <source media="(prefers-color-scheme: dark)"  srcset="docs/public/logo-dark.svg">
   <source media="(prefers-color-scheme: light)" srcset="docs/public/logo.svg">
-  <img src="docs/public/logo.svg" alt="SELAH" width="320">
+  <img src="docs/public/logo.svg" alt="SELAH, one drop falling on still water and four rings spreading from it, on a brushed AMR ground" width="320">
 </picture>
 
 #### *time integrators as stage-wise operators, the pause between stages left to your solver, on every CPU and GPU*

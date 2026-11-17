@@ -8,7 +8,7 @@ hero:
   image:
     light: /logo.svg
     dark: /logo-dark.svg
-    alt: SELAH
+    alt: SELAH, one drop falling on still water and four rings spreading from it
   actions:
     - theme: brand
       text: Quick start
@@ -27,27 +27,57 @@ hero:
       link: https://github.com/szaghi/SELAH
 
 features:
-  - title: A verified catalogue
+  - icon:
+      light: /icons/tableaux.svg
+      dark: /icons/tableaux-dark.svg
+      width: 44
+      height: 44
+    title: A verified catalogue
     details: Eight Runge–Kutta schemes and four splittings. Order conditions in quadruple precision, stability regions, SSP coefficients, all checked against closed forms and published values.
     link: /guide/schemes
     linkText: Schemes
-  - title: Kernels over your arrays
+  - icon:
+      light: /icons/kernels.svg
+      dark: /icons/kernels-dark.svg
+      width: 44
+      height: 44
+    title: Kernels over your arrays
     details: Stage operations on block-structured fields with ghost cells, in two layouts, masked or not. They write the box and nothing else.
     link: /guide/kernels
     linkText: Kernels
-  - title: A stepper you drive
+  - icon:
+      light: /icons/stepper.svg
+      dark: /icons/stepper-dark.svg
+      width: 44
+      height: 44
+    title: A stepper you drive
     details: begin_stage, end_stage, finish_step, around your own ghost fill and residual, under a stage contract an AMR orchestrator can rely on.
     link: /guide/stepper
     linkText: Stepper
-  - title: Low storage, same answer
+  - icon:
+      light: /icons/low-storage.svg
+      dark: /icons/low-storage-dark.svg
+      width: 44
+      height: 44
+    title: Low storage, same answer
     details: Two-register, Williamson 2N and Ketcheson forms in 2 registers instead of s + 1, equal to the Butcher form to round-off.
     link: /guide/concepts#storage-forms
     linkText: Storage forms
-  - title: CPU and GPU, one source
+  - icon:
+      light: /icons/cpu-gpu.svg
+      dark: /icons/cpu-gpu-dark.svg
+      width: 44
+      height: 44
+    title: CPU and GPU, one source
     details: One kernel source for the host and OpenACC through FUNDAL. On an A30 the stepper costs nothing over its kernels, and the step residual comes in the update's pass.
     link: /guide/performance
     linkText: Performance
-  - title: Evidence, not adjectives
+  - icon:
+      light: /icons/order-conditions.svg
+      dark: /icons/order-conditions-dark.svg
+      width: 44
+      height: 44
+    title: Evidence, not adjectives
     details: 21 verification programs, a golden file, 28 of 28 mutants killed, an A30, three compilers, two precisions. Every figure regenerated from the programs.
     link: /verification/
     linkText: Verification

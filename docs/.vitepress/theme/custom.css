@@ -1,15 +1,15 @@
-/* SELAH documentation theme. The identity block below is a PLACEHOLDER: SELAH has no identity bundle yet (the owner
-   supplies one, as seth-identity.zip for SETH). Until it arrives the grounds, inks and fonts are the Sumi family's
-   (washi :root, silver ink .dark, as SETH), and the accent is a neutral placeholder indigo. Swapping the bundle in means
-   editing this block, docs/scripts/selah_palette.py and the logo/favicon files in docs/public/, nothing else.
-   Every text pair is at least 4.5:1 on its ground. */
+/* SELAH · Hamon 波紋 in Tsuyukusa 露草 — Sumi family tokens for VitePress.
+   Washi is :root, silver ink is .dark. Every text pair is at least 4.5:1 on its ground.
+   Dayflower blue #6fb8ff is the night ink; on washi it deepens to #1f6fc0 (drop, seal)
+   and #1b62aa (links, primary button). The tokens are the identity bundle's (docs/brand/tokens.json); the layout rules
+   after them are SELAH's own (galleries, casts, catalogue cards, home sections, the figures' dark twins). */
 @import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 
-/* ---------- PLACEHOLDER identity tokens ---------- */
 :root {
   --vp-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --vp-font-family-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --selah-font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  /* ground */
   --vp-c-bg: #f3ede1;
   --vp-c-bg-alt: #ebe3d3;
   --vp-c-bg-elv: #f7f2e8;
@@ -17,32 +17,38 @@
   --vp-c-divider: #ddd4c3;
   --vp-c-gutter: #ddd4c3;
   --vp-c-border: #6f6a62;
+  /* ink */
   --vp-c-text-1: #1d1b18;
   --vp-c-text-2: #5f5a52;
   --vp-c-text-3: #5f5a52;
-  --vp-c-brand-1: #2f4f8f;
-  --vp-c-brand-2: #233d70;
-  --vp-c-brand-3: #2f4f8f;
-  --vp-c-brand-soft: rgba(47, 79, 143, 0.14);
-  --vp-button-brand-bg: #2f4f8f;
-  --vp-button-brand-border: #2f4f8f;
+  /* tsuyukusa: links, active nav, primary button */
+  --vp-c-brand-1: #1b62aa;
+  --vp-c-brand-2: #164e88;
+  --vp-c-brand-3: #1b62aa;
+  --vp-c-brand-soft: rgba(31, 111, 192, 0.14);
+  --vp-button-brand-bg: #1b62aa;
+  --vp-button-brand-border: #1b62aa;
   --vp-button-brand-text: #ffffff;
-  --vp-button-brand-hover-bg: #233d70;
-  --vp-button-brand-hover-border: #233d70;
+  --vp-button-brand-hover-bg: #164e88;
+  --vp-button-brand-hover-border: #164e88;
   --vp-button-brand-hover-text: #ffffff;
-  --vp-button-brand-active-bg: #233d70;
-  --vp-button-brand-active-border: #233d70;
+  --vp-button-brand-active-bg: #164e88;
+  --vp-button-brand-active-border: #164e88;
   --vp-button-brand-active-text: #ffffff;
   --vp-button-alt-border: #6f6a62;
-  --selah-accent: #2f4f8f;
+  /* the drop and the seal: fills only, never text */
+  --selah-drop: #1f6fc0;
+  --selah-seal: #1f6fc0;
   --selah-focus: #1d1b18;
   --vp-home-hero-name-color: #1d1b18;
   --vp-code-block-bg: #ebe3d3;
+  /* no glow behind the mark: the ink carries it */
   --vp-home-hero-image-background-image: none;
   --vp-home-hero-image-filter: none;
 }
 
 .dark {
+  /* ground */
   --vp-c-bg: #0e1116;
   --vp-c-bg-alt: #0a0d11;
   --vp-c-bg-elv: #141820;
@@ -50,29 +56,32 @@
   --vp-c-divider: #222831;
   --vp-c-gutter: #222831;
   --vp-c-border: #8b949e;
+  /* ink */
   --vp-c-text-1: #e8ecf0;
   --vp-c-text-2: #a9b1bb;
   --vp-c-text-3: #a9b1bb;
-  --vp-c-brand-1: #b4c8ff;
-  --vp-c-brand-2: #9db8ff;
-  --vp-c-brand-3: #9db8ff;
-  --vp-c-brand-soft: rgba(157, 184, 255, 0.14);
-  --vp-button-brand-bg: #9db8ff;
-  --vp-button-brand-border: #9db8ff;
-  --vp-button-brand-text: #0e1116;
-  --vp-button-brand-hover-bg: #7f9fef;
-  --vp-button-brand-hover-border: #7f9fef;
-  --vp-button-brand-hover-text: #0e1116;
-  --vp-button-brand-active-bg: #7f9fef;
-  --vp-button-brand-active-border: #7f9fef;
-  --vp-button-brand-active-text: #0e1116;
+  /* tsuyukusa: links, active nav, primary button */
+  --vp-c-brand-1: #8cc6ff;
+  --vp-c-brand-2: #6fb8ff;
+  --vp-c-brand-3: #6fb8ff;
+  --vp-c-brand-soft: rgba(111, 184, 255, 0.14);
+  --vp-button-brand-bg: #6fb8ff;
+  --vp-button-brand-border: #6fb8ff;
+  --vp-button-brand-text: #06121f;
+  --vp-button-brand-hover-bg: #389dff;
+  --vp-button-brand-hover-border: #389dff;
+  --vp-button-brand-hover-text: #06121f;
+  --vp-button-brand-active-bg: #389dff;
+  --vp-button-brand-active-border: #389dff;
+  --vp-button-brand-active-text: #06121f;
   --vp-button-alt-border: #8b949e;
-  --selah-accent: #9db8ff;
-  --selah-focus: #9db8ff;
+  /* the drop and the seal: fills only */
+  --selah-drop: #6fb8ff;
+  --selah-seal: #6fb8ff;
+  --selah-focus: #8cc6ff;
   --vp-home-hero-name-color: #e8ecf0;
   --vp-code-block-bg: #0a0d11;
 }
-/* ---------- end of the PLACEHOLDER identity tokens ---------- */
 
 /* names in the display face, tracked wide */
 .VPNavBarTitle .title,

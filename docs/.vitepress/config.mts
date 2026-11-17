@@ -5,15 +5,19 @@ export default withMermaid({
   description: 'Stage-wise Evolution Library for Accelerators and HPC: time-evolution operators for block-structured field solvers',
   base: '/SELAH/',
   // ford.md is the API generator's project file; _tables/ are the generated fragments the pages include
-  srcExclude: ['ford.md', '**/_tables/**', 'examples/**'],
+  srcExclude: ['ford.md', '**/_tables/**', 'examples/**', 'brand/**'],
   // dead links fail the build; SELAH_DOCS_DRAFT=1 tolerates them while a refactor is half done (never in CI)
   ignoreDeadLinks: process.env.SELAH_DOCS_DRAFT === '1',
 
-  // the identity slots (PLACEHOLDER files until the bundle arrives): favicons by colour scheme, theme colour, and the
-  // theme-aware videos of the verification pages (<video class="light-only"> / <video class="dark-only">)
+  // the identity (Hamon in Tsuyukusa, docs/brand/): favicons by colour scheme with PNG fallbacks, the touch icon, the
+  // theme colour; and the theme-aware videos of the verification pages (<video class="light-only"> / "dark-only").
+  // VitePress does not add the base to head hrefs: they carry /SELAH/ explicitly.
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/SELAH/favicon.svg', media: '(prefers-color-scheme: light)' }],
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/SELAH/favicon-dark.svg', media: '(prefers-color-scheme: dark)' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/SELAH/favicon-32.png' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/SELAH/favicon-16.png' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/SELAH/apple-touch-icon.png' }],
     ['meta', { name: 'theme-color', content: '#f3ede1', media: '(prefers-color-scheme: light)' }],
     ['meta', { name: 'theme-color', content: '#0e1116', media: '(prefers-color-scheme: dark)' }],
     ['style', {}, '.dark-only{display:none}.dark .dark-only{display:block}.dark .light-only{display:none}'],

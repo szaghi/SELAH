@@ -1,13 +1,14 @@
-"""The colours of SELAH's documentation figures and animations: one place, a PLACEHOLDER until the identity bundle.
+"""The colours of SELAH's documentation figures and animations: the identity (Hamon in Tsuyukusa) applied to data.
 
 Why this module exists: every figure script (make_doc_figures, make_convention_figures, make_performance_figures) and
-the animations (make_doc_animations) take their colours from here, so that the identity bundle, when the owner supplies
-it, is swapped in by editing this file and docs/.vitepress/theme/custom.css, nothing else.
+the animations (make_doc_animations) take their colours from here, once.
 
-Until then: the grounds and inks are the Sumi family's (washi light, silver ink dark: the grounds of SETH's docs), and
-the categorical data lines are SETH's (validated there with the dataviz skill's validate_palette.js against these same
-grounds: lightness band, chroma floor, colour-blind separation of adjacent pairs, contrast). The accent is a neutral
-placeholder indigo, the colour of the docs' links (custom.css).
+The grounds and inks are the Sumi family's, as in docs/brand/tokens.json (washi light, silver ink dark). The accent is
+the identity's ink, Tsuyukusa (dayflower blue): #1f6fc0 on washi, #6fb8ff on silver ink, for fills only, as the drop
+and the seal of the mark. The categorical data lines are those validated for SETH's docs on these same grounds with the
+dataviz skill's validate_palette.js (lightness band, chroma floor, colour-blind separation of adjacent pairs,
+contrast); their first hue is a blue next to Tsuyukusa, so the SSP family, the core of the catalogue, wears the
+identity's colour.
 
 The static figures are drawn twice by their scripts, with the light colours and, inside figure_theme.theme("dark")
 (ADAM's harness, unchanged), with the dark ones (STYLE_DARK, LINES_DARK); the animations draw each theme with its own.
@@ -18,7 +19,7 @@ from __future__ import annotations
 # grounds and inks (custom.css)
 WASHI, WASHI_ALT, INK_LIGHT, MESH_LIGHT = '#f3ede1', '#ebe3d3', '#1d1b18', '#6f6a62'
 SILVER, SILVER_ALT, INK_DARK, MESH_DARK = '#0e1116', '#0a0d11', '#e8ecf0', '#8b949e'
-ACCENT_LIGHT, ACCENT_DARK = '#2f4f8f', '#9db8ff'  # PLACEHOLDER accent (custom.css --selah-accent)
+ACCENT_LIGHT, ACCENT_DARK = '#1f6fc0', '#6fb8ff'  # Tsuyukusa (custom.css --selah-drop)
 
 # categorical data colours, in fixed order (never cycled): blue, green, plum, umber
 BLUE, GREEN, PLUM, UMBER = '#1f63a8', '#4a7a06', '#8a4f9e', '#a8661c'
