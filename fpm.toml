@@ -1,0 +1,32 @@
+name = "SELAH"
+version = "0.0.0"
+license = "GPL-3.0-or-later OR BSD-2-Clause OR BSD-3-Clause OR MIT"
+author = "Stefano Zaghi"
+maintainer = "stefano.zaghi@gmail.com"
+copyright = "Copyright 2026 Stefano Zaghi"
+homepage = "https://github.com/szaghi/SELAH"
+description = "Stage-wise Evolution Library for Accelerators and HPC: time-evolution operators for block-structured field solvers"
+
+[dependencies]
+PENF = { git="https://github.com/szaghi/PENF.git", branch="master" }
+
+[library]
+source-dir = "src/lib"
+
+[build]
+auto-executables = false
+auto-tests = false
+auto-examples = false
+
+[fortran]
+implicit-typing = false
+implicit-external = false
+source-form = "free"
+
+[install]
+library = true
+
+[[test]]
+name = "selah_test_kinds"
+source-dir = "src/tests"
+main = "selah_test_kinds.F90"
