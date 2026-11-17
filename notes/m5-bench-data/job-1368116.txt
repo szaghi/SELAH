@@ -1,0 +1,57 @@
+# selah_bench_stepper on medooza gnode01, NVIDIA A30, nvfortran 26.9, job 1368116 (2026-11-17): passes 2 and 3 as printed
+job 1368116 left the queue
+PASS  selah_bench_stepper
+all passed
+pass 2 (ADAM timed first) 
+| operation | accesses | time [ms] | GB/s |
+|---|---|---|---|
+| ADAM SSP(5,4) step | 47 |     4.574 |    431.0 |
+| ADAM FLUME SSP(5,4) step + residual kernel | 53 |     4.954 |    448.7 |
+| SELAH stepper SSP(5,4) Butcher | 27 |     2.690 |    420.9 |
+| SELAH stepper SSP(5,4) Butcher + dq fused | 28 |     2.716 |    432.4 |
+| SELAH SSP(5,4) + dq, stage 1 on q (kernels) | 26 |     2.547 |    428.1 |
+| SELAH stepper SSP(10,4) Butcher | 77 |     6.404 |    504.3 |
+| SELAH stepper SSP(10,4) Ketcheson 2 registers | 39 |     2.336 |    700.1 |
+| SELAH SSP(5,4) + dq (kernels, the control of 5) | 28 |     2.714 |    432.8 |
+| stage state of stage 1 (no register): u = q + 0 | 2 |     0.164 |    510.4 |
+| copy u = q | 2 |     0.164 |    511.2 |
+| SELAH stepper SSP(5,4) + dq, stages_on_q | 26 |     2.552 |    427.2 |
+| pair | access ratio | time ratio | time / access |
+|---|---|---|---|
+| SELAH + dq / ADAM FLUME |  0.528 |  0.548 |  1.038 |
+| SELAH / ADAM |  0.574 |  0.588 |  1.024 |
+| SELAH kernels / SELAH stepper, + dq |  1.000 |  0.999 |  0.999 |
+| SELAH stage 1 on q / SELAH + dq, kernels |  0.929 |  0.939 |  1.011 |
+| Ketcheson / Butcher SSP(10,4) |  0.506 |  0.365 |  0.720 |
+| stage 1 stage state / copy |  1.000 |  1.002 |  1.002 |
+| stepper stages_on_q / stepper, + dq |  0.929 |  0.940 |  1.012 |
+| stepper stages_on_q / kernels stage 1 on q |  1.000 |  1.002 |  1.002 |
+equal simulated time, SSP(10,4) Ketcheson / SSP(5,4) Butcher: integrator  0.218 (accesses  0.363), residual evaluations  0.503
+pass 3 (SELAH timed first)
+| operation | accesses | time [ms] | GB/s |
+|---|---|---|---|
+| ADAM SSP(5,4) step | 47 |     4.580 |    430.4 |
+| ADAM FLUME SSP(5,4) step + residual kernel | 53 |     4.961 |    448.1 |
+| SELAH stepper SSP(5,4) Butcher | 27 |     2.692 |    420.6 |
+| SELAH stepper SSP(5,4) Butcher + dq fused | 28 |     2.718 |    432.1 |
+| SELAH SSP(5,4) + dq, stage 1 on q (kernels) | 26 |     2.549 |    427.8 |
+| SELAH stepper SSP(10,4) Butcher | 77 |     6.408 |    504.0 |
+| SELAH stepper SSP(10,4) Ketcheson 2 registers | 39 |     2.325 |    703.7 |
+| SELAH SSP(5,4) + dq (kernels, the control of 5) | 28 |     2.716 |    432.5 |
+| stage state of stage 1 (no register): u = q + 0 | 2 |     0.164 |    510.6 |
+| copy u = q | 2 |     0.164 |    510.6 |
+| SELAH stepper SSP(5,4) + dq, stages_on_q | 26 |     2.553 |    427.2 |
+| pair | access ratio | time ratio | time / access |
+|---|---|---|---|
+| SELAH + dq / ADAM FLUME |  0.528 |  0.548 |  1.037 |
+| SELAH / ADAM |  0.574 |  0.588 |  1.023 |
+| SELAH kernels / SELAH stepper, + dq |  1.000 |  0.999 |  0.999 |
+| SELAH stage 1 on q / SELAH + dq, kernels |  0.929 |  0.939 |  1.011 |
+| Ketcheson / Butcher SSP(10,4) |  0.506 |  0.363 |  0.716 |
+| stage 1 stage state / copy |  1.000 |  1.000 |  1.000 |
+| stepper stages_on_q / stepper, + dq |  0.929 |  0.939 |  1.012 |
+| stepper stages_on_q / kernels stage 1 on q |  1.000 |  1.001 |  1.001 |
+equal simulated time, SSP(10,4) Ketcheson / SSP(5,4) Butcher: integrator  0.217 (accesses  0.363), residual evaluations  0.503
+1368116       COMPLETED      0:0   00:01:23 
+
+[exited with code 0]

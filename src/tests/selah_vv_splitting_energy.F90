@@ -8,7 +8,8 @@ program selah_vv_splitting_energy
 !< oscillates with a bounded amplitude; a non-symplectic one drifts (for a linear problem |R(i dt)| < 1: the energy
 !< decays every step). Asserted, comparing the largest |H - H0| over the last tenth of the run with that over the first
 !< tenth: at most 2 for every splitting, at least 5 for the two Runge–Kutta schemes.
-!< Report mode (SELAH_VV_DIR): splitting-energy-<scheme>.dat (t, H - H0, every 200 steps) and the phase portrait of
+!< Report mode (SELAH_VV_DIR): splitting-energy-<scheme>.dat (t, the largest |H - H0| over each window of 1/400 of the
+!< run: the envelope, which point samples would alias) and the phase portrait of
 !< strang and rk4 at a large step, dt = 0.6 (splitting-phase-<scheme>.dat).
 use selah
 use selah_test_tools, only : check, failures
@@ -49,7 +50,7 @@ contains
    real(R_P), pointer             :: u(:,:,:,:,:), r(:,:,:,:,:)
    type(stepper)                  :: st
    type(box)                      :: bx
-   real(R_P)                      :: h0, e
+   real(R_P)                      :: h0, e, wmax
    integer(I4P)                   :: step, k
    integer                        :: ur
    logical                        :: split
@@ -62,8 +63,8 @@ contains
    else
       call st%initialize(name, FORM_BUTCHER, lb=lbound(y), ub=ubound(y), stages_on_q=.true.)
    endif
-   h0 = energy(y) ; first = 0._R_P ; last = 0._R_P
-   if (vv_report()) call vv_open(report, ur, 't H-H0 q p, scheme '//name)
+   h0 = energy(y) ; first = 0._R_P ; last = 0._R_P ; wmax = 0._R_P
+   if (vv_report()) call vv_open(report, ur, 't max|H-H0|_over_the_window q p, scheme '//name)
    do step=1, nsteps
       call st%begin_step(bx, y)
       do k=1, st%stages()
@@ -81,8 +82,11 @@ contains
       e = abs(energy(y) - h0)
       if (step <= nsteps / 10) first = max(first, e)
       if (step > nsteps - nsteps / 10) last = max(last, e)
-      if (vv_report() .and. (mod(step, max(nsteps / 400, 1)) == 0)) &
-         write(ur, '(4ES16.8)') step * dt, energy(y) - h0, y(1,1,1,1,1), y(2,1,1,1,1)
+      wmax = max(wmax, e)
+      if (vv_report() .and. (mod(step, max(nsteps / 400, 1)) == 0)) then
+         write(ur, '(4ES16.8)') step * dt, wmax, y(1,1,1,1,1), y(2,1,1,1,1)
+         wmax = 0._R_P
+      endif
    enddo
    if (vv_report()) close(ur)
    call st%destroy
