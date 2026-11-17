@@ -1,0 +1,24 @@
+$ catalogue
+scheme   stages order  SSP coeff  butcher two-reg 2N  ketcheson
+ euler       1     1     1.0000       2       2      -1      -1
+ ssp-22      2     2     1.0000       3       2      -1      -1
+ ssp-33      3     3     1.0000       4       2      -1      -1
+ ssp-54      5     4     1.5082       6      -1      -1      -1
+ ssp-104    10     4     6.0000      11      -1      -1       2
+ rk4         4     4     0.0000       5      -1      -1      -1
+ lsrk-33     3     3     0.0000       4      -1       2      -1
+ lsrk-54     5     4     0.0000       6      -1       2      -1
+
+ssp-33, Butcher tableau (c | A, then b):
+ 0.000 |  0.000  0.000  0.000
+ 1.000 |  1.000  0.000  0.000
+ 0.500 |  0.250  0.250  0.000
+         0.167  0.167  0.667
+two-register form of ssp-33, back to Butcher: max |difference| =  0.00E+00
+explicit: T
+
+splitting        flows order  sum of the coefficients of partitions 1, 2
+strang               3     2   1.0000   1.0000
+yoshida-4            7     4   1.0000   1.0000
+blanes-moan-s6      13     4   1.0000   1.0000
+blanes-moan-s10     21     6   1.0000   1.0000

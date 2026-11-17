@@ -1,0 +1,5 @@
+$ stepper
+steps   8: error  8.933E-06
+steps  16: error  5.581E-07
+steps  32: error  3.488E-08
+observed orders:  4.00  4.00

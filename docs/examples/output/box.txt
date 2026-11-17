@@ -1,0 +1,9 @@
+$ box
+lb (allocation lower bounds):   1  -1  -1  -1   1
+lo (loop start):                1   1   1   1   1
+hi (loop end):                  2   4   3   2   3
+cells updated: 144 of 2688
+expected (2 components x 4x3x2 cells x 3 blocks): 144
+ghosts and block 4 untouched: T
+component range 2..2: cells updated 72, component 1 untouched: 1
+V_LAST: component dimension 5, cells updated 144

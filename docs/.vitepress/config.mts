@@ -6,6 +6,8 @@ export default withMermaid({
   base: '/SELAH/',
   // ford.md is the API generator's project file; _tables/ are the generated fragments the pages include
   srcExclude: ['ford.md', '**/_tables/**', 'examples/**'],
+  // dead links fail the build; SELAH_DOCS_DRAFT=1 tolerates them while a refactor is half done (never in CI)
+  ignoreDeadLinks: process.env.SELAH_DOCS_DRAFT === '1',
 
   // the identity slots (PLACEHOLDER files until the bundle arrives): favicons by colour scheme, theme colour, and the
   // theme-aware videos of the verification pages (<video class="light-only"> / <video class="dark-only">)

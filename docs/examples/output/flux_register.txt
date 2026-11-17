@@ -1,0 +1,3 @@
+$ flux_register
+mass change + dt sum_k stage_weight(k) flux_k:  4.50E-16
+the same with uniform weights 1/s:             3.60E-06

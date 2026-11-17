@@ -1,0 +1,5 @@
+$ masks
+block 1: 16 of 16 cells changed
+block 2: 16 of 16 cells changed
+block 3:  0 of 16 cells changed (solid)
+block 4: 16 of 16 cells changed
