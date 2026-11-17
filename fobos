@@ -239,6 +239,8 @@ preproc = -D_R_P_IS_R4P
 [template-r4-tests]
 template  = template-r4
 build_dir = exe-r4/
+# ADAM's coefficients and the bitwise comparison with them are R8P only, as in ADAM
+exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
 
 [template-tests]
 src       = src/lib/ src/tests/
