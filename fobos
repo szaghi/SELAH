@@ -37,6 +37,7 @@ modes = static-gnu shared-gnu
         tests-gnu tests-gnu-debug tests-gnu-coverage tests-gnu-omp
         tests-nvf tests-nvf-debug tests-nvf-oac
         tests-intel tests-intel-debug
+        bench-nvf-oac bench-gnu
         static-gnu-r4 shared-gnu-r4 static-nvf-r4 shared-nvf-r4 static-intel-r4 shared-intel-r4
         tests-gnu-r4 tests-gnu-debug-r4 tests-nvf-r4 tests-nvf-oac-r4 tests-intel-r4
 
@@ -144,6 +145,18 @@ template  = template-tests template-intel-release template-intel
 [tests-intel-debug]
 help      = Tests, ifx, all checks on
 template  = template-tests template-intel template-debug
+
+# ── benchmark: src/bench/selah_bench_kernels.F90 into exe-bench/ (not a test: scripts/run_tests.sh ignores it) ──
+[bench-nvf-oac]
+help      = Benchmark, nvfortran, OpenACC on the GPU ($GPU_CC; medooza: --varset iac): SELAH vs ADAM's FNL kernels
+template  = template-bench template-nvf template-release
+preproc   = -DFUNDAL_NO_MPI -DDEV_OAC -DCOMPILER_NVF
+cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
+lflags    = -acc -gpu=$GPU_CC
+
+[bench-gnu]
+help      = Benchmark, gfortran, host (a build check: the numbers that matter are the device ones)
+template  = template-bench template-gnu template-release
 
 # ── single precision (R4P): PENF's R_P chosen by -D_R_P_IS_R4P for SELAH and PENF alike ──
 # Own build directories and library name, so that an R4P build never mixes with the R8P one.
@@ -270,6 +283,12 @@ build_dir = exe-r4/
 exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
             src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
             src/tests/selah_test_device_adam.F90
+
+[template-bench]
+src       = src/lib/ src/bench/ src/tests/
+build_dir = exe-bench/
+target    = src/bench/selah_bench_kernels.F90
+output    = selah_bench_kernels
 
 [template-tests]
 src       = src/lib/ src/tests/
