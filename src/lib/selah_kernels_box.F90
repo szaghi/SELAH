@@ -131,7 +131,8 @@ contains
 
    subroutine stage_state_box(bx, n, dt, coef, q, regs, u, mask, mask_comp)
    !< u = q + sum_{k=1..n} dt coef(k) regs(k) over the box: the state of a stage of a Butcher form, from the solution and
-   !< the residuals of the previous stages (coef = row s of A, n = s - 1). n = 0 gives u = q.
+   !< the residuals of the previous stages (coef = row s of A, n = s - 1). n = 0 gives u = q, through the copy kernel:
+   !< the summing loop with nothing to sum ran at 0.57 of the copy's speed on the A30 (M5, job 1368098).
    type(box),    intent(in)           :: bx                   !< Box.
    integer(I4P), intent(in)           :: n                    !< Registers summed.
    real(R_P),    intent(in)           :: dt                   !< Time step.
@@ -145,6 +146,10 @@ contains
    integer(I4P)                       :: k                    !< Counter.
 #include "selah_kernel_decl.INC"
 
+   if (n == 0_I4P) then
+      call copy_box(bx, q, u, mask, mask_comp)
+      return
+   endif
 #include "selah_kernel_setup.INC"
    if (present(mask)) then
 #undef SELAH_MASK_ARG

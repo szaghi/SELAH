@@ -64,7 +64,7 @@ contains
    endsubroutine lincomb_flat
 
    subroutine stage_state_flat(n, dt, coef, q, regs, u)
-   !< u = q + sum_{k=1..n} dt coef(k) regs(:,k).
+   !< u = q + sum_{k=1..n} dt coef(k) regs(:,k); n = 0 is a copy (see stage_state_box).
    integer(I4P), intent(in)    :: n          !< Registers summed.
    real(R_P),    intent(in)    :: dt         !< Time step.
    real(R_P),    intent(in)    :: coef(1:)   !< Coefficients [n or more].
@@ -74,6 +74,10 @@ contains
    real(R_P)                   :: d          !< Private sum.
    integer(I4P)                :: i, k       !< Counters.
 
+   if (n == 0_I4P) then
+      call copy_flat(q, u)
+      return
+   endif
    !$acc parallel loop independent DEVICEVAR(coef, q, regs, u) private(d)
    !$omp OMPLOOP DEVICEPTR(coef, q, regs, u) private(d)
    do i=1, size(u, kind=I4P)
