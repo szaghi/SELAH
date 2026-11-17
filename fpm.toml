@@ -30,3 +30,28 @@ library = true
 name = "selah_test_kinds"
 source-dir = "src/tests"
 main = "selah_test_kinds.F90"
+
+[[test]]
+name = "selah_test_tableau_forms"
+source-dir = "src/tests"
+main = "selah_test_tableau_forms.F90"
+
+[[test]]
+name = "selah_test_schemes"
+source-dir = "src/tests"
+main = "selah_test_schemes.F90"
+
+[[test]]
+name = "selah_test_adam_parity"
+source-dir = "src/tests"
+main = "selah_test_adam_parity.F90"
+
+[[test]]
+name = "selah_test_splittings"
+source-dir = "src/tests"
+main = "selah_test_splittings.F90"
+
+[[test]]
+name = "selah_test_storage"
+source-dir = "src/tests"
+main = "selah_test_storage.F90"
