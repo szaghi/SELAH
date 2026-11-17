@@ -255,6 +255,7 @@ template  = template-r4
 build_dir = exe-r4/
 # ADAM's coefficients and the bitwise comparison with them are R8P only, as in ADAM
 exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.F90
+            src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
 
 [template-tests]
 src       = src/lib/ src/tests/
