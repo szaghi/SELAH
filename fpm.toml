@@ -9,6 +9,7 @@ description = "Stage-wise Evolution Library for Accelerators and HPC: time-evolu
 
 [dependencies]
 PENF = { git="https://github.com/szaghi/PENF.git", branch="master" }
+FUNDAL = { git="https://github.com/szaghi/FUNDAL.git", branch="main" }
 
 [library]
 source-dir = "src/lib"
@@ -55,3 +56,8 @@ main = "selah_test_splittings.F90"
 name = "selah_test_storage"
 source-dir = "src/tests"
 main = "selah_test_storage.F90"
+
+[[test]]
+name = "selah_test_fundal"
+source-dir = "src/tests"
+main = "selah_test_fundal.F90"

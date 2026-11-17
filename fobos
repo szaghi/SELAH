@@ -21,11 +21,13 @@ check = fobis fetch
         fobis build --mode tests-gnu
         bash scripts/run_tests.sh
 
-# PENF is compiled from its sources by the compiler of the mode (no per-compiler PENF build to keep in step).
-# FUNDAL (the fundal.H backend macros, dev_alloc) joins at M2, with the first kernels (notes/PLAN.md).
+# PENF and FUNDAL are compiled from their sources by the compiler of the mode (no per-compiler builds to keep in step).
+# FUNDAL gives the kernels their backend macros (fundal.H: host OpenMP, OpenACC, OpenMP offload) and, from M4, the
+# device allocator; its MPI handler is compiled empty (-DFUNDAL_NO_MPI): SELAH is per rank, MPI is the caller's.
 [dependencies]
 deps_dir = src/third_party
 PENF     = https://github.com/szaghi/PENF :: branch=master
+FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
 
 [modes]
 # the first mode is the default (fobis build, scripts/install.sh): the library any gfortran can build
@@ -40,6 +42,8 @@ modes = static-gnu shared-gnu
 
 [common-variables]
 $EXDIRS = PENF/src/tests/ PENF/src/third_party/ PENF/scripts/ PENF/docs/
+          FUNDAL/src/tests/ FUNDAL/src/examples/ FUNDAL/docs/ FUNDAL/compilers_proofs/ FUNDAL/build/ FUNDAL/exe/
+          FUNDAL/references/ FUNDAL/scripts/ FUNDAL/cmake/
 $STD_GNU = -std=f2018
 $STD_INT = -standard-semantics -std18
 # NVIDIA compute capability of the OpenACC modes; override with --varset (e.g. --varset cc80)
@@ -191,6 +195,8 @@ template  = template-r4-tests template-tests template-intel-release template-int
 [template-base]
 src             = src/lib/
 exclude_dirs    = $EXDIRS
+include         = src/third_party/FUNDAL/src/lib/
+preproc         = -DFUNDAL_NO_MPI
 obj_dir         = obj/
 mod_dir         = mod/
 cflags_heritage = True
@@ -234,7 +240,7 @@ mklib     = shared
 output    = libselah.so
 
 [template-r4]
-preproc = -D_R_P_IS_R4P
+preproc = -DFUNDAL_NO_MPI -D_R_P_IS_R4P
 
 [template-r4-tests]
 template  = template-r4
