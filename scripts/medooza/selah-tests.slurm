@@ -51,7 +51,9 @@ cd "$RUN" || exit 1
 for t in "$SRC/$exe_dir"/$RUN_GLOB; do
    [ -x "$t" ] && [ -f "$t" ] || continue
    name=$(basename "$t")
-   if "$t" > "$name.log" 2>&1; then
+   if [[ $name == *_xfail_* ]]; then # expected failure: must exit non-zero (scripts/run_tests.sh convention)
+      if "$t" > "$name.log" 2>&1; then echo "FAIL  $name (XPASS: exited 0)"; else echo "PASS  $name (XFAIL)"; fi
+   elif "$t" > "$name.log" 2>&1; then
       echo "PASS  $name"
    else
       echo "FAIL  $name (exit $?)"

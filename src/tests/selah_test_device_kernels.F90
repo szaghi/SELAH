@@ -9,7 +9,9 @@ program selah_test_device_kernels
 !< kernel runs on them, and the results are copied back: each cell of the box holds the host reference (16 eps: the
 !< device may contract to FMA), every other cell is bitwise untouched (ghosts, pool slots past the active blocks,
 !< masked-out cells), dq is exactly 0 where the mask is inactive. Both layouts, unmasked and masked, 3 of 6 blocks
-!< active; the flat kernels too. In a device build `dev_init(require_device=.true.)` forbids a silent host fallback.
+!< active; then the stage state with no register (a copy), the step update without dq, the 2N stage with a = 0, a
+!< component range (box_components) and an explicit mask component; every flat kernel too. In a device build
+!< `dev_init(require_device=.true.)` forbids a silent host fallback.
 use fundal, only : dev_alloc, dev_free, dev_memcpy_to_device, dev_memcpy_from_device, dev_assign_to_device
 #if defined DEV_OAC || defined DEV_OMP
 use fundal, only : dev_init
@@ -209,9 +211,62 @@ contains
       call compare(bx, mask, masked, dq_d, x, -0.5_R_P * x + DT * r, tag//'williamson_2n_stage dQ')
       call compare(bx, mask, masked, y_d, y0, y0 + 0.8_R_P * (-0.5_R_P * x + DT * r), tag//'williamson_2n_stage q')
    enddo
+   tag = lname//' unmasked: '
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_stage_state(bx, 0_I4P, DT, coef_d, q_d, regs_d, y_d)
+   call compare(bx, mask, .false., y_d, y0, q, tag//'stage_state n=0 (a copy)')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_step_update(bx, NR, DT, coef_d, regs_d, y_d)
+   call compare(bx, mask, .false., y_d, y0, y0 + DT * sum_b, tag//'step_update without dq')
+   call dev_memcpy_to_device(dst=y_d, src=y0) ; call dev_memcpy_to_device(dst=dq_d, src=x)
+   call selah_williamson_2n_stage(bx, DT, 0._R_P, 0.8_R_P, r_d, dq_d, y_d)
+   call compare(bx, mask, .false., dq_d, x, DT * r, tag//'williamson_2n_stage a=0 dQ')
+   call compare(bx, mask, .false., y_d, y0, y0 + 0.8_R_P * DT * r, tag//'williamson_2n_stage a=0 q')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_axpy(box_components(bx, 2_I4P, 3_I4P), 0.7_R_P, x_d, y_d)
+   call compare(box_components(bx, 2_I4P, 3_I4P), mask, .false., y_d, y0, y0 + 0.7_R_P * x, &
+                tag//'axpy on components 2..3 (the others untouched)')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_axpy(bx, 0.7_R_P, x_d, y_d, m_d, 1_I4P)
+   call compare_comp1(bx, mask, y0, y_d, y0 + 0.7_R_P * x, lname//' masked, mask_comp=1: axpy')
    call dev_free(x_d) ; call dev_free(y_d) ; call dev_free(q_d) ; call dev_free(r_d) ; call dev_free(m_d)
    call dev_free(dq_d) ; call dev_free(regs_d)
    endsubroutine test_layout
+
+   subroutine compare_comp1(bx, mask, y0, got_d, expected, label)
+   !< Masked with component 1: updated where mask(comp 1) < 0 in the box, the other cells bitwise as before.
+   type(box),          intent(in) :: bx
+   real(R_P),          intent(in) :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   real(R_P),          intent(in) :: y0(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   real(R_P), pointer, intent(in) :: got_d(:,:,:,:,:)
+   real(R_P),          intent(in) :: expected(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   character(*),       intent(in) :: label
+   real(R_P), allocatable         :: got(:,:,:,:,:)
+   logical                        :: ok, upd
+   integer(I4P)                   :: i1, i2, i3, i4, i5, n
+
+   allocate(got, mold=y0)
+   call dev_memcpy_from_device(dst=got, src=got_d)
+   ok = .true. ; n = 0
+   do i5=lbound(got,5), ubound(got,5) ; do i4=lbound(got,4), ubound(got,4) ; do i3=lbound(got,3), ubound(got,3)
+   do i2=lbound(got,2), ubound(got,2) ; do i1=lbound(got,1), ubound(got,1)
+      upd = all([i1,i2,i3,i4,i5] >= bx%lo) .and. all([i1,i2,i3,i4,i5] <= bx%hi)
+      if (upd) then
+         if (bx%layout == LAYOUT_V_FIRST) then
+            upd = mask(1,i2,i3,i4,i5) < 0._R_P
+         else
+            upd = mask(i1,i2,i3,i4,1) < 0._R_P
+         endif
+      endif
+      if (upd) then
+         n = n + 1
+         if (abs(got(i1,i2,i3,i4,i5) - expected(i1,i2,i3,i4,i5)) > TOL) ok = .false.
+      elseif (got(i1,i2,i3,i4,i5) /= y0(i1,i2,i3,i4,i5)) then
+         ok = .false.
+      endif
+   enddo ; enddo ; enddo ; enddo ; enddo
+   call check(ok .and. n > 0, label)
+   endsubroutine compare_comp1
 
    subroutine test_flat
    !< The flat kernels on device arrays.
@@ -229,6 +284,31 @@ contains
    call dev_assign_to_device(dst=x_d, src=x) ; call dev_assign_to_device(dst=y_d, src=y0)
    call dev_assign_to_device(dst=q_d, src=q) ; call dev_assign_to_device(dst=r_d, src=r)
    call dev_assign_to_device(dst=dq_d, src=y0) ; call dev_assign_to_device(dst=regs_d, src=regs)
+   call selah_copy(x_d, y_d) ; call dev_memcpy_from_device(dst=y, src=y_d)
+   call check(all(y == x), 'flat copy')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_lincomb(0.6_R_P, x_d, -0.4_R_P, y_d) ; call dev_memcpy_from_device(dst=y, src=y_d)
+   call check(all(abs(y - (0.6_R_P*x - 0.4_R_P*y0)) <= TOL), 'flat lincomb')
+   e = q
+   do k=1, NR
+      e = e + DT * COEF(k) * regs(:,k)
+   enddo
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_stage_state(NR, DT, coef_d, q_d, regs_d, y_d) ; call dev_memcpy_from_device(dst=y, src=y_d)
+   call check(all(abs(y - e) <= TOL), 'flat stage_state')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
+   call selah_stage_state(0_I4P, DT, coef_d, q_d, regs_d, y_d) ; call dev_memcpy_from_device(dst=y, src=y_d)
+   call check(all(y == q), 'flat stage_state n=0 (a copy)')
+   call dev_memcpy_to_device(dst=y_d, src=y0) ; call dev_memcpy_to_device(dst=dq_d, src=x)
+   call selah_williamson_2n_stage(DT, -0.5_R_P, 0.8_R_P, r_d, dq_d, y_d)
+   call dev_memcpy_from_device(dst=y, src=y_d) ; call dev_memcpy_from_device(dst=dq, src=dq_d)
+   call check(all(abs(dq - (-0.5_R_P*x + DT*r)) <= TOL) .and. all(abs(y - (y0 + 0.8_R_P*dq)) <= TOL), &
+              'flat williamson_2n_stage')
+   call dev_memcpy_to_device(dst=y_d, src=y0) ; call dev_memcpy_to_device(dst=dq_d, src=x)
+   call selah_williamson_2n_stage(DT, 0._R_P, 0.8_R_P, r_d, dq_d, y_d)
+   call dev_memcpy_from_device(dst=y, src=y_d) ; call dev_memcpy_from_device(dst=dq, src=dq_d)
+   call check(all(abs(dq - DT*r) <= TOL) .and. all(abs(y - (y0 + 0.8_R_P*DT*r)) <= TOL), 'flat williamson_2n_stage a=0')
+   call dev_memcpy_to_device(dst=y_d, src=y0)
    call selah_axpy(0.7_R_P, x_d, y_d) ; call dev_memcpy_from_device(dst=y, src=y_d)
    call check(all(abs(y - (y0 + 0.7_R_P*x)) <= TOL), 'flat axpy')
    e = 0._R_P

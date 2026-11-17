@@ -145,10 +145,13 @@ contains
    if (present(registers)) then
       if (.not. associated(registers)) error stop 'selah stepper: the registers passed are not associated'
       if (size(registers, 6) < nreg) error stop 'selah stepper: too few registers passed'
+      if (lbound(registers, 6) /= 1) error stop 'selah stepper: the registers passed must be numbered from 1 (dim 6)'
+      if (any(lbound(registers) /= [lb, 1_I4P]) .or. any(ubound(registers, kind=I4P) /= [ub, ubound(registers, 6)])) &
+         error stop 'selah stepper: the registers passed do not have the bounds of the field (lb, ub)'
       self%regs => registers
       self%owned = .false.
    else
-      ! zeroed: the 2N form's first stage multiplies Delta Q by A_1 = 0, which needs a finite Delta Q
+      ! zeroed, so that every register starts finite (the 2N form's first stage no longer reads Delta Q: A_1 = 0)
       call dev_alloc(fptr_dev=self%regs, ubounds=[ub, nreg], lbounds=[lb, 1_I4P], init_value=0._R_P, ierr=ierr)
       if (ierr /= 0) error stop 'selah stepper: the registers could not be allocated'
       self%owned = .true.

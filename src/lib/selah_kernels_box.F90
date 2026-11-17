@@ -265,7 +265,8 @@ contains
    endsubroutine shu_osher_2r_stage_box
 
    subroutine williamson_2n_stage_box(bx, dt, a, b, r, dqr, q, mask, mask_comp)
-   !< dqr = a dqr + dt r; q = q + b dqr over the box: a stage of a Williamson 2N form (r = F(q)).
+   !< dqr = a dqr + dt r; q = q + b dqr over the box: a stage of a Williamson 2N form (r = F(q)). With a = 0 dqr is not
+   !< read (dqr = dt r): the first stage needs no prior content of the register.
    type(box),    intent(in)           :: bx                  !< Box.
    real(R_P),    intent(in)           :: dt                  !< Time step.
    real(R_P),    intent(in)           :: a, b                !< Stage coefficients A_i, B_i.
@@ -277,6 +278,8 @@ contains
 #include "selah_kernel_decl.INC"
 
 #include "selah_kernel_setup.INC"
+   if (a == 0._R_P) then
+#define SELAH_A_ZERO
    if (present(mask)) then
 #undef SELAH_MASK_ARG
 #define SELAH_MASK_ARG , mask
@@ -293,6 +296,26 @@ contains
 #define SELAH_MASK_ARG
    else
 #include "selah_kernel_williamson_2n_stage.INC"
+   endif
+#undef SELAH_A_ZERO
+   else
+   if (present(mask)) then
+#undef SELAH_MASK_ARG
+#define SELAH_MASK_ARG , mask
+      if (bx%layout == LAYOUT_V_FIRST) then
+#define SELAH_ACTIVE mask(mc,i2,i3,i4,i5) < 0._R_P
+#include "selah_kernel_williamson_2n_stage.INC"
+#undef SELAH_ACTIVE
+      else
+#define SELAH_ACTIVE mask(i1,i2,i3,i4,mc) < 0._R_P
+#include "selah_kernel_williamson_2n_stage.INC"
+#undef SELAH_ACTIVE
+      endif
+#undef SELAH_MASK_ARG
+#define SELAH_MASK_ARG
+   else
+#include "selah_kernel_williamson_2n_stage.INC"
+   endif
    endif
    endsubroutine williamson_2n_stage_box
 endmodule selah_kernels_box

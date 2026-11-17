@@ -86,3 +86,8 @@ main = "selah_test_device_adam.F90"
 name = "selah_test_stepper"
 source-dir = "src/tests"
 main = "selah_test_stepper.F90"
+
+[[test]]
+name = "selah_test_stepper_options"
+source-dir = "src/tests"
+main = "selah_test_stepper_options.F90"

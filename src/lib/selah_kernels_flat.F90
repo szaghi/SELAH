@@ -144,7 +144,7 @@ contains
    endsubroutine shu_osher_2r_stage_flat
 
    subroutine williamson_2n_stage_flat(dt, a, b, r, dqr, q)
-   !< dqr = a dqr + dt r; q = q + b dqr: a stage of a Williamson 2N form.
+   !< dqr = a dqr + dt r; q = q + b dqr: a stage of a Williamson 2N form. With a = 0 dqr is not read (dqr = dt r).
    real(R_P), intent(in)    :: dt     !< Time step.
    real(R_P), intent(in)    :: a, b   !< Stage coefficients A_i, B_i.
    real(R_P), intent(in)    :: r(1:)  !< Residual of the current stage.
@@ -152,11 +152,20 @@ contains
    real(R_P), intent(inout) :: q(1:)  !< Current stage, advanced.
    integer(I4P)             :: i      !< Counter.
 
-   !$acc parallel loop independent DEVICEVAR(r, dqr, q)
-   !$omp OMPLOOP DEVICEPTR(r, dqr, q)
-   do i=1, size(q, kind=I4P)
-      dqr(i) = a * dqr(i) + dt * r(i)
-      q(i) = q(i) + b * dqr(i)
-   enddo
+   if (a == 0._R_P) then
+      !$acc parallel loop independent DEVICEVAR(r, dqr, q)
+      !$omp OMPLOOP DEVICEPTR(r, dqr, q)
+      do i=1, size(q, kind=I4P)
+         dqr(i) = dt * r(i)
+         q(i) = q(i) + b * dqr(i)
+      enddo
+   else
+      !$acc parallel loop independent DEVICEVAR(r, dqr, q)
+      !$omp OMPLOOP DEVICEPTR(r, dqr, q)
+      do i=1, size(q, kind=I4P)
+         dqr(i) = a * dqr(i) + dt * r(i)
+         q(i) = q(i) + b * dqr(i)
+      enddo
+   endif
    endsubroutine williamson_2n_stage_flat
 endmodule selah_kernels_flat

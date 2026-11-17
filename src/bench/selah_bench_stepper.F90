@@ -19,7 +19,7 @@ program selah_bench_stepper
 !<| ADAM FLUME FNL: the same + `compute_rk_ssp_residual_dev` (rereads the 5 stages, writes dq) | 53 |
 !<| SELAH stepper, Butcher SSP(5,4): stage states from q, residuals written in place, the update | 27 |
 !<| SELAH stepper, Butcher SSP(5,4), the step residual dq fused in the update | 28 |
-!<| SELAH kernels, Butcher SSP(5,4) + dq, stage 1 evaluated on q (no stage-1 copy; not in the stepper's API) | 26 |
+!<| SELAH kernels, Butcher SSP(5,4) + dq, stage 1 evaluated on q (no stage-1 copy; the stepper's stages_on_q) | 26 |
 !<| SELAH stepper, Butcher SSP(10,4) | 77 |
 !<| SELAH stepper, Ketcheson SSP(10,4), two registers | 39 |
 !<| SELAH kernels, Butcher SSP(5,4) + dq, the stepper's sequence without the stepper (the control of the stage-1 row) | 28 |

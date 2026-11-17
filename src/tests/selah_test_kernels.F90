@@ -4,7 +4,9 @@ program selah_test_kernels
 !<
 !< Fields of 3 components, 4x3x2 interior cells with 2 ghosts, in a pool of 6 blocks, in both layouts; every kernel
 !< runs on the interior of the first 3 and then the first 5 blocks (the active prefix grows), unmasked and masked
-!< (default mask component, and an explicit one), and on a component range (a partition). Each cell of the box must
+!< (the last mask component and the first, both named), and on a component range (a partition). The default mask
+!< component (mask_comp absent) is the last one, bitwise. The 2N stage with a = 0 does not read its register (NaN
+!< in, finite out). Each cell of the box must
 !< hold the reference value (the same expression in a plain loop, within 16 eps: compilers may contract to FMA
 !< differently), and **every other cell must be bitwise untouched**: ghosts, pool slots past the active blocks,
 !< components outside the range, masked-out cells; dq is exactly 0 where the mask is inactive. The flat kernels are
@@ -27,6 +29,8 @@ do layout=LAYOUT_V_FIRST, LAYOUT_V_LAST
       call test_box(box_interior(layout, NV, NI, NJ, NK, NGC, blocks), trim(lname))
    enddo
    call test_partition(box_interior(layout, NV, NI, NJ, NK, NGC, 4_I4P), trim(lname))
+   call test_default_mask(box_interior(layout, NV, NI, NJ, NK, NGC, 4_I4P), trim(lname))
+   call test_2n_first_stage(box_interior(layout, NV, NI, NJ, NK, NGC, 4_I4P), trim(lname))
 enddo
 call test_flat
 
@@ -135,7 +139,7 @@ contains
    do k=1, NR
       call fill(regs(:,:,:,:,:,k), 10_I4P + k)
    enddo
-   do mode=0, 2 ! 0 unmasked, 1 masked (default component, the last), 2 masked (component 1)
+   do mode=0, 2 ! 0 unmasked, 1 masked (component NM, the last), 2 masked (component 1)
       mc = merge(1_I4P, NM, mode == 2)
       associate(tag=>lname//merge(' unmasked        ', ' masked          ', mode == 0)//merge(' comp 1', '       ', mode == 2))
       ! copy
@@ -240,22 +244,108 @@ contains
    endfunction dq_masked_ok
 
    subroutine test_partition(bx, lname)
-   !< A component range (a partition of a splitting scheme): only components 2..3 are updated.
+   !< A component range (a partition of a splitting scheme): every kernel updates components 2..3 only.
    type(box),    intent(in) :: bx    !< Box of all components.
    character(*), intent(in) :: lname !< Layout name.
-   real(R_P), allocatable   :: x(:,:,:,:,:), y(:,:,:,:,:), y0(:,:,:,:,:), mask(:,:,:,:,:)
+   real(R_P), allocatable   :: x(:,:,:,:,:), y(:,:,:,:,:), y0(:,:,:,:,:), mask(:,:,:,:,:), q(:,:,:,:,:), r(:,:,:,:,:)
+   real(R_P), allocatable   :: dq(:,:,:,:,:), dq0(:,:,:,:,:), e(:,:,:,:,:), regs(:,:,:,:,:,:)
    type(box)                :: sub
+   integer(I4P)             :: k
 
    call allocate_field(bx, x, NV, 21_I4P) ; call allocate_field(bx, y0, NV, 22_I4P) ; call allocate_field(bx, mask, NM, 23_I4P)
+   call allocate_field(bx, q, NV, 24_I4P) ; call allocate_field(bx, r, NV, 25_I4P) ; call allocate_field(bx, dq0, NV, 26_I4P)
+   allocate(regs(lbound(x,1):ubound(x,1), lbound(x,2):ubound(x,2), lbound(x,3):ubound(x,3), lbound(x,4):ubound(x,4), &
+                 lbound(x,5):ubound(x,5), NR))
+   do k=1, NR
+      call fill(regs(:,:,:,:,:,k), 30_I4P + k)
+   enddo
    sub = box_components(bx, 2_I4P, 3_I4P)
    call check(sub%lo(component_dim(bx)) == 2 .and. sub%hi(component_dim(bx)) == 3, lname//' partition: component range set')
-   y = y0
-   call selah_axpy(sub, 1.5_R_P, x, y)
-   call compare(sub, y, y0, y0 + 1.5_R_P * x, 0_I4P, mask, 1_I4P, lname//' partition axpy, components 2..3')
+   associate(tag=>lname//' partition, components 2..3')
+   y = y0 ; call selah_copy(sub, x, y) ; call compare(sub, y, y0, x, 0_I4P, mask, 1_I4P, 'copy '//tag)
+   y = y0 ; call selah_axpy(sub, 1.5_R_P, x, y)
+   call compare(sub, y, y0, y0 + 1.5_R_P * x, 0_I4P, mask, 1_I4P, 'axpy '//tag)
+   y = y0 ; call selah_lincomb(sub, 0.6_R_P, x, -0.4_R_P, y)
+   call compare(sub, y, y0, 0.6_R_P * x - 0.4_R_P * y0, 0_I4P, mask, 1_I4P, 'lincomb '//tag)
+   e = q
+   do k=1, NR
+      e = e + DT * COEF(k) * regs(:,:,:,:,:,k)
+   enddo
+   y = y0 ; call selah_stage_state(sub, NR, DT, COEF, q, regs, y) ; call compare(sub, y, y0, e, 0_I4P, mask, 1_I4P, &
+                                                                                 'stage_state '//tag)
+   e = 0._R_P
+   do k=1, NR
+      e = e + COEF(k) * regs(:,:,:,:,:,k)
+   enddo
+   y = y0 ; dq = dq0 ; call selah_step_update(sub, NR, DT, COEF, regs, y, dq)
+   call compare(sub, y, y0, y0 + DT * e, 0_I4P, mask, 1_I4P, 'step_update '//tag)
+   call compare(sub, dq, dq0, e, 0_I4P, mask, 1_I4P, 'step_update dq '//tag)
+   y = y0 ; call selah_shu_osher_2r_stage(sub, DT, 0.75_R_P, 0.25_R_P, 0.25_R_P, q, r, y)
+   call compare(sub, y, y0, 0.75_R_P * q + 0.25_R_P * y0 + DT * 0.25_R_P * r, 0_I4P, mask, 1_I4P, 'shu_osher_2r '//tag)
+   y = y0 ; dq = dq0 ; call selah_williamson_2n_stage(sub, DT, -0.5_R_P, 0.8_R_P, r, dq, y)
+   call compare(sub, dq, dq0, -0.5_R_P * dq0 + DT * r, 0_I4P, mask, 1_I4P, 'williamson_2n dQ '//tag)
+   call compare(sub, y, y0, y0 + 0.8_R_P * (-0.5_R_P * dq0 + DT * r), 0_I4P, mask, 1_I4P, 'williamson_2n q '//tag)
+   endassociate
    endsubroutine test_partition
+
+   subroutine test_default_mask(bx, lname)
+   !< mask_comp absent: every masked kernel uses the last mask component, bitwise the result with mask_comp = NM.
+   type(box),    intent(in) :: bx    !< Box.
+   character(*), intent(in) :: lname !< Layout name.
+   real(R_P), allocatable   :: x(:,:,:,:,:), y0(:,:,:,:,:), mask(:,:,:,:,:), q(:,:,:,:,:), r(:,:,:,:,:), dq0(:,:,:,:,:)
+   real(R_P), allocatable   :: ya(:,:,:,:,:), yb(:,:,:,:,:), da(:,:,:,:,:), db(:,:,:,:,:), regs(:,:,:,:,:,:)
+   integer(I4P)             :: k
+   logical                  :: ok
+
+   call allocate_field(bx, x, NV, 41_I4P) ; call allocate_field(bx, y0, NV, 42_I4P) ; call allocate_field(bx, mask, NM, 43_I4P)
+   call allocate_field(bx, q, NV, 44_I4P) ; call allocate_field(bx, r, NV, 45_I4P) ; call allocate_field(bx, dq0, NV, 46_I4P)
+   allocate(regs(lbound(x,1):ubound(x,1), lbound(x,2):ubound(x,2), lbound(x,3):ubound(x,3), lbound(x,4):ubound(x,4), &
+                 lbound(x,5):ubound(x,5), NR))
+   do k=1, NR
+      call fill(regs(:,:,:,:,:,k), 50_I4P + k)
+   enddo
+   ok = .true.
+   ya = y0 ; yb = y0 ; call selah_copy(bx, x, ya, mask) ; call selah_copy(bx, x, yb, mask, NM) ; ok = ok .and. all(ya == yb)
+   ya = y0 ; yb = y0 ; call selah_axpy(bx, 0.7_R_P, x, ya, mask) ; call selah_axpy(bx, 0.7_R_P, x, yb, mask, NM)
+   ok = ok .and. all(ya == yb)
+   ya = y0 ; yb = y0 ; call selah_lincomb(bx, 0.6_R_P, x, -0.4_R_P, ya, mask)
+   call selah_lincomb(bx, 0.6_R_P, x, -0.4_R_P, yb, mask, NM) ; ok = ok .and. all(ya == yb)
+   ya = y0 ; yb = y0 ; call selah_stage_state(bx, NR, DT, COEF, q, regs, ya, mask)
+   call selah_stage_state(bx, NR, DT, COEF, q, regs, yb, mask, NM) ; ok = ok .and. all(ya == yb)
+   ya = y0 ; yb = y0 ; da = dq0 ; db = dq0 ; call selah_step_update(bx, NR, DT, COEF, regs, ya, da, mask)
+   call selah_step_update(bx, NR, DT, COEF, regs, yb, db, mask, NM) ; ok = ok .and. all(ya == yb) .and. all(da == db)
+   ya = y0 ; yb = y0 ; call selah_shu_osher_2r_stage(bx, DT, 0.75_R_P, 0.25_R_P, 0.25_R_P, q, r, ya, mask)
+   call selah_shu_osher_2r_stage(bx, DT, 0.75_R_P, 0.25_R_P, 0.25_R_P, q, r, yb, mask, NM) ; ok = ok .and. all(ya == yb)
+   ya = y0 ; yb = y0 ; da = dq0 ; db = dq0 ; call selah_williamson_2n_stage(bx, DT, -0.5_R_P, 0.8_R_P, r, da, ya, mask)
+   call selah_williamson_2n_stage(bx, DT, -0.5_R_P, 0.8_R_P, r, db, yb, mask, NM)
+   ok = ok .and. all(ya == yb) .and. all(da == db)
+   call check(ok, lname//' every masked kernel: mask_comp absent = the last component, bitwise')
+   endsubroutine test_default_mask
+
+   subroutine test_2n_first_stage(bx, lname)
+   !< The 2N stage with a = 0 never reads its register: a NaN register gives dQ = dt r and q + b dt r in the box.
+   use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_finite
+   type(box),    intent(in) :: bx    !< Box.
+   character(*), intent(in) :: lname !< Layout name.
+   real(R_P), allocatable   :: y(:,:,:,:,:), y0(:,:,:,:,:), r(:,:,:,:,:), dq(:,:,:,:,:), e(:,:,:,:,:), mask(:,:,:,:,:)
+   real(R_P), allocatable   :: dq0(:,:,:,:,:)
+
+   call allocate_field(bx, y0, NV, 61_I4P) ; call allocate_field(bx, r, NV, 62_I4P) ; call allocate_field(bx, mask, NM, 63_I4P)
+   call allocate_field(bx, dq0, NV, 64_I4P)
+   ! finite register: the values of the general expression's case a = 0, and every other cell untouched
+   y = y0 ; dq = dq0 ; call selah_williamson_2n_stage(bx, DT, 0._R_P, 0.8_R_P, r, dq, y)
+   e = DT * r
+   call compare(bx, dq, dq0, e, 0_I4P, mask, 1_I4P, lname//' williamson_2n a=0 dQ')
+   call compare(bx, y, y0, y0 + 0.8_R_P * e, 0_I4P, mask, 1_I4P, lname//' williamson_2n a=0 q')
+   ! NaN register: the box comes out finite (the register is written, never read)
+   y = y0 ; dq = y0 ; dq = ieee_value(1._R_P, ieee_quiet_nan) ; call selah_williamson_2n_stage(bx, DT, 0._R_P, 0.8_R_P, r, dq, y)
+   call check(all(ieee_is_finite(y(bx%lo(1):bx%hi(1),bx%lo(2):bx%hi(2),bx%lo(3):bx%hi(3),bx%lo(4):bx%hi(4), &
+                                   bx%lo(5):bx%hi(5)))), lname//' williamson_2n a=0: a NaN register is not read')
+   endsubroutine test_2n_first_stage
 
    subroutine test_flat
    !< The flat kernels against plain loops.
+   use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan
    integer(I4P), parameter :: N = 37
    real(R_P)               :: x(N), y(N), y0(N), q(N), r(N), dq(N), dqr(N), dqr0(N), regs(N,NR), e(N)
    integer(I4P)            :: k
@@ -275,6 +365,7 @@ contains
       e = e + DT * COEF(k) * regs(:,k)
    enddo
    y = y0 ; call selah_stage_state(NR, DT, COEF, q, regs, y) ; call check(all(abs(y - e) <= TOL), 'flat stage_state')
+   y = y0 ; call selah_stage_state(0_I4P, DT, COEF, q, regs, y) ; call check(all(y == q), 'flat stage_state n=0 (a copy)')
    e = 0._R_P
    do k=1, NR
       e = e + COEF(k) * regs(:,k)
@@ -288,5 +379,8 @@ contains
    y = y0 ; dqr = dqr0 ; call selah_williamson_2n_stage(DT, -0.5_R_P, 0.8_R_P, r, dqr, y)
    call check(all(abs(dqr - (-0.5_R_P*dqr0 + DT*r)) <= TOL) .and. all(abs(y - (y0 + 0.8_R_P*dqr)) <= TOL), &
               'flat williamson_2n_stage')
+   y = y0 ; dqr = ieee_value(1._R_P, ieee_quiet_nan) ! 0 * NaN would be NaN, and trap in a debug build
+   call selah_williamson_2n_stage(DT, 0._R_P, 0.8_R_P, r, dqr, y)
+   call check(all(dqr == DT*r) .and. all(abs(y - (y0 + 0.8_R_P*DT*r)) <= TOL), 'flat williamson_2n_stage a=0: register not read')
    endsubroutine test_flat
 endprogram selah_test_kernels
