@@ -77,5 +77,8 @@ ADAM's CPU loops sum term by term in place, a different order from its FNL kerne
 even a one-term stage can differ: ADAM's in-place update contracts into one rounding, while SELAH's private sum rounds
 twice. A mutant that re-associates the stage product is caught by the bitwise checks.
 
-**Device.** The OpenACC build (`tests-nvf-oac`) compiles 116 device kernels. They are not run yet: the device tests
-and the benchmarks against ADAM's kernels on the GPU are milestone M3.
+**On the device** (NVIDIA A30, OpenACC; medooza jobs 1368085 and 1368089). `selah_test_device_kernels` runs every
+kernel on device arrays allocated through FUNDAL, with the same checks as on the host (39 checks).
+`selah_test_device_adam` runs SELAH's kernels and ADAM's FNL kernels on the same device fields: an SSP(5,4) step and a
+two-register step, unmasked and masked. They are **bitwise equal on the A30** (18 checks). Both tests refuse a silent
+host fallback. For the timings, see [Performance](./performance).

@@ -26,6 +26,6 @@ features:
 ---
 
 ::: warning Pre-release
-SELAH is at milestone M2: the coefficients (L0) and the kernels (L1, verified on the host) are in; the device tests
-and the stepper are next. The design is in `notes/PLAN.md` of the repository.
+SELAH is at milestone M3: the coefficients (L0) and the kernels (L1, verified on the host and on an A30) are in; the
+stepper is next. The design is in `notes/PLAN.md` of the repository.
 :::

@@ -40,6 +40,7 @@ export default withMermaid({
           items: [
             { text: 'Schemes', link: '/guide/schemes' },
             { text: 'Kernels', link: '/guide/kernels' },
+            { text: 'Performance', link: '/guide/performance' },
             { text: 'API',     link: '/guide/api' },
           ],
         },

@@ -23,10 +23,10 @@
 ---
 
 > [!WARNING]
-> **Pre-release (M2).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms) and L1, the kernels
-> (stage operations over a box of a rank-5 field or a flat array, bitwise ADAM's FNL kernels on the host), are in,
-> each verified. Next: the device tests and benchmarks (M3), then the stepper (M4). The design and the milestones are
-> in [notes/PLAN.md](notes/PLAN.md).
+> **Pre-release (M3).** L0, the coefficients (Runge–Kutta and splitting schemes, storage forms) and L1, the kernels
+> (stage operations over a box of a rank-5 field or a flat array) are in, each verified. On an A30 the kernels are
+> bitwise ADAM's FNL kernels, run as fast, and make an SSP(5,4) step 20% faster. Next: the stepper (M4). The design and
+> the milestones are in [notes/PLAN.md](notes/PLAN.md).
 
 ## The name
 
