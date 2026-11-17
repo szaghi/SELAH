@@ -46,6 +46,29 @@
 
 ---
 
+## Time integrators
+
+Every scheme the public API exports: pass the constant to `stepper%initialize` with one of its storage forms
+(registers in brackets). [Schemes](https://szaghi.github.io/SELAH/guide/schemes) has the tableaux and the sources.
+
+| Runge–Kutta | Name | Stages | Order | SSP coefficient | Storage forms |
+|---|---|---|---|---|---|
+| `SCHEME_EULER`   | `euler`   | 1  | 1 | 1           | Butcher (2), two-register (2) |
+| `SCHEME_SSP_22`  | `ssp-22`  | 2  | 2 | 1           | Butcher (3), two-register (2) |
+| `SCHEME_SSP_33`  | `ssp-33`  | 3  | 3 | 1           | Butcher (4), two-register (2) |
+| `SCHEME_SSP_54`  | `ssp-54`  | 5  | 4 | 1.508180049 | Butcher (6) |
+| `SCHEME_SSP_104` | `ssp-104` | 10 | 4 | 6           | Butcher (11), Ketcheson (2) |
+| `SCHEME_RK4`     | `rk4`     | 4  | 4 | —           | Butcher (5) |
+| `SCHEME_LSRK_33` | `lsrk-33` | 3  | 3 | —           | Butcher (4), Williamson 2N (2) |
+| `SCHEME_LSRK_54` | `lsrk-54` | 5  | 4 | —           | Butcher (6), Williamson 2N (2) |
+
+| Splitting | Name | Flows | Order | Storage form |
+|---|---|---|---|---|
+| `SCHEME_STRANG`          | `strang`          | 3  | 2 | splitting (1) |
+| `SCHEME_YOSHIDA_4`       | `yoshida-4`       | 7  | 4 | splitting (1) |
+| `SCHEME_BLANES_MOAN_S6`  | `blanes-moan-s6`  | 13 | 4 | splitting (1) |
+| `SCHEME_BLANES_MOAN_S10` | `blanes-moan-s10` | 21 | 6 | splitting (1) |
+
 ## Quick start
 
 ```bash
