@@ -1,0 +1,5 @@
+<!-- PLACEHOLDER nav mark: replace with the identity bundle's logo-nav.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="SELAH">
+  <circle cx="24" cy="24" r="20" fill="none" stroke="#1d1b18" stroke-width="2.5"/>
+  <path d="M12 30 Q 18 14 24 24 T 36 18" fill="none" stroke="#2f4f8f" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -4,7 +4,18 @@ export default withMermaid({
   title: 'SELAH',
   description: 'Stage-wise Evolution Library for Accelerators and HPC: time-evolution operators for block-structured field solvers',
   base: '/SELAH/',
-  srcExclude: ['ford.md'],
+  // ford.md is the API generator's project file; _tables/ are the generated fragments the pages include
+  srcExclude: ['ford.md', '**/_tables/**', 'examples/**'],
+
+  // the identity slots (PLACEHOLDER files until the bundle arrives): favicons by colour scheme, theme colour, and the
+  // theme-aware videos of the verification pages (<video class="light-only"> / <video class="dark-only">)
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/SELAH/favicon.svg', media: '(prefers-color-scheme: light)' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/SELAH/favicon-dark.svg', media: '(prefers-color-scheme: dark)' }],
+    ['meta', { name: 'theme-color', content: '#f3ede1', media: '(prefers-color-scheme: light)' }],
+    ['meta', { name: 'theme-color', content: '#0e1116', media: '(prefers-color-scheme: dark)' }],
+    ['style', {}, '.dark-only{display:none}.dark .dark-only{display:block}.dark .light-only{display:none}'],
+  ],
 
   markdown: {
     math: true,
@@ -18,12 +29,16 @@ export default withMermaid({
   },
 
   themeConfig: {
+    logo: { light: '/logo-nav.svg', dark: '/logo-nav-dark.svg', alt: 'SELAH' },
     siteTitle: 'SELAH',
     nav: [
-      { text: 'Home',   link: '/' },
-      { text: 'Guide',  link: '/guide/' },
-      { text: 'API',    link: '/api/' },
-      { text: 'GitHub', link: 'https://github.com/szaghi/SELAH' },
+      { text: 'Home',         link: '/' },
+      { text: 'Guide',        link: '/guide/' },
+      { text: 'Tutorial',     link: '/tutorial/' },
+      { text: 'Cookbook',     link: '/cookbook/' },
+      { text: 'Verification', link: '/verification/' },
+      { text: 'API',          link: '/api/' },
+      { text: 'GitHub',       link: 'https://github.com/szaghi/SELAH' },
     ],
 
     sidebar: {
@@ -33,16 +48,26 @@ export default withMermaid({
           items: [
             { text: 'About',        link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'Quick start',  link: '/guide/quickstart' },
           ],
         },
         {
           text: 'Reference',
           items: [
-            { text: 'Schemes', link: '/guide/schemes' },
-            { text: 'Kernels', link: '/guide/kernels' },
-            { text: 'Stepper', link: '/guide/stepper' },
-            { text: 'Performance', link: '/guide/performance' },
-            { text: 'API',     link: '/guide/api' },
+            { text: 'Concepts',  link: '/guide/concepts' },
+            { text: 'Schemes',   link: '/guide/schemes' },
+            { text: 'Kernels',   link: '/guide/kernels' },
+            { text: 'Stepper',   link: '/guide/stepper' },
+            { text: 'Precision', link: '/guide/precision' },
+            { text: 'API',       link: '/guide/api' },
+          ],
+        },
+        {
+          text: 'Quality',
+          items: [
+            { text: 'Verification', link: '/verification/' },
+            { text: 'Performance',  link: '/guide/performance' },
+            { text: 'Sources',      link: '/guide/sources' },
           ],
         },
         {
@@ -52,6 +77,70 @@ export default withMermaid({
             { text: 'Changelog',    link: '/guide/changelog' },
           ],
         },
+      ],
+      '/tutorial/': [
+        {
+          text: 'Tutorial',
+          items: [
+            { text: 'Overview',                  link: '/tutorial/' },
+            { text: '1. A step by hand',         link: '/tutorial/01-by-hand' },
+            { text: '2. The catalogue',          link: '/tutorial/02-catalogue' },
+            { text: '3. A field and a box',      link: '/tutorial/03-box' },
+            { text: '4. The stepper',            link: '/tutorial/04-stepper' },
+            { text: '5. Low-storage forms',      link: '/tutorial/05-low-storage' },
+            { text: '6. Splittings',             link: '/tutorial/06-splittings' },
+            { text: '7. Masks',                  link: '/tutorial/07-masks' },
+            { text: '8. The flux register',      link: '/tutorial/08-flux-register' },
+            { text: '9. On the GPU',             link: '/tutorial/09-gpu' },
+            { text: '10. Production',            link: '/tutorial/10-production' },
+          ],
+        },
+      ],
+      '/cookbook/': [
+        {
+          text: 'Cookbook',
+          items: [
+            { text: 'Overview',     link: '/cookbook/' },
+            { text: 'Schemes',      link: '/cookbook/schemes' },
+            { text: 'Storage',      link: '/cookbook/storage' },
+            { text: 'AMR',          link: '/cookbook/amr' },
+            { text: 'Diagnostics',  link: '/cookbook/diagnostics' },
+            { text: 'Porting from ADAM', link: '/cookbook/porting' },
+            { text: 'Performance',  link: '/cookbook/performance' },
+          ],
+        },
+      ],
+      '/verification/': [
+        { text: 'Verification', items: [
+          { text: 'Catalogue',     link: '/verification/' },
+          { text: 'Test programs', link: '/verification/unit-tests' },
+          { text: 'Regression',    link: '/verification/regression' },
+        ] },
+        { text: 'Accuracy', collapsed: false, items: [
+          { text: 'Overview',                       link: '/verification/accuracy/' },
+          { text: 'A1 Order conditions',            link: '/verification/accuracy/order-conditions' },
+          { text: 'A2 Orders on scalar ODEs',       link: '/verification/accuracy/scalar-orders' },
+          { text: 'A3 Orders through the stepper',  link: '/verification/accuracy/stepper-orders' },
+          { text: 'A4 Splittings',                  link: '/verification/accuracy/splittings' },
+          { text: 'A5 Linear stability',            link: '/verification/accuracy/stability' },
+        ] },
+        { text: 'Properties', collapsed: false, items: [
+          { text: 'Overview',                       link: '/verification/properties/' },
+          { text: 'P1 Strong stability (TVD)',      link: '/verification/properties/ssp-tvd' },
+          { text: 'P2 SSP coefficients',            link: '/verification/properties/ssp-coefficients' },
+          { text: 'P3 Splitting energy',            link: '/verification/properties/splitting-energy' },
+          { text: 'P4 Conservation',                link: '/verification/properties/conservation' },
+        ] },
+        { text: 'Contracts', collapsed: false, items: [
+          { text: 'Overview',                       link: '/verification/contracts/' },
+          { text: 'C1 Equivalence with ADAM',       link: '/verification/contracts/adam-equivalence' },
+          { text: 'C2 Storage forms',               link: '/verification/contracts/forms' },
+          { text: 'C3 Stage contract',              link: '/verification/contracts/stage-contract' },
+          { text: 'C4 Golden regression',           link: '/verification/contracts/golden' },
+          { text: 'C5 Device',                      link: '/verification/contracts/device' },
+          { text: 'C6 Mutation testing',            link: '/verification/contracts/mutation' },
+          { text: 'C7 Precision',                   link: '/verification/contracts/precision' },
+        ] },
       ],
     },
 

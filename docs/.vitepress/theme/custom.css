@@ -1,0 +1,267 @@
+/* SELAH documentation theme. The identity block below is a PLACEHOLDER: SELAH has no identity bundle yet (the owner
+   supplies one, as seth-identity.zip for SETH). Until it arrives the grounds, inks and fonts are the Sumi family's
+   (washi :root, silver ink .dark, as SETH), and the accent is a neutral placeholder indigo. Swapping the bundle in means
+   editing this block, docs/scripts/selah_palette.py and the logo/favicon files in docs/public/, nothing else.
+   Every text pair is at least 4.5:1 on its ground. */
+@import url('https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ---------- PLACEHOLDER identity tokens ---------- */
+:root {
+  --vp-font-family-base: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --vp-font-family-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --selah-font-display: 'Shippori Mincho', 'Hiragino Mincho ProN', serif;
+  --vp-c-bg: #f3ede1;
+  --vp-c-bg-alt: #ebe3d3;
+  --vp-c-bg-elv: #f7f2e8;
+  --vp-c-bg-soft: #ebe3d3;
+  --vp-c-divider: #ddd4c3;
+  --vp-c-gutter: #ddd4c3;
+  --vp-c-border: #6f6a62;
+  --vp-c-text-1: #1d1b18;
+  --vp-c-text-2: #5f5a52;
+  --vp-c-text-3: #5f5a52;
+  --vp-c-brand-1: #2f4f8f;
+  --vp-c-brand-2: #233d70;
+  --vp-c-brand-3: #2f4f8f;
+  --vp-c-brand-soft: rgba(47, 79, 143, 0.14);
+  --vp-button-brand-bg: #2f4f8f;
+  --vp-button-brand-border: #2f4f8f;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-hover-bg: #233d70;
+  --vp-button-brand-hover-border: #233d70;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-active-bg: #233d70;
+  --vp-button-brand-active-border: #233d70;
+  --vp-button-brand-active-text: #ffffff;
+  --vp-button-alt-border: #6f6a62;
+  --selah-accent: #2f4f8f;
+  --selah-focus: #1d1b18;
+  --vp-home-hero-name-color: #1d1b18;
+  --vp-code-block-bg: #ebe3d3;
+  --vp-home-hero-image-background-image: none;
+  --vp-home-hero-image-filter: none;
+}
+
+.dark {
+  --vp-c-bg: #0e1116;
+  --vp-c-bg-alt: #0a0d11;
+  --vp-c-bg-elv: #141820;
+  --vp-c-bg-soft: #0a0d11;
+  --vp-c-divider: #222831;
+  --vp-c-gutter: #222831;
+  --vp-c-border: #8b949e;
+  --vp-c-text-1: #e8ecf0;
+  --vp-c-text-2: #a9b1bb;
+  --vp-c-text-3: #a9b1bb;
+  --vp-c-brand-1: #b4c8ff;
+  --vp-c-brand-2: #9db8ff;
+  --vp-c-brand-3: #9db8ff;
+  --vp-c-brand-soft: rgba(157, 184, 255, 0.14);
+  --vp-button-brand-bg: #9db8ff;
+  --vp-button-brand-border: #9db8ff;
+  --vp-button-brand-text: #0e1116;
+  --vp-button-brand-hover-bg: #7f9fef;
+  --vp-button-brand-hover-border: #7f9fef;
+  --vp-button-brand-hover-text: #0e1116;
+  --vp-button-brand-active-bg: #7f9fef;
+  --vp-button-brand-active-border: #7f9fef;
+  --vp-button-brand-active-text: #0e1116;
+  --vp-button-alt-border: #8b949e;
+  --selah-accent: #9db8ff;
+  --selah-focus: #9db8ff;
+  --vp-home-hero-name-color: #e8ecf0;
+  --vp-code-block-bg: #0a0d11;
+}
+/* ---------- end of the PLACEHOLDER identity tokens ---------- */
+
+/* names in the display face, tracked wide */
+.VPNavBarTitle .title,
+.VPHero .name,
+.VPHero .name .clip {
+  font-family: var(--selah-font-display);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.VPHero .name .clip {
+  background: none;
+  -webkit-text-fill-color: var(--vp-home-hero-name-color);
+  color: var(--vp-home-hero-name-color);
+}
+
+/* the mark in the hero: square, no shadow */
+.VPHero .image-src {
+  max-width: 320px;
+  max-height: 320px;
+}
+
+/* feature icons are drawn at 24 units: show them at 44 px, no tile */
+.VPFeature .icon {
+  width: 52px;
+  height: 52px;
+  background-color: transparent;
+}
+
+/* keyboard focus: solid 2px ring with 2px of ground */
+:focus-visible {
+  outline: 2px solid var(--selah-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Layout (not identity): hero sizes as on the other szaghi.github.io sites ----------
+   The expanded acronym and the tagline are long; at VitePress' default size the subtitle outweighs the
+   hero name, the family's display face. */
+@media (min-width: 640px) {
+  .VPHero .text { font-size: 36px; line-height: 44px; }
+  .VPHero .tagline { font-size: 19px; line-height: 30px; }
+}
+@media (min-width: 960px) {
+  .VPHero .name, .VPHero .name .clip { font-size: 64px; line-height: 72px; }
+  .VPHero .text { font-size: 40px; line-height: 50px; }
+  .VPHero .tagline { font-size: 20px; line-height: 32px; }
+}
+
+/* ---------- Figures (not identity tokens) ----------
+   The verification figures are drawn on the washi ground (docs/scripts/figure_theme.py); on silver ink they are shown
+   as washi cards, the way a printed plate sits on a dark table, rather than as white rectangles. A figure with a
+   silver-ink twin (<name>-dark.png, docs/scripts/figure_theme.py) shows the twin instead, swapped in by index.ts
+   (class selah-dark-twin): drawn on the page ground, it needs no card. */
+.dark .vp-doc img[src$=".png"] {
+  background: #f3ede1;
+  border-radius: 6px;
+  padding: 6px;
+}
+.dark .vp-doc img.selah-dark-twin {
+  background: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* ---------- Layout (not identity): landing galleries ----------
+   "See it run" (.selah-casts: theme-aware videos, the .light-only/.dark-only pair of config.mts) and the figure cards
+   (.selah-gallery: one markdown link per paragraph, image + <strong> title + <span> caption). One column on phones,
+   two from 640 px. Flat: borders from the theme tokens, no shadows, no gradients. */
+.vp-doc .selah-casts,
+.vp-doc .selah-gallery {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 16px 0 24px;
+}
+@media (min-width: 640px) {
+  .vp-doc .selah-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Casts: a justified row. Each card grows in proportion to its video's aspect ratio (--ar, width/height, set on the
+     figure), so the videos of a row share one height whatever their shapes; a wide cast (.selah-cast-wide) takes a row. */
+  .vp-doc .selah-casts { display: flex; flex-wrap: wrap; align-items: stretch; }
+  .vp-doc .selah-casts .selah-cast { flex: var(--ar, 1.5) 1 0; min-width: 0; }
+  .vp-doc .selah-casts .selah-cast-wide,
+  .vp-doc .selah-casts-wide .selah-cast { flex-basis: 100%; }
+}
+.vp-doc .selah-cast {
+  margin: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--vp-c-bg-soft);
+}
+.vp-doc .selah-cast video {
+  width: 100%;
+  height: auto;
+  vertical-align: top;
+}
+.vp-doc .selah-cast figcaption,
+.vp-doc .selah-gallery span {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+.vp-doc .selah-cast figcaption { padding: 8px 12px 10px; }
+.vp-doc .selah-gallery p { margin: 0; }
+.vp-doc .selah-gallery a {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--vp-c-bg-soft);
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+}
+.vp-doc .selah-gallery a:hover { border-color: var(--vp-c-brand-1); }
+.vp-doc .selah-gallery img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  background: #f3ede1;   /* the figures' washi ground, in both themes */
+  border-radius: 0;
+  padding: 6px;
+}
+.dark .vp-doc .selah-gallery img.selah-dark-twin {
+  background: #0e1116;   /* the silver-ink twin's ground (figure_theme.py) */
+  padding: 6px;
+}
+.vp-doc .selah-gallery strong { padding: 8px 12px 0; font-size: 14px; }
+.vp-doc .selah-gallery span { padding: 2px 12px 10px; }
+
+/* Verification catalogs (.selah-gallery.selah-catalog): the same cards, three per row on wide screens, a smaller figure,
+   the card's tag (<em>: physics / contract) at its foot. A page without a figure is a text card. */
+@media (min-width: 960px) {
+  .vp-doc .selah-gallery.selah-catalog { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.vp-doc .selah-catalog { gap: 12px; }
+.vp-doc .selah-catalog img { aspect-ratio: 16 / 10; padding: 4px; }
+.dark .vp-doc .selah-catalog img.selah-dark-twin { padding: 4px; }
+.vp-doc .selah-catalog strong { padding-top: 8px; line-height: 1.35; }
+.vp-doc .selah-catalog span { flex: 1; }
+.vp-doc .selah-catalog em {
+  align-self: flex-start;
+  margin: 0 12px 10px;
+  padding: 1px 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-2);
+}
+
+/* ---------- Layout (not identity): home sections below the features ----------
+   Quick start, authors and license, as in the README (the layout of the mosaic home): centred headings and leads,
+   code and tables at a reading width. The authors are VitePress' own VPTeamMembers cards. */
+.selah-home {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 2rem 24px 1rem;
+}
+.selah-home h2 {
+  border-top: 0;
+  margin-top: 2.5rem;
+  text-align: center;
+}
+.selah-home .selah-lead {
+  text-align: center;
+  color: var(--vp-c-text-2);
+  max-width: 720px;
+  margin: 0.5rem auto 1.5rem;
+}
+.selah-home div[class*='language-'],
+.selah-home .vp-code-group {
+  max-width: 820px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.selah-home table {
+  display: table;
+  margin: 0 auto;
+}
+.VPHome .VPTeamMembers {
+  max-width: 1152px;
+  margin: 0 auto 1rem;
+  padding: 0 24px;
+}
+/* the authors' avatars are photos, not figures: no washi card in the dark theme */
+.dark .vp-doc .VPTeamMembers img[src$=".png"] {
+  background: none;
+  border-radius: 50%;
+  padding: 0;
+}

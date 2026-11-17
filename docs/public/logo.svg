@@ -1,0 +1,6 @@
+<!-- PLACEHOLDER mark: SELAH has no identity bundle yet; replace with the bundle's logo.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="SELAH (placeholder mark)">
+  <circle cx="120" cy="120" r="96" fill="none" stroke="#1d1b18" stroke-width="6"/>
+  <path d="M60 150 Q 90 70 120 120 T 180 90" fill="none" stroke="#2f4f8f" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="60" cy="150" r="9" fill="#2f4f8f"/><circle cx="120" cy="120" r="9" fill="#2f4f8f"/><circle cx="180" cy="90" r="9" fill="#2f4f8f"/>
+</svg>
