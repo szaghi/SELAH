@@ -22,6 +22,7 @@ real(R_P),    parameter :: TOL = 16._R_P * epsilon(1._R_P)
 real(R_P),    parameter :: DT = 0.37_R_P
 real(R_P),    parameter :: COEF(NR) = [0.25_R_P, -0.5_R_P, 1.125_R_P]
 real(R_P), pointer      :: coef_d(:) => null()
+real(R_P)               :: coef_h(NR) !< COEF as a variable, the source of the device copy.
 integer(I4P)            :: layout
 
 #if defined DEV_OAC || defined DEV_OMP
@@ -30,7 +31,9 @@ print '(A)', 'device build: kernels run on the device'
 #else
 print '(A)', 'host build: FUNDAL host memory'
 #endif
-call dev_assign_to_device(dst=coef_d, src=COEF)
+coef_h = COEF ! a variable: passing the named constant itself down FUNDAL to a target dummy left nvfortran 26.9 -Mbounds
+               ! reading garbage bounds for COEF afterwards (debug builds only; release, gfortran and ifx are fine)
+call dev_assign_to_device(dst=coef_d, src=coef_h)
 do layout=LAYOUT_V_FIRST, LAYOUT_V_LAST
    call test_layout(box_interior(layout, NV, NI, NJ, NK, NGC, BN), merge('v-first', 'v-last ', layout == LAYOUT_V_FIRST))
 enddo
