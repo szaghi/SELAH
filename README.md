@@ -30,7 +30,7 @@
 <td><b>⚡ Kernels over your arrays</b><br><sub>Stage and update operations on block-structured fields with ghost cells, in two layouts, masked or not: they write the cells of the box and nothing else. One source for the host, OpenMP and OpenACC. <a href="https://szaghi.github.io/SELAH/guide/kernels">Kernels</a> · <a href="https://szaghi.github.io/SELAH/guide/performance">Performance</a></sub></td>
 </tr>
 <tr>
-<td><b>🎛️ A stepper you drive</b><br><sub><code>begin_stage</code>, <code>end_stage</code>, <code>finish_step</code> around your own ghost fill and residual, under a stage contract an AMR orchestrator can rely on; <code>stage_weight</code> for flux registers, the step residual fused in the update. <a href="https://szaghi.github.io/SELAH/guide/stepper">Stepper</a> · <a href="https://szaghi.github.io/SELAH/guide/concepts">Concepts</a></sub></td>
+<td><b>🎛️ A stepper you drive</b><br><sub><code>begin_stage</code>, <code>end_stage</code>, <code>finish_step</code> around your own ghost fill and residual, on fields of rank 1 to 5, under a stage contract an AMR orchestrator can rely on; <code>stage_weight</code> for flux registers, the step residual fused in the update. <a href="https://szaghi.github.io/SELAH/guide/stepper">Stepper</a> · <a href="https://szaghi.github.io/SELAH/guide/concepts">Concepts</a></sub></td>
 <td><b>💾 Low storage, same answer</b><br><sub>Two-register, Williamson 2N and Ketcheson forms in 2 registers instead of s + 1, equal to the Butcher form to round-off. SSP(10,4) in two registers: half the residual evaluations of SSP(5,4) per unit time at the strong-stability limit. <a href="https://szaghi.github.io/SELAH/verification/contracts/forms">Storage forms</a></sub></td>
 </tr>
 <tr>

@@ -1,0 +1,8 @@
+$ ranks
+rank 1, lo as rank 5:  1  1  1  1  1
+rank 1, hi as rank 5:  1  6  1  1  1
+rank 3, hi as rank 5:  2  6  6  1  1
+rank 1, q(3) at t = 1:         0.565207589
+exact 1/(1/q0 + t):            0.565217391
+rank 3, w(2,1,1) at t = 1:     0.367879461   exp(-1):  0.367879441
+rank 1 bitwise rank 5: T

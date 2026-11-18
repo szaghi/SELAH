@@ -121,6 +121,7 @@ export default withMermaid({
             { text: 'Overview',     link: '/cookbook/' },
             { text: 'Schemes',      link: '/cookbook/schemes' },
             { text: 'Storage',      link: '/cookbook/storage' },
+            { text: 'Any rank',     link: '/cookbook/ranks' },
             { text: 'AMR',          link: '/cookbook/amr' },
             { text: 'Diagnostics',  link: '/cookbook/diagnostics' },
             { text: 'Porting from ADAM', link: '/cookbook/porting' },

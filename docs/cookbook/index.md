@@ -13,6 +13,7 @@ taken from the tests and the benchmarks.
 |---|---|
 | [Schemes](./schemes) | choosing a scheme and its storage form; the largest strong-stability-preserving time step |
 | [Storage](./storage) | registers from your own pool; the working precision of a build |
+| [Any rank](./ranks) | a 1-D, 2-D or 3-D solver: the box and the stepper at the field's rank; a periodic field with no ghost cells |
 | [AMR](./amr) | refluxing with `stage_weight`; where the ghost cells of a stage must come from |
 | [Diagnostics](./diagnostics) | the step residual as a convergence monitor; contract checks; what happens on a request the stepper cannot honour |
 | [Porting from ADAM](./porting) | ADAM's RK calls and their SELAH equivalents, call by call |

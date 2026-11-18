@@ -51,7 +51,7 @@ features:
       width: 44
       height: 44
     title: A stepper you drive
-    details: begin_stage, end_stage, finish_step, around your own ghost fill and residual, under a stage contract an AMR orchestrator can rely on.
+    details: begin_stage, end_stage, finish_step, around your own ghost fill and residual, on fields of rank 1 to 5, under a stage contract an AMR orchestrator can rely on.
     link: /guide/stepper
     linkText: Stepper
   - icon:

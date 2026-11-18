@@ -46,4 +46,31 @@ The four calls of a step, and who does what: the stepper builds stage states and
 writes residuals. Reference: [Stepper](/guide/stepper), the [stage contract](/guide/concepts#the-stage-contract).
 :::
 
+## A field of any rank
+
+The field so far is rank 5: components, three cell indices and blocks. A 1-D, 2-D or 3-D solver holds fields of rank
+1 to 4, and the stepper takes them at their own rank. SELAH views such a field as rank 5 with singleton dimensions,
+so the kernels are the same and nothing is copied. The box and the stepper are built from the field's own bounds,
+and `components` says whether its first dimension holds components:
+
+<<< @/examples/snippets/ranks-rank1.F90{fortran}
+
+<<< @/examples/snippets/ranks-rank3.F90{fortran}
+
+The step is the one of this chapter, at the field's rank. `stage_state()` and `rhs_register()` keep their rank-5
+result. At rank 1 to 4 the pointers come from `stage_state_view(u)` and `rhs_register_view(r)`, with the field's
+bounds:
+
+<<< @/examples/snippets/ranks-step.F90{fortran}
+
+The same field declared rank 5 gives the same values, bit for bit:
+
+<<< @/examples/snippets/ranks-rank5.F90{fortran}
+
+<<< @/examples/output/ranks.txt{text}
+
+The rank-1 field is viewed as `(1, i, 1, 1, 1)`, the rank-3 field `w(v, i, j)` as `(v, i, j, 1, 1)`. The whole
+mapping is in [Kernels](/guide/kernels#fields-of-rank-1-to-4); the preconditions (a contiguous field, caller registers
+for rank 5 only) are in [Stepper](/guide/stepper#fields-of-rank-1-to-4).
+
 Next: [5. Low-storage forms](./05-low-storage).
