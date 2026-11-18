@@ -1,0 +1,112 @@
+FOODIE sources: /home/stefano/fortran/FOODIE/src/lib  (mpmath 1.2.1, 60 digits)
+
+## Explicit Runge-Kutta: order conditions (max residual per tree order)
+
+runge_kutta_ssp_stages_1_order_1                 declared  1 observed  1   c-A1 0   1:0 2:5.0e-1
+runge_kutta_ssp_stages_2_order_2                 declared  2 observed  2   c-A1 0   1:0 2:0 3:1.67e-1
+runge_kutta_ssp_stages_3_order_3                 declared  3 observed  3   c-A1 0   1:0 2:0 3:0 4:8.33e-2
+runge_kutta_ssp_stages_5_order_4                 declared  4 observed  4   c-A1 5.0e-37   1:0 2:1.21e-37 3:1.57e-37 4:2.21e-37 5:7.32e-3
+runge_kutta_emd_stages_2_order_2 b(:,1)          declared  2 observed  2   c-A1 0   1:0 2:0 3:1.67e-1
+runge_kutta_emd_stages_2_order_2 b(:,2)          declared  2 observed  1   c-A1 0   1:0 2:5.0e-1 3:3.33e-1
+runge_kutta_emd_stages_6_order_5 b(:,1)          declared  5 observed  5   c-A1 7.78e-62   1:0 2:0 3:3.89e-62 4:3.89e-62 5:2.92e-62 6:1.67e-3
+runge_kutta_emd_stages_6_order_5 b(:,2)          declared  5 observed  4   c-A1 7.78e-62   1:0 2:0 3:3.89e-62 4:3.89e-62 5:6.76e-4 6:1.17e-3
+runge_kutta_emd_stages_7_order_4 b(:,1)          declared  4 observed  5   c-A1 1.56e-61   1:0 2:7.78e-62 3:1.17e-61 4:1.56e-61 5:1.56e-61
+runge_kutta_emd_stages_7_order_4 b(:,2)          declared  4 observed  4   c-A1 1.56e-61   1:0 2:0 3:1.17e-61 4:1.17e-61 5:8.08e-4
+runge_kutta_emd_stages_9_order_6 b(:,1)          declared  6 observed  6   c-A1 7.69e-16   1:4.44e-17 2:1.94e-16 3:3.9e-16 4:6.19e-16 5:8.68e-16 6:1.13e-15 7:3.83e-5
+runge_kutta_emd_stages_9_order_6 b(:,2)          declared  6 observed  5   c-A1 7.69e-16   1:3.31e-17 2:2.41e-17 3:5.74e-17 4:7.52e-17 5:1.59e-16 6:1.01e-3 7:3.07e-3
+runge_kutta_emd_stages_17_order_10 b(:,1)        declared 10 observed 10   c-A1 2.0e-21   1:2.0e-21 2:1.68e-21 3:1.76e-21 4:1.78e-21 5:1.79e-21 6:1.78e-21 7:1.74e-21 8:1.68e-21 9:1.6e-21 10:1.5e-21 11:2.73e-5
+runge_kutta_emd_stages_17_order_10 b(:,2)        declared 10 observed  8   c-A1 2.0e-21   1:2.0e-21 2:1.68e-21 3:1.76e-21 4:1.78e-21 5:1.79e-21 6:1.78e-21 7:1.74e-21 8:1.68e-21 9:6.32e-6 10:1.88e-5 11:3.48e-5
+runge_kutta_ls_stages_1_order_1                  declared  1 observed  1   C-A1 0   1:0 2:5.0e-1
+runge_kutta_ls_stages_5_order_4                  declared  4 observed  4   C-A1 8.69e-26   1:3.71e-26 2:4.89e-26 3:5.22e-26 4:4.68e-26 5:7.97e-3
+runge_kutta_ls_stages_6_order_4                  declared  4 observed  4   C-A1 3.94e-37   1:1.65e-38 2:7.44e-38 3:4.26e-38 4:8.73e-38 5:4.01e-3
+runge_kutta_ls_stages_7_order_4                  declared  4 observed  4   C-A1 1.02e-36   1:3.93e-37 2:4.36e-37 3:6.07e-37 4:7.06e-37 5:2.4e-3
+runge_kutta_ls_stages_12_order_4                 declared  4 observed  4   C-A1 4.85e-16   1:3.81e-17 2:1.94e-16 3:1.55e-16 4:1.35e-16 5:2.82e-3
+runge_kutta_ls_stages_13_order_4                 declared  4 observed  4   C-A1 2.65e-16   1:2.93e-16 2:2.3e-16 3:1.82e-16 4:1.73e-16 5:3.9e-3
+runge_kutta_ls_stages_14_order_4                 declared  4 observed  4   C-A1 3.53e-16   1:1.47e-15 2:2.83e-16 3:6.56e-16 4:1.28e-15 5:1.42e-3
+
+## Linear multistep: exact order on polynomials (declared = steps for AB, steps+1 for AM, steps for BDF)
+
+adams_bashforth_1                declared  1 observed  1
+adams_bashforth_2                declared  2 observed  2
+adams_bashforth_3                declared  3 observed  3
+adams_bashforth_4                declared  4 observed  4
+adams_bashforth_5                declared  5 observed  5
+adams_bashforth_6                declared  6 observed  6
+adams_bashforth_7                declared  7 observed  7
+adams_bashforth_8                declared  8 observed  8
+adams_bashforth_9                declared  9 observed  9
+adams_bashforth_10               declared 10 observed 10
+adams_bashforth_11               declared 11 observed 11
+adams_bashforth_12               declared 12 observed 12
+adams_bashforth_13               declared 13 observed 13
+adams_bashforth_14               declared 14 observed 14
+adams_bashforth_15               declared 15 observed 15
+adams_bashforth_16               declared 16 observed 16
+adams_moulton_0                  declared  1 observed  1
+adams_moulton_1                  declared  2 observed  2
+adams_moulton_2                  declared  3 observed  3
+adams_moulton_3                  declared  4 observed  4
+adams_moulton_4                  declared  5 observed  5
+adams_moulton_5                  declared  6 observed  6
+adams_moulton_6                  declared  7 observed  7
+adams_moulton_7                  declared  8 observed  8
+adams_moulton_8                  declared  9 observed  9
+adams_moulton_9                  declared 10 observed 10
+adams_moulton_10                 declared 11 observed 11
+adams_moulton_11                 declared 12 observed 12
+adams_moulton_12                 declared 13 observed 13
+adams_moulton_13                 declared 14 observed 14
+adams_moulton_14                 declared 15 observed 15
+adams_moulton_15                 declared 16 observed 16
+back_df_1                        declared  1 observed  1
+back_df_2                        declared  2 observed  2
+back_df_3                        declared  3 observed  3
+back_df_4                        declared  4 observed  4
+back_df_5                        declared  5 observed  5
+back_df_6                        declared  6 observed  6
+lmm_ssp_steps_3_order_2          declared  2 observed  2   sum a = 1.0, a >= 0: True, b >= 0: True
+lmm_ssp_steps_4_order_3          declared  3 observed  3   sum a = 1.0, a >= 0: True, b >= 0: True
+lmm_ssp_steps_5_order_3          declared  3 observed  3   sum a = 1.0, a >= 0: True, b >= 0: True
+
+## LMM-SSP-VSS on y' = -y^2, t in [0, 1]: observed orders (step halving: 32 -> 64 -> 128 -> 256 steps)
+
+lmm_ssp_vss_steps_2_order_2  constant dt       FOODIE: 1.41 1.76 1.89   published: 1.41 1.76 1.89
+lmm_ssp_vss_steps_2_order_2  dt x 1, 1.5, 2/3  FOODIE: 3.35e-1 1.61 3.79e-1   published: 2.98 1.31 2.22
+lmm_ssp_vss_steps_3_order_2  constant dt       FOODIE: 1.93 1.96 1.98   published: 1.93 1.96 1.98
+lmm_ssp_vss_steps_3_order_2  dt x 1, 1.5, 2/3  FOODIE: -1.15 2.3 -4.48e-1   published: 1.87 1.94 1.97
+lmm_ssp_vss_steps_3_order_3  constant dt       FOODIE: 1.99 3.37 2.77   published: 1.99 3.37 2.77
+lmm_ssp_vss_steps_3_order_3  dt x 1, 1.5, 2/3  FOODIE: -2.95e+12 -4.88e+30 -2.06e+67   published: -6.37e+4 -2.72e+21 -1.28e+57
+lmm_ssp_vss_steps_4_order_3  constant dt       FOODIE: 2.88 2.94 2.97   published: 2.88 2.94 2.97
+lmm_ssp_vss_steps_4_order_3  dt x 1, 1.5, 2/3  FOODIE: 3.83 -2.02 4.29   published: 2.88 2.94 2.97
+lmm_ssp_vss_steps_5_order_3  constant dt       FOODIE: 2.85 2.92 2.96   published: 2.85 2.92 2.96
+lmm_ssp_vss_steps_5_order_3  dt x 1, 1.5, 2/3  FOODIE: 3.15e-1 1.59 3.35e-1   published: 2.89 2.93 2.97
+
+## Multistep-multistage RK-SSP on y' = -y^2, t in [0, 1], constant dt: observed orders
+
+ms_runge_kutta_ssp_steps_2_stages_2_order_3  declared  3 observed 2.98 2.99 2.99   sum Q = 1.0
+ms_runge_kutta_ssp_steps_3_stages_2_order_3  declared  3 observed 2.93 2.96 2.98   sum Q = 1.0
+ms_runge_kutta_ssp_steps_4_stages_5_order_8  declared  8 observed 6.96 7.46 5.25   sum Q = 1.0
+                                             y' = -4y^2, steps: error (order): 16: 6.78e-8, 32: 7.85e-10 (6.43), 64: 5.71e-12 (7.1), 128: 2.76e-14 (7.69), 256: 7.06e-15 (1.97)
+
+## Linear-SSP RK: R(z) - exp(z) = O(z^(p+1)) for y' = z y (p from the ratio at z = 1e-3, 5e-4)
+
+runge_kutta_lssp_order_s   stages  2: order   2.0   R(-1)-exp(-1) 1.32e-1   2! as int32: 2
+runge_kutta_lssp_order_s   stages  3: order   3.0   R(-1)-exp(-1) -3.45e-2   3! as int32: 6
+runge_kutta_lssp_order_s   stages  4: order   4.0   R(-1)-exp(-1) 7.12e-3   4! as int32: 24
+runge_kutta_lssp_order_s   stages  5: order   5.0   R(-1)-exp(-1) -1.21e-3   5! as int32: 120
+runge_kutta_lssp_order_s   stages  8: order   8.0   R(-1)-exp(-1) 2.5e-6   8! as int32: 40320
+runge_kutta_lssp_order_s   stages 12: order 1.2e+1   R(-1)-exp(-1) 1.5e-10   12! as int32: 479001600
+runge_kutta_lssp_order_s   stages 13: order 4.33e-3   R(-1)-exp(-1) -3.68e-10   13! as int32: 1932053504
+runge_kutta_lssp_order_s   stages 14: order 4.85e-3   R(-1)-exp(-1) -4.13e-10   14! as int32: 1278945280
+runge_kutta_lssp_order_s_1 stages  2: order   1.0   R(-1)-exp(-1) -1.18e-1   2! as int32: 2
+runge_kutta_lssp_order_s_1 stages  3: order   2.0   R(-1)-exp(-1) 4.88e-2   3! as int32: 6
+runge_kutta_lssp_order_s_1 stages  4: order   3.0   R(-1)-exp(-1) -1.37e-2   4! as int32: 24
+runge_kutta_lssp_order_s_1 stages  5: order   4.0   R(-1)-exp(-1) 2.95e-3   5! as int32: 120
+runge_kutta_lssp_order_s_1 stages  8: order   7.0   R(-1)-exp(-1) -9.9e-6   8! as int32: 40320
+runge_kutta_lssp_order_s_1 stages 12: order 1.1e+1   R(-1)-exp(-1) -8.94e-10   12! as int32: 479001600
+runge_kutta_lssp_order_s_1 stages 13: order 1.2e+1   R(-1)-exp(-1) 6.95e-11   13! as int32: 1932053504
+runge_kutta_lssp_order_s_1 stages 14: order 1.3e+1   R(-1)-exp(-1) -5.02e-12   14! as int32: 1278945280
+
+## Literal hygiene
+
+none
