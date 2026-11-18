@@ -35,11 +35,9 @@ You can use any layer alone: the coefficients for your own kernels, the kernels 
 
 ## Status
 
-**v0.1.0** (2026-11-17). On `main`, not yet released:
-- `stages_on_q` and `stage_state_is_q` ([Stepper](./stepper#stages-on-q));
-- the 2N stage that no longer reads its register on the first stage;
-- the validation of the caller's registers;
-- this documentation.
+Use SELAH from its `main` branch, as the [installation](./installation) snippets do: every push to `main` builds and
+runs the test suite on the host with gfortran, nvfortran and ifx (the device runs are by hand, on the A30). The
+releases and what each one changed are in the [changelog](./changelog).
 
 ## Design principles
 

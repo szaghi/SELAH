@@ -164,13 +164,13 @@ fobis build --mode tests-gnu && bash scripts/run_tests.sh     # the verification
 deps_dir = src/third_party
 PENF     = https://github.com/szaghi/PENF :: branch=master    # SELAH's own dependencies: fobis fetch is not transitive
 FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
-SELAH    = https://github.com/szaghi/SELAH :: tag=v0.1.0
+SELAH    = https://github.com/szaghi/SELAH :: branch=main
 ```
 
 ```toml [fpm dependency]
 # fpm.toml of your project
 [dependencies]
-SELAH = { git = "https://github.com/szaghi/SELAH", tag = "v0.1.0" }
+SELAH = { git = "https://github.com/szaghi/SELAH", branch = "main" }
 ```
 
 :::

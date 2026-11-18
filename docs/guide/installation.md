@@ -57,7 +57,7 @@ contiguous. The stepper allocates its own registers through FUNDAL, so they are 
 deps_dir = src/third_party
 PENF     = https://github.com/szaghi/PENF :: branch=master    # SELAH's own dependencies: fobis fetch is not transitive
 FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
-SELAH    = https://github.com/szaghi/SELAH :: tag=v0.1.0
+SELAH    = https://github.com/szaghi/SELAH :: branch=main
 ```
 
 Build your program with `-DFUNDAL_NO_MPI` (unless it uses FUNDAL's MPI handler) and with FUNDAL's `src/lib` among the
@@ -67,7 +67,7 @@ include directories: the kernels include `fundal.H`.
 
 ```toml
 [dependencies]
-SELAH = { git = "https://github.com/szaghi/SELAH", tag = "v0.1.0" }
+SELAH = { git = "https://github.com/szaghi/SELAH", branch = "main" }
 ```
 
 fpm fetches PENF and FUNDAL from SELAH's own manifest. Build with `-DFUNDAL_NO_MPI` unless your program uses FUNDAL's
