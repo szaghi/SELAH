@@ -85,7 +85,7 @@ The stage operations, over the part of a block-structured field a [[box]] descri
 
 | Module | What |
 |--------|------|
-| [[selah_box]] | the `box`, its layouts `LAYOUT_V_FIRST` and `LAYOUT_V_LAST`, `box_interior`, `box_components` |
+| [[selah_box]] | the `box`, its layouts `LAYOUT_V_FIRST` and `LAYOUT_V_LAST`, `box_interior` (rank 5, or a field of rank 1 to 4), `box_range`, `box_components`, `box_dim` (a field of rank k as rank 5) |
 | [[selah_kernels]] | the generic kernels `selah_copy`, `selah_axpy`, `selah_lincomb`, `selah_stage_state`, `selah_step_update`, `selah_shu_osher_2r_stage`, `selah_williamson_2n_stage` |
 | [[selah_kernels_box]], [[selah_kernels_flat]] | their specific procedures: the box forms (rank-5 arrays, an optional mask) and the flat forms (rank 1) |
 
@@ -96,7 +96,7 @@ the shortcuts are in [Kernels](/guide/kernels).
 
 | Module | What |
 |--------|------|
-| [[selah_stepper]] | the [[stepper]] type: one time step driven stage by stage, the caller filling the ghost cells and writing each residual |
+| [[selah_stepper]] | the [[stepper]] type: one time step driven stage by stage, the caller filling the ghost cells and writing each residual; on fields of rank 1 to 5 (`stage_state_view`, `rhs_register_view` below rank 5) |
 
 The order of the calls and every precondition: [Stepper](/guide/stepper). The components of `type(stepper)` are
 public but are not part of the API.

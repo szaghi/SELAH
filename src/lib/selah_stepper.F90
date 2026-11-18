@@ -44,7 +44,17 @@ module selah_stepper
 !< Butcher form has its register (v0.1.0 behaviour).
 !<
 !< **Storage.** `registers_needed(scheme, form)` field-sized buffers, allocated through FUNDAL (device memory in a
-!< device build) or passed by the caller (`registers`, any rank-6 array with the field's bounds and enough slots).
+!< device build) or passed by the caller (`registers`, a contiguous rank-6 array with the field's bounds and enough
+!< slots; rank-5 fields only).
+!<
+!< **Fields of rank 1 to 4.** `initialize` takes the bounds of a field of rank k = size(lb) and, below rank 5, the
+!< `components` flag (selah_box: the field viewed as rank 5 with singleton dimensions). `begin_step`, `begin_stage`,
+!< `end_stage` and `finish_step` are generic over the rank of q (dq and mask have q's rank); the box must have the
+!< field's rank (`box_interior(lb, ub, ngc, components)`). The field reaches the one rank-5 implementation through an
+!< explicit-shape dummy, with no copy when it is contiguous; it must be contiguous in a device build. The stage state
+!< and the residual register of a rank-k field are `stage_state_view(u)` and `rhs_register_view(r)`: rank-k pointers
+!< with the field's bounds, null when `stage_state()` and `rhs_register()` are (the functions keep their rank-5
+!< result).
 use fundal, only : dev_alloc, dev_free, dev_assign_to_device
 use penf, only : I4P
 use selah_kind_parameters, only : R_P
@@ -64,13 +74,18 @@ type :: stepper
    character(:), allocatable   :: form                    !< Storage form.
    integer(I4P)                :: nstages = 0_I4P         !< Stages (flows for a splitting).
    integer(I4P)                :: k_active = 0_I4P        !< Stage between begin_stage and end_stage, else 0.
-   integer(I4P)                :: lb(5) = 1_I4P           !< Lower bounds of the field.
+   integer(I4P)                :: lb(5) = 1_I4P           !< Lower bounds of the field, as rank 5.
+   integer(I4P)                :: ub(5) = 1_I4P           !< Upper bounds of the field, as rank 5.
+   integer(I4P)                :: rank = 5_I4P            !< Rank of the field.
+   logical                     :: components = .true.     !< The field's first dimension holds its components.
+   integer(I4P)                :: lbk(5) = 1_I4P          !< Lower bounds of the field, rank k (the first rank values).
+   integer(I4P)                :: ubk(5) = 1_I4P          !< Upper bounds of the field, rank k (the first rank values).
    integer(I4P)                :: part(2,2) = 0_I4P       !< Component ranges of the two partitions (splitting).
    type(butcher_tableau)       :: bt                      !< Butcher tableau (every RK form).
    type(shu_osher_2r_form)     :: r2                      !< Two-register form.
    type(williamson_2n_form)    :: w2n                     !< 2N form.
    type(splitting_composition) :: sc                      !< Splitting.
-   real(R_P), pointer          :: regs(:,:,:,:,:,:) => null() !< Registers.
+   real(R_P), pointer, contiguous :: regs(:,:,:,:,:,:) => null() !< Registers (contiguous: the rank-k views remap them).
    real(R_P), pointer          :: at_d(:,:) => null()     !< Transposed A (column k = row k), device resident.
    real(R_P), pointer          :: b_d(:) => null()        !< Weights b, device resident.
    logical                     :: owned = .false.         !< The registers are the stepper's.
@@ -78,10 +93,22 @@ type :: stepper
    contains
       procedure, pass(self) :: initialize
       procedure, pass(self) :: destroy
-      procedure, pass(self) :: begin_step
-      procedure, pass(self) :: begin_stage
-      procedure, pass(self) :: end_stage
-      procedure, pass(self) :: finish_step
+      procedure, pass(self), private :: begin_step_r1, begin_step_r2, begin_step_r3, begin_step_r4, begin_step_r5
+      procedure, pass(self), private :: begin_stage_r1, begin_stage_r2, begin_stage_r3, begin_stage_r4, begin_stage_r5
+      procedure, pass(self), private :: end_stage_r1, end_stage_r2, end_stage_r3, end_stage_r4, end_stage_r5
+      procedure, pass(self), private :: finish_step_r1, finish_step_r2, finish_step_r3, finish_step_r4, finish_step_r5
+      procedure, pass(self), private :: stage_state_view_r1, stage_state_view_r2, stage_state_view_r3, &
+                                        stage_state_view_r4, stage_state_view_r5
+      procedure, pass(self), private :: rhs_register_view_r1, rhs_register_view_r2, rhs_register_view_r3, &
+                                        rhs_register_view_r4, rhs_register_view_r5
+      generic :: begin_step => begin_step_r1, begin_step_r2, begin_step_r3, begin_step_r4, begin_step_r5
+      generic :: begin_stage => begin_stage_r1, begin_stage_r2, begin_stage_r3, begin_stage_r4, begin_stage_r5
+      generic :: end_stage => end_stage_r1, end_stage_r2, end_stage_r3, end_stage_r4, end_stage_r5
+      generic :: finish_step => finish_step_r1, finish_step_r2, finish_step_r3, finish_step_r4, finish_step_r5
+      generic :: stage_state_view => stage_state_view_r1, stage_state_view_r2, stage_state_view_r3, &
+                                     stage_state_view_r4, stage_state_view_r5
+      generic :: rhs_register_view => rhs_register_view_r1, rhs_register_view_r2, rhs_register_view_r3, &
+                                      rhs_register_view_r4, rhs_register_view_r5
       procedure, pass(self) :: stage_state
       procedure, pass(self) :: rhs_register
       procedure, pass(self) :: stages
@@ -93,23 +120,38 @@ type :: stepper
 endtype stepper
 
 contains
-   subroutine initialize(self, scheme, form, lb, ub, partitions, registers, stages_on_q)
-   !< Set the scheme and its storage form; allocate the registers (or take the caller's).
+   subroutine initialize(self, scheme, form, lb, ub, partitions, registers, stages_on_q, components)
+   !< Set the scheme and its storage form for a field of rank size(lb); allocate the registers (or take the caller's).
    class(stepper),     intent(inout)                  :: self          !< Stepper.
    character(*),       intent(in)                     :: scheme        !< Scheme name (selah_schemes, selah_splittings).
    character(*),       intent(in)                     :: form          !< Storage form (selah_storage).
-   integer(I4P),       intent(in)                     :: lb(5), ub(5)  !< Bounds of the field, ghosts included.
+   integer(I4P),       intent(in)                     :: lb(:), ub(:)  !< Bounds of the field, ghosts included (rank k).
    integer(I4P),       intent(in), optional           :: partitions(2,2) !< Splitting: (v1, v2) of partitions 1, 2.
    real(R_P),          intent(in), optional, pointer  :: registers(:,:,:,:,:,:) !< The caller's registers.
    logical,            intent(in), optional           :: stages_on_q   !< Butcher form: the stages whose row of A is
                                                                        !< zero are evaluated on q (default .false.).
+   logical,            intent(in), optional           :: components    !< Rank below 5: the field's first dimension
+                                                                       !< holds its components (selah_box).
    integer(I4P)                                       :: nreg, ierr  !< Registers needed, error status.
    integer(I4P)                                       :: k           !< Stage.
+   type(box)                                          :: bx          !< The field's dimensions as rank 5.
 
    call self%destroy
    self%scheme = trim(adjustl(scheme))
    self%form = trim(adjustl(form))
-   self%lb = lb
+   self%rank = size(lb, kind=I4P)
+   if (size(ub) /= self%rank) error stop 'selah stepper: lb and ub must have the rank of the field'
+   if (self%rank < 5_I4P .and. .not. present(components)) &
+      error stop 'selah stepper: a field of rank below 5 needs components= (its first dimension holds components?)'
+   self%components = .true.
+   if (present(components)) self%components = components
+   if (self%rank == 5_I4P .and. .not. self%components) error stop 'selah stepper: a rank-5 field has components'
+   bx = box_range(lb, lb, ub, self%components)
+   self%lb = bx%lb
+   self%ub = bx%hi
+   self%lbk = 1_I4P ; self%ubk = 1_I4P
+   self%lbk(1:self%rank) = lb
+   self%ubk(1:self%rank) = ub
    nreg = registers_needed(self%scheme, self%form)
    if (nreg < 0) error stop 'selah stepper: scheme "'//self%scheme//'" has no form "'//self%form//'"'
    self%bt = butcher(self%scheme)
@@ -146,16 +188,19 @@ contains
       self%on_q = .true.
    endif
    if (present(registers)) then
+      if (self%rank /= 5_I4P) error stop 'selah stepper: the caller passes registers for rank-5 fields only'
       if (.not. associated(registers)) error stop 'selah stepper: the registers passed are not associated'
+      if (.not. is_contiguous(registers)) error stop 'selah stepper: the registers passed must be contiguous'
       if (size(registers, 6) < nreg) error stop 'selah stepper: too few registers passed'
       if (lbound(registers, 6) /= 1) error stop 'selah stepper: the registers passed must be numbered from 1 (dim 6)'
-      if (any(lbound(registers) /= [lb, 1_I4P]) .or. any(ubound(registers, kind=I4P) /= [ub, ubound(registers, 6)])) &
+      if (any(lbound(registers) /= [self%lb, 1_I4P]) .or. &
+          any(ubound(registers, kind=I4P) /= [self%ub, ubound(registers, 6, kind=I4P)])) &
          error stop 'selah stepper: the registers passed do not have the bounds of the field (lb, ub)'
       self%regs => registers
       self%owned = .false.
    else
       ! zeroed, so that every register starts finite (the 2N form's first stage no longer reads Delta Q: A_1 = 0)
-      call dev_alloc(fptr_dev=self%regs, ubounds=[ub, nreg], lbounds=[lb, 1_I4P], init_value=0._R_P, ierr=ierr)
+      call dev_alloc(fptr_dev=self%regs, ubounds=[self%ub, nreg], lbounds=[self%lb, 1_I4P], init_value=0._R_P, ierr=ierr)
       if (ierr /= 0) error stop 'selah stepper: the registers could not be allocated'
       self%owned = .true.
    endif
@@ -171,9 +216,10 @@ contains
    nullify(self%regs, self%at_d, self%b_d)
    if (allocated(self%on_q)) deallocate(self%on_q)
    self%owned = .false. ; self%nstages = 0_I4P ; self%k_active = 0_I4P
+   self%rank = 5_I4P ; self%components = .true.
    endsubroutine destroy
 
-   subroutine begin_step(self, bx, q, mask, mask_comp)
+   subroutine begin_step_r5(self, bx, q, mask, mask_comp)
    !< Open a step: keep what the form needs of the solution at the start of the step.
    class(stepper), intent(inout)        :: self                 !< Stepper.
    type(box),      intent(in)           :: bx                   !< Box.
@@ -186,9 +232,9 @@ contains
       call selah_copy(bx, q, self%regs(:,:,:,:,:,1), mask, mask_comp)
    endselect
    self%k_active = 0_I4P
-   endsubroutine begin_step
+   endsubroutine begin_step_r5
 
-   subroutine begin_stage(self, k, bx, dt, q, mask, mask_comp)
+   subroutine begin_stage_r5(self, k, bx, dt, q, mask, mask_comp)
    !< Open stage k: build its state (Butcher form, unless the stage's state is q; every other form keeps it in q).
    class(stepper), intent(inout)        :: self                 !< Stepper.
    integer(I4P),   intent(in)           :: k                    !< Stage.
@@ -202,9 +248,9 @@ contains
       call selah_stage_state(bx, k-1_I4P, dt, self%at_d(:,k), q, self%regs(:,:,:,:,:,2:), self%regs(:,:,:,:,:,1), &
                              mask, mask_comp)
    self%k_active = k
-   endsubroutine begin_stage
+   endsubroutine begin_stage_r5
 
-   subroutine end_stage(self, k, bx, dt, q, mask, mask_comp)
+   subroutine end_stage_r5(self, k, bx, dt, q, mask, mask_comp)
    !< Close stage k, its residual written into rhs_register(): the forms that advance q in place do it here.
    class(stepper), intent(inout)        :: self                 !< Stepper.
    integer(I4P),   intent(in)           :: k                    !< Stage.
@@ -238,9 +284,9 @@ contains
    endselect
    endassociate
    self%k_active = 0_I4P
-   endsubroutine end_stage
+   endsubroutine end_stage_r5
 
-   subroutine finish_step(self, bx, dt, q, dq, mask, mask_comp)
+   subroutine finish_step_r5(self, bx, dt, q, dq, mask, mask_comp)
    !< Close the step: the Butcher form advances q now (with the step residual dq if asked); the others already have.
    class(stepper), intent(inout)           :: self               !< Stepper.
    type(box),      intent(in)              :: bx                 !< Box.
@@ -255,7 +301,7 @@ contains
    elseif (present(dq)) then
       error stop 'selah stepper: the step residual dq is computed by the Butcher form only'
    endif
-   endsubroutine finish_step
+   endsubroutine finish_step_r5
 
    function stage_state(self) result(u)
    !< The state of the active stage, with the field's bounds: the Butcher form's register; null when the stage's state
@@ -263,11 +309,11 @@ contains
    class(stepper), intent(in) :: self         !< Stepper.
    real(R_P),      pointer    :: u(:,:,:,:,:) !< Stage state.
 
+   integer(I4P)               :: slot         !< Register slot.
+
    u => null()
-   if (self%k_active == 0_I4P) return
-   if (self%on_q(self%k_active)) return
-   if (self%form == FORM_BUTCHER) &
-      u(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,1)
+   slot = state_slot(self)
+   if (slot > 0_I4P) u(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,slot)
    endfunction stage_state
 
    function rhs_register(self) result(r)
@@ -278,6 +324,27 @@ contains
    integer(I4P)               :: slot         !< Register slot.
 
    r => null()
+   slot = rhs_slot(self)
+   if (slot > 0_I4P) r(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,slot)
+   endfunction rhs_register
+
+   pure function state_slot(self) result(slot)
+   !< The register slot of the stage state, 0 when it is null (no active stage, a stage on q, a form other than Butcher).
+   class(stepper), intent(in) :: self !< Stepper.
+   integer(I4P)               :: slot !< Register slot.
+
+   slot = 0_I4P
+   if (self%k_active == 0_I4P) return
+   if (self%on_q(self%k_active)) return
+   if (self%form == FORM_BUTCHER) slot = 1_I4P
+   endfunction state_slot
+
+   pure function rhs_slot(self) result(slot)
+   !< The register slot of the active stage's residual, 0 outside a stage window.
+   class(stepper), intent(in) :: self !< Stepper.
+   integer(I4P)               :: slot !< Register slot.
+
+   slot = 0_I4P
    if (self%k_active == 0_I4P) return
    select case(self%form)
    case(FORM_BUTCHER)
@@ -287,8 +354,200 @@ contains
    case default
       slot = 2_I4P
    endselect
-   r(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,slot)
-   endfunction rhs_register
+   endfunction rhs_slot
+
+   subroutine check_front(self, bx, rank, shp, ub)
+   !< A rank-k front: the box and the stepper have the field's rank, q has the field's shape; ub, q's upper bounds as
+   !< rank 5.
+   class(stepper), intent(in)  :: self     !< Stepper.
+   type(box),      intent(in)  :: bx       !< Box.
+   integer(I4P),   intent(in)  :: rank     !< Rank of the front.
+   integer(I4P),   intent(in)  :: shp(:)   !< Shape of q.
+   integer(I4P),   intent(out) :: ub(5)    !< Upper bounds of q as rank 5.
+
+   if (self%rank /= rank) error stop 'selah stepper: q does not have the rank the stepper was initialised with'
+   if (bx%rank /= rank .or. (bx%components .neqv. self%components)) &
+      error stop 'selah stepper: the box does not have the rank (or the components) of q'
+   ub = front_ub(bx, shp)
+   if (any(bx%lb /= self%lb) .or. any(ub /= self%ub)) &
+      error stop 'selah stepper: q does not have the bounds the stepper was initialised with'
+   endsubroutine check_front
+
+   pure function front_ub(bx, shp) result(ub)
+   !< Upper bounds, as rank 5, of an array of shape shp with the box's lower bounds (a mask: its own components).
+   type(box),    intent(in) :: bx     !< Box.
+   integer(I4P), intent(in) :: shp(:) !< Shape.
+   integer(I4P)             :: ub(5)  !< Upper bounds.
+   integer(I4P)             :: e(5), d !< Extents as rank 5, dimension.
+
+   e = 1_I4P
+   do d=1_I4P, size(shp, kind=I4P)
+      e(box_dim(bx, d)) = shp(d)
+   enddo
+   ub = bx%lb + e - 1_I4P
+   endfunction front_ub
+
+   ! ---- the explicit-shape bridges: a rank-k field reaches the rank-5 procedures as the rank-5 array it is in memory
+   subroutine begin_step_x(self, bx, ubq, q, ubm, mask, mask_comp)
+   !< begin_step through an explicit-shape rank-5 view.
+   class(stepper), intent(inout)        :: self    !< Stepper.
+   type(box),      intent(in)           :: bx      !< Box.
+   integer(I4P),   intent(in)           :: ubq(5)  !< Upper bounds of q.
+   real(R_P),      intent(in)           :: q(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                             bx%lb(5):ubq(5)) !< Solution.
+   integer(I4P),   intent(in)           :: ubm(5)  !< Upper bounds of the mask.
+   real(R_P),      intent(in), optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
+                                                bx%lb(5):ubm(5)) !< Mask.
+   integer(I4P),   intent(in), optional :: mask_comp !< Mask component.
+
+   call self%begin_step_r5(bx, q, mask, mask_comp)
+   endsubroutine begin_step_x
+
+   subroutine begin_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
+   !< begin_stage through an explicit-shape rank-5 view.
+   class(stepper), intent(inout)        :: self    !< Stepper.
+   integer(I4P),   intent(in)           :: k       !< Stage.
+   type(box),      intent(in)           :: bx      !< Box.
+   real(R_P),      intent(in)           :: dt      !< Time step.
+   integer(I4P),   intent(in)           :: ubq(5)  !< Upper bounds of q.
+   real(R_P),      intent(in)           :: q(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                             bx%lb(5):ubq(5)) !< Solution.
+   integer(I4P),   intent(in)           :: ubm(5)  !< Upper bounds of the mask.
+   real(R_P),      intent(in), optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
+                                                bx%lb(5):ubm(5)) !< Mask.
+   integer(I4P),   intent(in), optional :: mask_comp !< Mask component.
+
+   call self%begin_stage_r5(k, bx, dt, q, mask, mask_comp)
+   endsubroutine begin_stage_x
+
+   subroutine end_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
+   !< end_stage through an explicit-shape rank-5 view.
+   class(stepper), intent(inout)        :: self    !< Stepper.
+   integer(I4P),   intent(in)           :: k       !< Stage.
+   type(box),      intent(in)           :: bx      !< Box.
+   real(R_P),      intent(in)           :: dt      !< Time step.
+   integer(I4P),   intent(in)           :: ubq(5)  !< Upper bounds of q.
+   real(R_P),      intent(inout)        :: q(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                             bx%lb(5):ubq(5)) !< Solution.
+   integer(I4P),   intent(in)           :: ubm(5)  !< Upper bounds of the mask.
+   real(R_P),      intent(in), optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
+                                                bx%lb(5):ubm(5)) !< Mask.
+   integer(I4P),   intent(in), optional :: mask_comp !< Mask component.
+
+   call self%end_stage_r5(k, bx, dt, q, mask, mask_comp)
+   endsubroutine end_stage_x
+
+   subroutine finish_step_x(self, bx, dt, ubq, q, dq, ubm, mask, mask_comp)
+   !< finish_step through an explicit-shape rank-5 view.
+   class(stepper), intent(inout)           :: self   !< Stepper.
+   type(box),      intent(in)              :: bx     !< Box.
+   real(R_P),      intent(in)              :: dt     !< Time step.
+   integer(I4P),   intent(in)              :: ubq(5) !< Upper bounds of q (and dq).
+   real(R_P),      intent(inout)           :: q(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                                bx%lb(5):ubq(5)) !< Solution.
+   real(R_P),      intent(inout), optional :: dq(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                                 bx%lb(5):ubq(5)) !< Step residual.
+   integer(I4P),   intent(in)              :: ubm(5) !< Upper bounds of the mask.
+   real(R_P),      intent(in),    optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
+                                                   bx%lb(5):ubm(5)) !< Mask.
+   integer(I4P),   intent(in),    optional :: mask_comp !< Mask component.
+
+   call self%finish_step_r5(bx, dt, q, dq, mask, mask_comp)
+   endsubroutine finish_step_x
+
+   ! ---- the rank-k fronts (selah_stepper_front.INC, once per rank)
+#define SELAH_FRONT_RANK 1_I4P
+#define SELAH_FRONT_DIMS :
+#define SELAH_BEGIN_STEP begin_step_r1
+#define SELAH_BEGIN_STAGE begin_stage_r1
+#define SELAH_END_STAGE end_stage_r1
+#define SELAH_FINISH_STEP finish_step_r1
+#define SELAH_STATE_VIEW stage_state_view_r1
+#define SELAH_RHS_VIEW rhs_register_view_r1
+#define SELAH_VIEW_BOUNDS l(1):h(1)
+#include "selah_stepper_front.INC"
+#undef SELAH_FRONT_RANK
+#undef SELAH_FRONT_DIMS
+#undef SELAH_BEGIN_STEP
+#undef SELAH_BEGIN_STAGE
+#undef SELAH_END_STAGE
+#undef SELAH_FINISH_STEP
+#undef SELAH_STATE_VIEW
+#undef SELAH_RHS_VIEW
+#undef SELAH_VIEW_BOUNDS
+#define SELAH_FRONT_RANK 2_I4P
+#define SELAH_FRONT_DIMS :,:
+#define SELAH_BEGIN_STEP begin_step_r2
+#define SELAH_BEGIN_STAGE begin_stage_r2
+#define SELAH_END_STAGE end_stage_r2
+#define SELAH_FINISH_STEP finish_step_r2
+#define SELAH_STATE_VIEW stage_state_view_r2
+#define SELAH_RHS_VIEW rhs_register_view_r2
+#define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2)
+#include "selah_stepper_front.INC"
+#undef SELAH_FRONT_RANK
+#undef SELAH_FRONT_DIMS
+#undef SELAH_BEGIN_STEP
+#undef SELAH_BEGIN_STAGE
+#undef SELAH_END_STAGE
+#undef SELAH_FINISH_STEP
+#undef SELAH_STATE_VIEW
+#undef SELAH_RHS_VIEW
+#undef SELAH_VIEW_BOUNDS
+#define SELAH_FRONT_RANK 3_I4P
+#define SELAH_FRONT_DIMS :,:,:
+#define SELAH_BEGIN_STEP begin_step_r3
+#define SELAH_BEGIN_STAGE begin_stage_r3
+#define SELAH_END_STAGE end_stage_r3
+#define SELAH_FINISH_STEP finish_step_r3
+#define SELAH_STATE_VIEW stage_state_view_r3
+#define SELAH_RHS_VIEW rhs_register_view_r3
+#define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2),l(3):h(3)
+#include "selah_stepper_front.INC"
+#undef SELAH_FRONT_RANK
+#undef SELAH_FRONT_DIMS
+#undef SELAH_BEGIN_STEP
+#undef SELAH_BEGIN_STAGE
+#undef SELAH_END_STAGE
+#undef SELAH_FINISH_STEP
+#undef SELAH_STATE_VIEW
+#undef SELAH_RHS_VIEW
+#undef SELAH_VIEW_BOUNDS
+#define SELAH_FRONT_RANK 4_I4P
+#define SELAH_FRONT_DIMS :,:,:,:
+#define SELAH_BEGIN_STEP begin_step_r4
+#define SELAH_BEGIN_STAGE begin_stage_r4
+#define SELAH_END_STAGE end_stage_r4
+#define SELAH_FINISH_STEP finish_step_r4
+#define SELAH_STATE_VIEW stage_state_view_r4
+#define SELAH_RHS_VIEW rhs_register_view_r4
+#define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2),l(3):h(3),l(4):h(4)
+#include "selah_stepper_front.INC"
+#undef SELAH_FRONT_RANK
+#undef SELAH_FRONT_DIMS
+#undef SELAH_BEGIN_STEP
+#undef SELAH_BEGIN_STAGE
+#undef SELAH_END_STAGE
+#undef SELAH_FINISH_STEP
+#undef SELAH_STATE_VIEW
+#undef SELAH_RHS_VIEW
+#undef SELAH_VIEW_BOUNDS
+
+   subroutine stage_state_view_r5(self, u)
+   !< The stage state of a rank-5 field (as stage_state()).
+   class(stepper), intent(in)          :: self         !< Stepper.
+   real(R_P), pointer, intent(out)     :: u(:,:,:,:,:) !< Stage state, null when stage_state() is.
+
+   u => self%stage_state()
+   endsubroutine stage_state_view_r5
+
+   subroutine rhs_register_view_r5(self, r)
+   !< The residual register of a rank-5 field (as rhs_register()).
+   class(stepper), intent(in)          :: self         !< Stepper.
+   real(R_P), pointer, intent(out)     :: r(:,:,:,:,:) !< Residual register, null when rhs_register() is.
+
+   r => self%rhs_register()
+   endsubroutine rhs_register_view_r5
 
    pure function stages(self) result(n)
    !< Stages of a step (flows of a splitting).

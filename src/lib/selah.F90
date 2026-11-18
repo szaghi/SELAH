@@ -35,7 +35,7 @@ public :: SCHEME_STRANG, SCHEME_YOSHIDA_4, SCHEME_BLANES_MOAN_S6, SCHEME_BLANES_
 public :: FORM_BUTCHER, FORM_SHU_OSHER_2R, FORM_WILLIAMSON_2N, FORM_KETCHESON_2R, FORM_SPLITTING
 public :: registers_needed
 ! L1: box and kernels
-public :: box, LAYOUT_V_FIRST, LAYOUT_V_LAST, box_interior, box_components, component_dim
+public :: box, LAYOUT_V_FIRST, LAYOUT_V_LAST, box_interior, box_range, box_components, box_dim, component_dim
 public :: selah_copy, selah_axpy, selah_lincomb, selah_stage_state, selah_step_update
 public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
 ! L2: stepper

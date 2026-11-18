@@ -24,6 +24,29 @@ blocks. The pool may hold more blocks than are active, and the kernels never tou
 
 A box is passed at every call, never stored, because the active blocks change at every regrid.
 
+### Fields of rank 1 to 4
+
+A field of lower rank is a rank-5 field with singleton dimensions, so the kernels and the stepper keep one rank-5
+implementation. Dimension d of the field is dimension d of the rank-5 view when its first dimension holds the
+components, and d + 1 when the field is scalar (`box_dim(bx, d)`):
+
+| Field | As rank 5 `(v, i, j, k, b)` |
+|-------|-----------------------------|
+| `(i)`, scalar | `(1, i, 1, 1, 1)` |
+| `(v, i)` | `(v, i, 1, 1, 1)` |
+| `(v, i, j)` | `(v, i, j, 1, 1)` |
+| `(v, i, j, k)` | `(v, i, j, k, 1)` |
+| `(i, j)`, `(i, j, k)`, `(i, j, k, b)`, scalar | `(1, i, j, 1, 1)`, `(1, i, j, k, 1)`, `(1, i, j, k, b)` |
+
+There are two constructors. Both take the `components` flag explicitly, so the mapping is never guessed:
+- `box_interior(lb, ub, ngc, components)` gives the interior of a field allocated `lb:ub`, ghosts included. It drops
+  `ngc` cells off each end of every dimension except the components, and keeps all the components.
+- `box_range(lb, lo, hi, components)` takes any loop range `lo:hi` of a field whose lower bounds are `lb`.
+
+`lb`, `ub`, `lo` and `hi` have the rank of the field. Fields of rank below 5 use `LAYOUT_V_FIRST`. The kernels take
+the rank-5 view: pass a lower-rank field to the stepper, which takes it at its own rank
+([Stepper](./stepper#fields-of-rank-1-to-4)).
+
 ## Operations
 
 | Generic | Operation |

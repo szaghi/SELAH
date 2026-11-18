@@ -38,11 +38,12 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 
 | Procedure | What it does | Preconditions and notes |
 |---|---|---|
-| `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q])` | sets the scheme and form; allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `registers` (see below). Calls `destroy` first, so a stepper can be re-initialised |
+| `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q] [, components])` | sets the scheme and form for a field of rank `size(lb)` (1 to 5); allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `components` is required below rank 5 ([fields of rank 1 to 4](#fields-of-rank-1-to-4)). `registers` (see below), for rank 5 only. Calls `destroy` first, so a stepper can be re-initialised |
 | `begin_step(bx, q [, mask, mask_comp])` | opens a step: the two-register and Ketcheson forms keep a copy of $q^n$ | |
 | `begin_stage(k, bx, dt, q [, mask, mask_comp])` | opens stage `k`: the Butcher form builds its state into its register (unless `stage_state_is_q(k)`) | `k` from 1 to `stages()`, in order |
 | `stage_state()` | pointer to the stage state, with the field's bounds | Butcher form only; **null** on a stage evaluated on `q`, and always null in the other forms (their state is `q`). **Null** outside a stage window (before `begin_stage`, after `end_stage`) |
 | `rhs_register()` | pointer to the register the caller writes the residual of the active stage into, with the field's bounds | write the cells of the box; for a splitting, the components of `stage_partition(k)`. **Null** outside a stage window (before `begin_stage`, after `end_stage`) |
+| `stage_state_view(u)`, `rhs_register_view(r)` | the same two pointers at the field's rank: `u` and `r` are pointers of rank 1 to 5 | null exactly when `stage_state()` and `rhs_register()` are; the rank must be the field's |
 | `end_stage(k, bx, dt, q [, mask, mask_comp])` | closes stage `k`: the two-register, 2N, Ketcheson and splitting forms advance `q` here | |
 | `finish_step(bx, dt, q [, dq] [, mask, mask_comp])` | closes the step: the Butcher form computes $q^{n+1}$, and `dq` $= \sum_k b_k F_k$ in the same pass if asked | `dq` with any form other than Butcher stops the program; `dq` is 0 where the mask is inactive |
 | `stage_state_is_q(k)` | the state of stage `k` is `q` itself: evaluate its residual on `q` | true for every stage of the forms other than Butcher; for the zero rows of A with `stages_on_q` |
@@ -53,11 +54,44 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 | `state_aliases_q()` | the form keeps the stage state in `q` (every form but Butcher) | the per-stage `stage_state_is_q(k)` generalises it |
 | `destroy()` | frees what the stepper owns | no finalizer: call it |
 
+## Fields of rank 1 to 4
+
+`initialize` takes the bounds of a field of any rank from 1 to 5. Below rank 5 it also takes `components`: whether
+the field's first dimension holds its components. The field is then viewed as rank 5 with singleton dimensions
+([the box](./kernels#fields-of-rank-1-to-4)). The four step procedures are generic over the rank of `q`, and `dq` and
+`mask` have `q`'s rank. The box must be built at the field's rank:
+
+```fortran
+real(R_P), pointer :: q(:), u(:), r(:)        ! a scalar 1-D field q(0:n+1), one ghost cell each side
+type(box)          :: bx
+
+bx = box_interior(lb=[0], ub=[n+1], ngc=1, components=.false.)
+call st%initialize(SCHEME_SSP_33, FORM_SHU_OSHER_2R, lb=[0], ub=[n+1], components=.false.)
+call st%begin_step(bx, q)
+do k=1, st%stages()
+   call st%begin_stage(k, bx, dt, q)
+   if (st%stage_state_is_q(k)) then ; u => q ; else ; call st%stage_state_view(u) ; endif
+   call st%rhs_register_view(r)
+   call residual(u, r)                       ! yours
+   call st%end_stage(k, bx, dt, q)
+enddo
+call st%finish_step(bx, dt, q)
+```
+
+- **No copy.** A lower-rank `q` reaches the rank-5 procedures as the rank-5 array it is in memory, through an
+  explicit-shape dummy, with no copy when it is contiguous. In a device build it must be contiguous.
+- **Checked at every call:** the box and the stepper have `q`'s rank, and `q` has the bounds given to `initialize`.
+- **The views.** `stage_state()` and `rhs_register()` keep their rank-5 result. A function cannot be generic on the
+  rank of its result, so the rank-k pointers are the subroutines `stage_state_view(u)` and `rhs_register_view(r)`,
+  with the field's bounds.
+- **The stage contract is unchanged at every rank.** Its clauses apply to the cells of the box, whatever the rank.
+- **Caller registers** (`registers=`) are for rank-5 fields only.
+
 ## The caller's registers
 
 `initialize(..., registers=pool)` takes the registers from the caller instead of allocating them. The stepper checks
 two things and stops on a mismatch:
-- the array is rank 6, with the field's bounds `lb:ub` on dimensions 1–5;
+- the array is rank 6 and contiguous, with the field's bounds `lb:ub` on dimensions 1–5;
 - its slots are numbered from 1 on dimension 6, and there are at least `registers_needed(scheme, form)` of them.
 
 It cannot check the rest:
