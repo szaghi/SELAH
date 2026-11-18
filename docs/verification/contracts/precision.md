@@ -30,7 +30,7 @@ single-precision builds run and assert, and what they cannot.
 ## Program
 
 ```bash
-fobis build --mode tests-gnu-r4 && for t in exe-r4/selah_*; do $t > /dev/null || echo "FAIL $t"; done
+fobis build --mode tests-gnu-r4 && bash scripts/run_tests.sh --exe-dir exe-r4   # CI runs it on every push
 ```
 
 ## Results

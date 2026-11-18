@@ -8,3 +8,6 @@ echo "toolchain: $TOOLCHAIN ($TOOLCHAIN_OS, $TOOLCHAIN_FAMILY), FC=$FC"
 fobis fetch
 fobis build --mode "tests-$TOOLCHAIN_FAMILY"
 bash scripts/run_tests.sh
+# single precision (R_P = R4P): the same programs, built into exe-r4/
+fobis build --mode "tests-$TOOLCHAIN_FAMILY-r4"
+bash scripts/run_tests.sh --exe-dir exe-r4

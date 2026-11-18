@@ -4,7 +4,8 @@ title: Test programs
 
 # Test programs
 
-`bash scripts/run_tests.sh` runs every program in `exe/`, built by a `tests-*` mode of FoBiS. Each program exits
+`bash scripts/run_tests.sh` runs every program in `exe/`, built by a `tests-*` mode of FoBiS (`--exe-dir exe-r4` for
+the single-precision `tests-*-r4` modes). Each program exits
 non-zero on any failed check, and prints one line per check. The `*_xfail_*` programs must fail: the runner passes them
 when they exit with an error. The suite runs:
 - with gfortran 16.2 (optimised, debug with every runtime check, OpenMP with 4 threads), nvfortran 26.9 (optimised,

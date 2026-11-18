@@ -21,7 +21,7 @@ is welcome. The project follows a KISS (Keep It Simple and Stupid) philosophy.
    git checkout -b fix/my_contribution
    ```
 3. Test your changes: `fobis build --mode tests-gnu && bash scripts/run_tests.sh`, and the single-precision build
-   (`--mode tests-gnu-r4`, every program in `exe-r4/`)
+   (`fobis build --mode tests-gnu-r4 && bash scripts/run_tests.sh --exe-dir exe-r4`)
 4. Check for unnecessary whitespace: `git diff --check`
 5. Submit a pull request with a clear commit message
 
