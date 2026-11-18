@@ -26,7 +26,7 @@
 <div>
 <table>
 <tr>
-<td><b>🧮 A verified catalogue</b><br><sub>Eight Runge–Kutta schemes (euler, SSP(2,2), SSP(3,3), SSP(5,4), SSP(10,4), rk4, and the low-storage LSRK(3,3) and LSRK(5,4)) and four splittings (Strang, Yoshida, Blanes–Moan S6 and S10). Order conditions in quadruple precision, SSP coefficients computed, never typed in. <a href="https://szaghi.github.io/SELAH/guide/schemes">Schemes</a> · <a href="https://szaghi.github.io/SELAH/guide/api">API</a></sub></td>
+<td><b>🧮 A verified catalogue</b><br><sub>Eight Runge–Kutta schemes (euler, SSP(2,2), SSP(3,3), SSP(5,4), SSP(10,4), rk4, and the low-storage LSRK(3,3) and LSRK(5,4)) and four splittings (Strang, Yoshida, Blanes–Moan S6 and S10). Order conditions in quadruple precision, SSP coefficients computed, never typed in. <a href="https://szaghi.github.io/SELAH/guide/schemes">Schemes</a> · <a href="https://szaghi.github.io/SELAH/api/">API</a></sub></td>
 <td><b>⚡ Kernels over your arrays</b><br><sub>Stage and update operations on block-structured fields with ghost cells, in two layouts, masked or not: they write the cells of the box and nothing else. One source for the host, OpenMP and OpenACC. <a href="https://szaghi.github.io/SELAH/guide/kernels">Kernels</a> · <a href="https://szaghi.github.io/SELAH/guide/performance">Performance</a></sub></td>
 </tr>
 <tr>

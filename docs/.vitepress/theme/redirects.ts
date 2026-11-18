@@ -4,4 +4,5 @@
 // still point at the old locations.
 
 export const pageRedirects: Record<string, string> = {
+  '/guide/api': '/api/',  // the hand-written API page, retired for the generated reference (its overview: docs/ford.md)
 }

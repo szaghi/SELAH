@@ -56,4 +56,4 @@ You can use any layer alone: the coefficients for your own kernels, the kernels 
 - New to SELAH: the [Quick start](./quickstart), then the [Tutorial](/tutorial/).
 - A specific task: the [Cookbook](/cookbook/).
 - The evidence behind every claim: [Verification](/verification/).
-- Every public entity: [API](./api), and the generated [API reference](/api/).
+- Every public entity: the [API reference](/api/).

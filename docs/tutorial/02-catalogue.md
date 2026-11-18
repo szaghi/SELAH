@@ -33,7 +33,7 @@ the same scheme can give a larger value. For the catalogue the values match the 
 
 ::: tip What you learned
 The catalogue, the storage forms and their register counts, and the conversions between coefficient forms.
-Reference: [Schemes](/guide/schemes), [API: L0](/guide/api#l0-coefficients).
+Reference: [Schemes](/guide/schemes), [API: L0](/api/#l0-coefficients).
 :::
 
 Next: [3. A field and a box](./03-box).

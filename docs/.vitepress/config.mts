@@ -1,4 +1,13 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+
+// formal's sidebar of the API pages (docs/api/_sidebar.json, written by `npm run docs:api`), when the API has been
+// generated; its one group (the source directory, src/lib) is shown open, as "Modules"
+const apiSidebarFile = resolve(__dirname, '../api/_sidebar.json')
+const apiModules = existsSync(apiSidebarFile)
+  ? JSON.parse(readFileSync(apiSidebarFile, 'utf-8')).flatMap((group: { items: unknown[] }) => group.items)
+  : []
 
 export default withMermaid({
   title: 'SELAH',
@@ -8,6 +17,9 @@ export default withMermaid({
   srcExclude: ['ford.md', '**/_tables/**', 'examples/**', 'brand/**'],
   // dead links fail the build; SELAH_DOCS_DRAFT=1 tolerates them while a refactor is half done (never in CI)
   ignoreDeadLinks: process.env.SELAH_DOCS_DRAFT === '1',
+  // VitePress 1.6 prefetches the page of every link in view through link.pathname, which the SVG links of the API's
+  // Mermaid diagrams lack (a TypeError in production; fixed in VitePress 2, vuejs/vitepress#5442)
+  router: { prefetchLinks: false },
 
   // the identity (Hamon in Tsuyukusa, docs/brand/): favicons by colour scheme with PNG fallbacks, the touch icon, the
   // theme colour; and the theme-aware videos of the verification pages (<video class="light-only"> / "dark-only").
@@ -65,7 +77,7 @@ export default withMermaid({
             { text: 'Kernels',   link: '/guide/kernels' },
             { text: 'Stepper',   link: '/guide/stepper' },
             { text: 'Precision', link: '/guide/precision' },
-            { text: 'API',       link: '/guide/api' },
+            { text: 'API',       link: '/api/' },
           ],
         },
         {
@@ -115,6 +127,12 @@ export default withMermaid({
             { text: 'Performance',  link: '/cookbook/performance' },
           ],
         },
+      ],
+      '/api/': [
+        { text: 'API', items: [
+          { text: 'Overview', link: '/api/' },
+        ] },
+        { text: 'Modules', items: apiModules },
       ],
       '/verification/': [
         { text: 'Verification', items: [

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Check that docs/guide/api.md lists every name the facade module src/lib/selah.F90 exports (`public ::` lines).
+"""Check that the generated API reference lists every name the facade module src/lib/selah.F90 exports.
 
-Why: the API page is hand-written (the generated reference cannot show the facade's re-exports), so a name added to the
-facade and forgotten on the page would be invisible to users. Exit status 1, with the missing names, if any.
+Why: `use selah` is the whole API, and its generated page (docs/api/src/lib/selah.md, written by formal: run
+`npm run docs:api` in docs/ first) must list each exported name under Re-exports; a formal that dropped one would leave
+it invisible to users. Exit status 1, with the missing names, if any.
 
 Also checks that README.md and docs/index.md list every exported SCHEME_* constant (the landing-page table).
 
@@ -21,9 +22,15 @@ for line in (root / 'src/lib/selah.F90').read_text().splitlines():
     m = re.match(r'\s*public\s*::\s*(.*)', line)
     if m:
         names += [n.strip() for n in m.group(1).split(',') if n.strip()]
-doc = (root / 'docs/guide/api.md').read_text()
-missing = [n for n in names if not re.search(r'`' + re.escape(n) + r'[`(\[ ]', doc)]
-print(f'{len(names)} names exported by selah.F90; missing from docs/guide/api.md: {missing or "none"}')
+page = root / 'docs/api/src/lib/selah.md'
+if not page.is_file():
+    print(f'{page.relative_to(root)} not found: run `npm run docs:api` in docs/ first')
+    sys.exit(1)
+doc = page.read_text()
+reexports = doc[doc.index('## Re-exports'):] if '## Re-exports' in doc else ''
+missing = [n for n in names if not re.search(r'`' + re.escape(n) + r'`', reexports, re.IGNORECASE)]
+print(f'{len(names)} names exported by selah.F90; missing from the Re-exports of {page.relative_to(root)}: '
+      f'{missing or "none"}')
 status = 1 if missing else 0
 # The landing pages list the time integrators: every exported SCHEME_* constant must appear in both.
 schemes = [n for n in names if n.startswith('SCHEME_')]
