@@ -125,25 +125,25 @@ const authors = [
 
 ## Time integrators
 
-<p class="selah-lead">Every scheme the public API exports: pass the constant to <code>stepper%initialize</code> with one of its storage forms (registers in brackets). <a href="./guide/schemes">Schemes</a> has the tableaux and the sources.</p>
+<p class="selah-lead">Every scheme the public API exports: pass the constant to <code>stepper%initialize</code> with one of its storage forms (registers in brackets). <a href="./guide/schemes">Schemes</a> has the tableaux and their derivations.</p>
 
-| Runge–Kutta | Name | Stages | Order | SSP coefficient | Storage forms |
+| Runge–Kutta | Name | Stages | Order | SSP coefficient | Storage forms | Source |
+|---|---|---|---|---|---|---|
+| `SCHEME_EULER`   | `euler`   | 1  | 1 | 1           | Butcher (2), two-register (2) | forward Euler |
+| `SCHEME_SSP_22`  | `ssp-22`  | 2  | 2 | 1           | Butcher (3), two-register (2) | Shu & Osher (1988) |
+| `SCHEME_SSP_33`  | `ssp-33`  | 3  | 3 | 1           | Butcher (4), two-register (2) | Shu & Osher (1988) |
+| `SCHEME_SSP_54`  | `ssp-54`  | 5  | 4 | 1.508180049 | Butcher (6) | Spiteri & Ruuth (2002) |
+| `SCHEME_SSP_104` | `ssp-104` | 10 | 4 | 6           | Butcher (11), Ketcheson (2) | Ketcheson (2008) |
+| `SCHEME_RK4`     | `rk4`     | 4  | 4 | —           | Butcher (5) | Kutta (1901) |
+| `SCHEME_LSRK_33` | `lsrk-33` | 3  | 3 | —           | Butcher (4), Williamson 2N (2) | Williamson (1980) |
+| `SCHEME_LSRK_54` | `lsrk-54` | 5  | 4 | —           | Butcher (6), Williamson 2N (2) | Carpenter & Kennedy (1994) |
+
+| Splitting | Name | Flows | Order | Storage form | Source |
 |---|---|---|---|---|---|
-| `SCHEME_EULER`   | `euler`   | 1  | 1 | 1           | Butcher (2), two-register (2) |
-| `SCHEME_SSP_22`  | `ssp-22`  | 2  | 2 | 1           | Butcher (3), two-register (2) |
-| `SCHEME_SSP_33`  | `ssp-33`  | 3  | 3 | 1           | Butcher (4), two-register (2) |
-| `SCHEME_SSP_54`  | `ssp-54`  | 5  | 4 | 1.508180049 | Butcher (6) |
-| `SCHEME_SSP_104` | `ssp-104` | 10 | 4 | 6           | Butcher (11), Ketcheson (2) |
-| `SCHEME_RK4`     | `rk4`     | 4  | 4 | —           | Butcher (5) |
-| `SCHEME_LSRK_33` | `lsrk-33` | 3  | 3 | —           | Butcher (4), Williamson 2N (2) |
-| `SCHEME_LSRK_54` | `lsrk-54` | 5  | 4 | —           | Butcher (6), Williamson 2N (2) |
-
-| Splitting | Name | Flows | Order | Storage form |
-|---|---|---|---|---|
-| `SCHEME_STRANG`          | `strang`          | 3  | 2 | splitting (1) |
-| `SCHEME_YOSHIDA_4`       | `yoshida-4`       | 7  | 4 | splitting (1) |
-| `SCHEME_BLANES_MOAN_S6`  | `blanes-moan-s6`  | 13 | 4 | splitting (1) |
-| `SCHEME_BLANES_MOAN_S10` | `blanes-moan-s10` | 21 | 6 | splitting (1) |
+| `SCHEME_STRANG`          | `strang`          | 3  | 2 | splitting (1) | Strang (1968) |
+| `SCHEME_YOSHIDA_4`       | `yoshida-4`       | 7  | 4 | splitting (1) | Yoshida (1990) |
+| `SCHEME_BLANES_MOAN_S6`  | `blanes-moan-s6`  | 13 | 4 | splitting (1) | Blanes & Moan (2002), S6 |
+| `SCHEME_BLANES_MOAN_S10` | `blanes-moan-s10` | 21 | 6 | splitting (1) | Blanes & Moan (2002), S10 |
 
 ## Quick start
 

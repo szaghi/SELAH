@@ -39,20 +39,43 @@ The coefficients of a scheme, built once, before any field exists.
 | [[selah_splittings]] | the splitting schemes, `splitting(scheme[, first])`, and their `splitting_composition` |
 | [[selah_storage]] | the storage forms and `registers_needed(scheme, form)`, the field-sized buffers a step needs |
 
+### The integrators
+
+Every scheme the API exports, by its constant: pass it to `stepper%initialize` with one of its storage forms (the
+field-sized registers each needs in brackets, `registers_needed`). Tableaux, derivations and verification:
+[Schemes](/guide/schemes).
+
+| Runge–Kutta | Name | Stages | Order | SSP coefficient | Storage forms | Source |
+|---|---|---|---|---|---|---|
+| `SCHEME_EULER`   | `'euler'`   | 1  | 1 | 1           | Butcher (2), two-register (2) | forward Euler |
+| `SCHEME_SSP_22`  | `'ssp-22'`  | 2  | 2 | 1           | Butcher (3), two-register (2) | Shu & Osher (1988) |
+| `SCHEME_SSP_33`  | `'ssp-33'`  | 3  | 3 | 1           | Butcher (4), two-register (2) | Shu & Osher (1988) |
+| `SCHEME_SSP_54`  | `'ssp-54'`  | 5  | 4 | 1.508180049 | Butcher (6) | Spiteri & Ruuth (2002) |
+| `SCHEME_SSP_104` | `'ssp-104'` | 10 | 4 | 6           | Butcher (11), Ketcheson (2) | Ketcheson (2008) |
+| `SCHEME_RK4`     | `'rk4'`     | 4  | 4 | —           | Butcher (5) | Kutta (1901) |
+| `SCHEME_LSRK_33` | `'lsrk-33'` | 3  | 3 | —           | Butcher (4), Williamson 2N (2) | Williamson (1980) |
+| `SCHEME_LSRK_54` | `'lsrk-54'` | 5  | 4 | —           | Butcher (6), Williamson 2N (2) | Carpenter & Kennedy (1994) |
+
+| Splitting | Name | Flows | Order | Storage form | Source |
+|---|---|---|---|---|---|
+| `SCHEME_STRANG`          | `'strang'`          | 3  | 2 | splitting (1) | Strang (1968) |
+| `SCHEME_YOSHIDA_4`       | `'yoshida-4'`       | 7  | 4 | splitting (1) | Yoshida (1990) |
+| `SCHEME_BLANES_MOAN_S6`  | `'blanes-moan-s6'`  | 13 | 4 | splitting (1) | Blanes & Moan (2002), S6 |
+| `SCHEME_BLANES_MOAN_S10` | `'blanes-moan-s10'` | 21 | 6 | splitting (1) | Blanes & Moan (2002), S10 |
+
+### Names of forms and lists
+
 A scheme or a form is named by a character constant; an unknown name returns a form of 0 stages (0 flows).
 
-| Constant | Value | | Constant | Value |
-|---|---|---|---|---|
-| `SCHEME_EULER` | `'euler'` | | `SCHEME_STRANG` | `'strang'` |
-| `SCHEME_SSP_22` | `'ssp-22'` | | `SCHEME_YOSHIDA_4` | `'yoshida-4'` |
-| `SCHEME_SSP_33` | `'ssp-33'` | | `SCHEME_BLANES_MOAN_S6` | `'blanes-moan-s6'` |
-| `SCHEME_SSP_54` | `'ssp-54'` | | `SCHEME_BLANES_MOAN_S10` | `'blanes-moan-s10'` |
-| `SCHEME_SSP_104` | `'ssp-104'` | | `FORM_BUTCHER` | `'butcher'` |
-| `SCHEME_RK4` | `'rk4'` | | `FORM_SHU_OSHER_2R` | `'shu-osher-2r'` |
-| `SCHEME_LSRK_33` | `'lsrk-33'` | | `FORM_WILLIAMSON_2N` | `'williamson-2n'` |
-| `SCHEME_LSRK_54` | `'lsrk-54'` | | `FORM_KETCHESON_2R` | `'ketcheson-2r'` |
-| `RK_SCHEMES` | the 8 Runge–Kutta names, `character(7)`, blank-padded: `trim` them | | `FORM_SPLITTING` | `'splitting'` |
-| `SPLITTING_SCHEMES` | the 4 splitting names, `character(15)`, blank-padded | | | |
+| Constant | Value |
+|---|---|
+| `FORM_BUTCHER` | `'butcher'` |
+| `FORM_SHU_OSHER_2R` | `'shu-osher-2r'` |
+| `FORM_WILLIAMSON_2N` | `'williamson-2n'` |
+| `FORM_KETCHESON_2R` | `'ketcheson-2r'` |
+| `FORM_SPLITTING` | `'splitting'` |
+| `RK_SCHEMES` | the 8 Runge–Kutta names, `character(7)`, blank-padded: `trim` them |
+| `SPLITTING_SCHEMES` | the 4 splitting names, `character(15)`, blank-padded |
 
 Which scheme in which form, and the SSP coefficients: [Schemes](/guide/schemes).
 

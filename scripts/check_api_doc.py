@@ -5,7 +5,8 @@ Why: `use selah` is the whole API, and its generated page (docs/api/src/lib/sela
 `npm run docs:api` in docs/ first) must list each exported name under Re-exports; a formal that dropped one would leave
 it invisible to users. Exit status 1, with the missing names, if any.
 
-Also checks that README.md and docs/index.md list every exported SCHEME_* constant (the landing-page table).
+Also checks that README.md, docs/index.md and docs/ford.md (the API overview) list every exported SCHEME_* constant
+(the landing-page tables).
 
 Usage: python3 scripts/check_api_doc.py
 """
@@ -34,7 +35,7 @@ print(f'{len(names)} names exported by selah.F90; missing from the Re-exports of
 status = 1 if missing else 0
 # The landing pages list the time integrators: every exported SCHEME_* constant must appear in both.
 schemes = [n for n in names if n.startswith('SCHEME_')]
-for page in ('README.md', 'docs/index.md'):
+for page in ('README.md', 'docs/index.md', 'docs/ford.md'):
     text = (root / page).read_text()
     absent = [n for n in schemes if f'`{n}`' not in text]
     print(f'{len(schemes)} schemes exported; missing from {page}: {absent or "none"}')
