@@ -34,6 +34,7 @@ the options around it, as a solver would use them:
 | `registers=` | NaN-filled caller registers give the solution of the own registers bitwise, in the Butcher, two-register, 2N and Ketcheson forms: no form reads a register before writing it | `selah_test_stepper_options` |
 | masks | solid blocks of `q` bitwise untouched through whole steps in four forms; `mask_comp` absent = the last component | `selah_test_stepper_options`, `selah_test_kernels` |
 | `stage_time`, `finish_step(dq=)` | $c_k$ (0 for a splitting); $dq = (q^{n+1} - q^n)/\Delta t$ to round-off | `selah_test_stepper_options` |
+| stage coefficients | stage $k$ of every form is stage $k$ of the Butcher tableau, measured: with the residual 1 at every stage the stage state is $q^n + \Delta t\,$`stage_time(k)`; with the residual the indicator of stage $j$ the step adds $\Delta t\,$`stage_weight(j)` (64 ε), every scheme and form | `selah_test_stepper` |
 | error stops | `dq` for a non-Butcher form; registers numbered from 0; rk4 in a two-register form: each program must stop with its message | `selah_test_xfail_dq_form`, `_registers`, `_form` |
 
 ## Program
@@ -45,8 +46,10 @@ bash scripts/run_tests.sh       # runs the xfail programs and passes them when t
 
 ## Results
 
-All checks pass on every compiler, in both precisions, and on the A30: 248 in `selah_test_stepper`, 23 in
-`selah_test_stepper_options`, 316 in `selah_test_kernels`. The three expected failures stop with their messages.
+All checks pass on every compiler, in both precisions, and on the GPU: 314 in `selah_test_stepper`, 23 in
+`selah_test_stepper_options`, 316 in `selah_test_kernels`. The three expected failures stop with their messages. The
+A30 jobs ([C5](./device)) ran 248 checks of `selah_test_stepper`, before the stage window and the stage coefficients
+were added; those have run on an RTX 4070.
 
 ## Findings
 
@@ -55,3 +58,10 @@ All checks pass on every compiler, in both precisions, and on the A30: 248 in `s
   the step. The 2N stage with $A = 0$ now writes $\Delta Q = \Delta t R$ without reading it.
 - `initialize(registers=)` now refuses registers whose slots are not numbered from 1 or whose bounds are not the
   field's. Such registers used to be indexed one slot off without a message.
+- Before 2026-11-18, `rhs_register()` outside a stage window returned, in the Butcher form, the stage-state register
+  (slot `k_active + 1` with no stage active), against clause 4, without a message. Both pointers are now null there.
+- Before 2026-11-18, `stage_time` was checked against the tableau it returns, in the Butcher form only: a stage of
+  another form evaluated at another abscissa would have passed. The stage coefficients are now measured in every
+  form. A swap of two abscissae (stages 5 and 6) fails the check in 8 scheme-form pairs, `ssp-104 ket` among them. A
+  swap of two weights fails it in every pair where the two weights differ. Where they are equal (ssp-22, ssp-33,
+  ssp-104: SSP(10,4)'s ten weights are all 1/10) the swap changes nothing a caller can observe.

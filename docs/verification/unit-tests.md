@@ -26,7 +26,7 @@ when they exit with an error. The suite runs:
 | `selah_test_kernels_adam` | whole steps from SELAH's kernels against ADAM's FNL kernels (bitwise) and CPU loops (4 ε) | 27 | [C1](./contracts/adam-equivalence) |
 | `selah_test_device_kernels` | every kernel on FUNDAL device memory | 57 | [C5](./contracts/device) |
 | `selah_test_device_adam` | SELAH's against ADAM's kernels on the device, bitwise | 18 | [C1](./contracts/adam-equivalence), [C5](./contracts/device) |
-| `selah_test_stepper` | orders in every form, the stage contract, stages on q, telescoping, splittings through the stepper | 248 | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [P4](./properties/conservation) |
+| `selah_test_stepper` | orders in every form, the stage contract, stages on q, stage coefficients, telescoping, splittings through the stepper | 314 | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [P4](./properties/conservation) |
 | `selah_test_stepper_options` | `stage_time`, caller registers, `dq`, masks through the stepper | 23 | [C3](./contracts/stage-contract) |
 | `selah_test_golden` | 1312 pinned values | 42 | [C4](./contracts/golden) |
 | `selah_vv_stability` | stability polynomials, axis limits, SSP discs | 22 | [A5](./accuracy/stability) |

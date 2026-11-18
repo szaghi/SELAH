@@ -17,6 +17,11 @@ program selah_test_stepper
 !<+ **Stages on q.** The Butcher form with stages_on_q=.true. ('butcher-q'): stage_state_is_q(k) is true exactly for
 !<  the zero rows of A, stage_state() is null during those stages, and the solution is bitwise the one of the plain
 !<  Butcher form (the stage-1 copy only moves the same values).
+!<+ **Stage coefficients.** Stage k of every form is stage k of the Butcher tableau, so stage_time(k) and
+!<  stage_weight(k) describe the stage the caller is evaluating. With a residual independent of the state, the step is
+!<  linear in the stage residuals: with the residual 1 at every stage, the stage state of stage k is
+!<  q^n + dt stage_time(k); with the residual the indicator of stage j, the step adds dt stage_weight(j). Measured, not
+!<  compared with the tableau the queries return: SSP(10,4)'s weights are all 1/10, its abscissae are not.
 !<+ **Telescoping.** With inflow on the left and outflow on the right, the change of the mass over a step equals
 !<  -dt sum_k stage_weight(k) (F_right - F_left)_k, the stage fluxes at the boundary faces: the identity a flux
 !<  register relies on, for every Runge–Kutta form (round-off).
@@ -84,6 +89,7 @@ contains
       if (registers_needed(name, form_of(trim(RK_FORMS(f)))) < 0) cycle
       associate(tag=>name//' '//trim(RK_FORMS(f)))
       on_q = trim(RK_FORMS(f)) == 'butcher-q'
+      call stage_coefficients(name, form_of(trim(RK_FORMS(f))), on_q, tag)
 #if !defined _R_P_IS_R4P
       n = merge(8_I4P, 16_I4P, bt%order >= 4)
       do k=1, 4
@@ -208,6 +214,75 @@ contains
    call st%destroy
    call dev_free(q_d)
    endfunction advect
+
+   subroutine stage_coefficients(name, form, on_q, tag)
+   !< Stage k of the form is stage k of the Butcher tableau: stage_time(k) and stage_weight(k), measured through steps
+   !< whose residual does not depend on the state.
+   character(*), intent(in) :: name, form, tag
+   logical,      intent(in) :: on_q                    !< Butcher form: initialise with stages_on_q.
+   real(R_P),    parameter  :: DT_C = 0.1_R_P          !< Time step.
+   type(stepper)            :: st
+   type(box)                :: bx
+   real(R_P), pointer       :: q_d(:,:,:,:,:)=>null(), u_d(:,:,:,:,:)=>null(), r_d(:,:,:,:,:)=>null()
+   real(R_P)                :: h(1:1, 0:NI+1, 0:2, 0:2, 1:NB)
+   real(R_P)                :: tol, dev_c, dev_w
+   integer(I4P)             :: j, k, ierr
+
+   bx = box_interior(LAYOUT_V_FIRST, 1_I4P, NI, 1_I4P, 1_I4P, NGC, NB)
+   call dev_alloc(fptr_dev=q_d, ubounds=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB], lbounds=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], &
+                  ierr=ierr)
+   call st%initialize(name, form, lb=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], ub=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB], &
+                      stages_on_q=on_q)
+   tol = 64._R_P * epsilon(1._R_P) * DT_C
+   ! stage_time: the residual 1 at every stage, q^n = 0; the stage state of stage k is dt c_k
+   dev_c = 0._R_P
+   h = 0._R_P ; call dev_memcpy_to_device(dst=q_d, src=h)
+   call st%begin_step(bx, q_d)
+   do k=1, st%stages()
+      call st%begin_stage(k, bx, DT_C, q_d)
+      if (st%stage_state_is_q(k)) then ; u_d => q_d ; else ; u_d => st%stage_state() ; endif
+      call dev_memcpy_from_device(dst=h, src=u_d)
+      dev_c = max(dev_c, maxval(abs(h(1,1:NI,1,1,:) - DT_C * st%stage_time(k))))
+      r_d => st%rhs_register()
+      call fill_interior(r_d, 1._R_P)
+      call st%end_stage(k, bx, DT_C, q_d)
+   enddo
+   call st%finish_step(bx, DT_C, q_d)
+   ! stage_weight: the residual the indicator of stage j, q^n = 0; the step gives dt b_j
+   dev_w = 0._R_P
+   do j=1, st%stages()
+      h = 0._R_P ; call dev_memcpy_to_device(dst=q_d, src=h)
+      call st%begin_step(bx, q_d)
+      do k=1, st%stages()
+         call st%begin_stage(k, bx, DT_C, q_d)
+         r_d => st%rhs_register()
+         call fill_interior(r_d, merge(1._R_P, 0._R_P, k == j))
+         call st%end_stage(k, bx, DT_C, q_d)
+      enddo
+      call st%finish_step(bx, DT_C, q_d)
+      call dev_memcpy_from_device(dst=h, src=q_d)
+      dev_w = max(dev_w, maxval(abs(h(1,1:NI,1,1,:) - DT_C * st%stage_weight(j))))
+   enddo
+   call check(dev_c <= tol, tag//': stage k''s state is q^n + dt stage_time(k)')
+   call check(dev_w <= tol, tag//': the residual of stage k enters the step with dt stage_weight(k)')
+   call st%destroy
+   call dev_free(q_d)
+   endsubroutine stage_coefficients
+
+   subroutine fill_interior(r, v)
+   !< The caller's residual of the stage-coefficient checks: v in the cells of the box.
+   real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
+   real(R_P), intent(in)    :: v
+   integer(I4P)             :: b, i
+
+   !$acc parallel loop independent collapse(2) DEVICEVAR(r)
+   !$omp OMPLOOP collapse(2) DEVICEPTR(r)
+   do b=1, NB
+      do i=1, NI
+         r(1,i,1,1,b) = v
+      enddo
+   enddo
+   endsubroutine fill_interior
 
    subroutine fill_ghosts(u, periodic)
    !< The caller's ghost fill along i: periodic, or inflow 1 (left) and outflow (right); j and k ghosts untouched.
