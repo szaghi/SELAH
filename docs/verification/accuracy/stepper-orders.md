@@ -7,7 +7,7 @@ icon: order-conditions
 
 | ID | Group | Type | Backends | Figure | Program |
 |---|---|---|---|---|---|
-| A3 | Accuracy | P | CPU (gfortran, nvfortran, ifx); GPU (A30, `tests-nvf-oac`) | yes | `selah_test_stepper` |
+| A3 | Accuracy | P | CPU (gfortran, nvfortran, ifx); GPU (A30, `tests-nvf-oac`) | yes | `selah_test_stepper`, `selah_test_stepper_ranks` |
 
 ## Case and scope
 
@@ -26,11 +26,25 @@ Butcher with stages on q, two-register, Williamson 2N and Ketcheson.
 | Steps | to $t = 0.25$; 16, 32, 64, 128 steps (8, …, 64 for order 4) |
 | Bound | observed order of the last halving at least $p - 0.2$ |
 
+### Fields of rank 1 to 4
+
+`selah_test_stepper_ranks` takes the same orders through the stepper's rank-k fronts
+([Stepper](/guide/stepper#fields-of-rank-1-to-4)).
+
+| Item | Value |
+|---|---|
+| Fields | seven shapes: scalar `(i)`, `(i, j)`, `(i, j, k)`, `(i, j, k, b)` (two blocks, a `box_range` box), and two components `(v, i)`, `(v, i, j)`, `(v, i, j, k)`; 3 interior cells per dimension, 1 ghost cell; a pointer of the field's rank over contiguous FUNDAL storage |
+| Problem | $y' = -y^2$ cell by cell (no space operator), $y_0 = 1 + 0.01\,n$; exact $1/(1/y_0 + t)$ |
+| Steps | to $t = 0.5$; 16, 32, 64, 128 steps (8, …, 64 for order 4) |
+| Splittings | the oscillator $q' = p$, $p' = -q$ cell by cell on the shapes with components, to $t = 1$ |
+| Bound | observed order of the last halving at least $p - 0.2$ (R8P builds) |
+
 ## Program
 
 ```bash
 ./exe/selah_test_stepper
 SELAH_VV_DIR=exe/vv-data ./exe/selah_test_stepper      # stepper-orders.dat, telescoping.dat
+./exe/selah_test_stepper_ranks                         # the rank-k fronts
 ```
 
 ## Results
@@ -46,5 +60,7 @@ SELAH_VV_DIR=exe/vv-data ./exe/selah_test_stepper      # stepper-orders.dat, tel
 - Every scheme reaches its order in every form, and the forms of a scheme agree in their errors to round-off
   ([C2](../contracts/forms)).
 - `stages_on_q` changes no digit ([C3](../contracts/stage-contract)).
+- At every rank from 1 to 4, every scheme reaches its order in every form, and every splitting its order on the
+  shapes with components. The rank-k run is bitwise the rank-5 run of the same data.
 - The same program checks the stage contract and the conservation identity (C3, [P4](../properties/conservation)), on
   the host and on the A30.

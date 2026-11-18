@@ -7,7 +7,7 @@ icon: selah
 
 | ID | Group | Type | Backends | Figure | Program |
 |---|---|---|---|---|---|
-| C3 | Contracts | C | CPU (gfortran, nvfortran, ifx; R8P and R4P); GPU (A30) | no | `selah_test_stepper`, `selah_test_stepper_options`, `selah_test_kernels`, `selah_test_xfail_*` |
+| C3 | Contracts | C | CPU (gfortran, nvfortran, ifx; R8P and R4P); GPU (A30) | no | `selah_test_stepper`, `selah_test_stepper_options`, `selah_test_stepper_ranks`, `selah_test_kernels`, `selah_test_xfail_*` |
 
 ## Case and scope
 
@@ -34,22 +34,24 @@ the options around it, as a solver would use them:
 | `registers=` | NaN-filled caller registers give the solution of the own registers bitwise, in the Butcher, two-register, 2N and Ketcheson forms: no form reads a register before writing it | `selah_test_stepper_options` |
 | masks | solid blocks of `q` bitwise untouched through whole steps in four forms; `mask_comp` absent = the last component | `selah_test_stepper_options`, `selah_test_kernels` |
 | `stage_time`, `finish_step(dq=)` | $c_k$ (0 for a splitting); $dq = (q^{n+1} - q^n)/\Delta t$ to round-off | `selah_test_stepper_options` |
+| fields of rank 1 to 4 | seven shapes, every scheme and form: bitwise the rank-5 run; ghost cells of `q` and of every register untouched; both views null outside every window, `rhs_register_view` associated inside it, `stage_state_view` exactly when the stage is not on q; the stage coefficients; masks of q's rank with their own components (solid cells untouched, fluid cells bitwise the unmasked run) | `selah_test_stepper_ranks` |
 | stage coefficients | stage $k$ of every form is stage $k$ of the Butcher tableau, measured: with the residual 1 at every stage the stage state is $q^n + \Delta t\,$`stage_time(k)`; with the residual the indicator of stage $j$ the step adds $\Delta t\,$`stage_weight(j)` (64 ε), every scheme and form | `selah_test_stepper` |
 | error stops | `dq` for a non-Butcher form; registers numbered from 0; rk4 in a two-register form: each program must stop with its message | `selah_test_xfail_dq_form`, `_registers`, `_form` |
 
 ## Program
 
 ```bash
-./exe/selah_test_stepper ; ./exe/selah_test_stepper_options ; ./exe/selah_test_kernels
+./exe/selah_test_stepper ; ./exe/selah_test_stepper_options ; ./exe/selah_test_stepper_ranks ; ./exe/selah_test_kernels
 bash scripts/run_tests.sh       # runs the xfail programs and passes them when they exit with an error
 ```
 
 ## Results
 
 All checks pass on every compiler, in both precisions, and on the GPU: 314 in `selah_test_stepper`, 23 in
-`selah_test_stepper_options`, 316 in `selah_test_kernels`. The three expected failures stop with their messages. The
-A30 jobs ([C5](./device)) ran 248 checks of `selah_test_stepper`, before the stage window and the stage coefficients
-were added; those have run on an RTX 4070.
+`selah_test_stepper_options`, 848 in `selah_test_stepper_ranks` (694 in R4P), 316 in `selah_test_kernels`. The three
+expected failures stop with their messages. The A30 jobs of 2026-11-17 ([C5](./device)) ran 248 checks of
+`selah_test_stepper`, before the stage window and the stage coefficients were added. Job 1368457 ran all of them on
+the A30.
 
 ## Findings
 

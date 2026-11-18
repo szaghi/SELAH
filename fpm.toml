@@ -93,6 +93,11 @@ source-dir = "src/tests"
 main = "selah_test_stepper_options.F90"
 
 [[test]]
+name = "selah_test_stepper_ranks"
+source-dir = "src/tests"
+main = "selah_test_stepper_ranks.F90"
+
+[[test]]
 name = "selah_test_golden"
 source-dir = "src/tests"
 main = "selah_test_golden.F90"

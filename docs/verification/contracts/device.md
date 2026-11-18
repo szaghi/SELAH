@@ -7,7 +7,7 @@ icon: selah
 
 | ID | Group | Type | Backends | Figure | Program |
 |---|---|---|---|---|---|
-| C5 | Contracts | C | GPU (NVIDIA A30, nvfortran 26.9 OpenACC, `tests-nvf-oac --varset iac`) | no | `selah_test_device_kernels`, `selah_test_device_adam`, `selah_test_stepper`, `selah_test_stepper_options`, `selah_vv_stability` |
+| C5 | Contracts | C | GPU (NVIDIA A30, nvfortran 26.9 OpenACC, `tests-nvf-oac --varset iac`) | no | `selah_test_device_kernels`, `selah_test_device_adam`, `selah_test_stepper`, `selah_test_stepper_options`, `selah_test_stepper_ranks`, `selah_vv_stability` |
 
 ## Case and scope
 
@@ -21,8 +21,9 @@ build `dev_init(require_device=.true.)` forbids a silent fallback to the host.
 |---|---|
 | `selah_test_device_kernels` (57 checks) | every box kernel, both layouts, masked and unmasked, the stage state with no register, the step update without dq, the 2N stage with $A = 0$, a component range, an explicit mask component, every flat kernel: each cell of the box within 16 ε of the host reference (the device may contract to FMA), every other cell bitwise untouched |
 | `selah_test_device_adam` (18 checks) | SELAH's kernels against ADAM's FNL kernels, both on the device: bitwise |
-| `selah_test_stepper` (314 checks; 248 in the A30 jobs below) | the whole stepper with the caller's ghost fill and residual as device loops: orders, contract, stage coefficients, telescoping, stages on q |
+| `selah_test_stepper` (314 checks; 248 in the A30 jobs of 2026-11-17) | the whole stepper with the caller's ghost fill and residual as device loops: orders, contract, stage coefficients, telescoping, stages on q |
 | `selah_test_stepper_options` (23 checks) | `stage_time`, NaN-filled caller registers (device memory), `dq`, masks |
+| `selah_test_stepper_ranks` (848 checks) | fields of rank 1 to 4 over device storage, through the rank-k fronts: bitwise rank 5, orders, contract, stage coefficients, masks, splittings |
 | `selah_vv_stability`, the L0 programs | the coefficient checks, built by nvfortran with OpenACC |
 
 The programs that pass host arrays to the kernels or the stepper are excluded from the device build. Their device
@@ -42,10 +43,11 @@ sbatch --export=ALL,SELAH_SRC=$PWD scripts/medooza/selah-tests.slurm           #
 | 1368142 | the audit fixes | 14/14 |
 | 1368177 | the verification programs | 15/15 |
 | 1368190 | the documented tree (the night's last snapshot) | 15/15 |
+| 1368457 (2026-11-18) | the stepper on fields of rank 1 to 4 (issue #2, phase 1) | 16/16 |
 
-The checks added on 2026-11-18 (the stage window and the stage coefficients, `selah_test_stepper` 248 → 314) have run
-on an NVIDIA GeForce RTX 4070 (WSL, `tests-nvf-oac --varset wsl`, cc89): 15/15, 314 and 23 checks passing. They have
-not run on the A30 yet.
+The checks added on 2026-11-18 (the stage window and the stage coefficients, `selah_test_stepper` 248 → 314; the
+fields of rank 1 to 4, `selah_test_stepper_ranks`, 848) ran on an NVIDIA GeForce RTX 4070 (WSL,
+`tests-nvf-oac --varset wsl`, cc89) and on the A30 in job 1368457: 16/16.
 
 ## Findings
 

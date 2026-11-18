@@ -29,6 +29,7 @@ when they exit with an error. The suite runs:
 | `selah_test_device_adam` | SELAH's against ADAM's kernels on the device, bitwise | 18 | [C1](./contracts/adam-equivalence), [C5](./contracts/device) |
 | `selah_test_stepper` | orders in every form, the stage contract, stages on q, stage coefficients, telescoping, splittings through the stepper | 314 | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [P4](./properties/conservation) |
 | `selah_test_stepper_options` | `stage_time`, caller registers, `dq`, masks through the stepper | 23 | [C3](./contracts/stage-contract) |
+| `selah_test_stepper_ranks` | fields of rank 1 to 4, seven shapes: rank k bitwise rank 5, orders, the stage contract, stage coefficients, masks, splittings | 848 (694 in R4P, without the RK orders) | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [C5](./contracts/device) |
 | `selah_test_golden` | 1312 pinned values | 42 | [C4](./contracts/golden) |
 | `selah_vv_stability` | stability polynomials, axis limits, SSP discs | 22 | [A5](./accuracy/stability) |
 | `selah_vv_ssp_tvd` | TVD up to $\nu = C$ | 5 | [P1](./properties/ssp-tvd) |
