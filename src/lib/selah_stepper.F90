@@ -29,6 +29,9 @@ module selah_stepper
 !< 3. The caller may write the ghost cells of the stage state during that window (ghost exchange, seam fill, physical
 !<    boundaries).
 !< 4. `rhs_register()` is written by the caller only, in the cells of the box, and is distinct from the stage state.
+!<    Both `rhs_register()` and `stage_state()` are null outside that window (before `begin_stage(k)`, after
+!<    `end_stage(k)`): a caller that keeps them across stages fails at once instead of writing a register that is no
+!<    longer the one of the active stage.
 !< 5. After `finish_step` the registers are scratch.
 !<
 !< `stage_weight(k)` is the effective Butcher weight b_k of stage k in every Runge–Kutta form (the weight a flux
@@ -256,24 +259,26 @@ contains
 
    function stage_state(self) result(u)
    !< The state of the active stage, with the field's bounds: the Butcher form's register; null when the stage's state
-   !< is q itself (stage_state_is_q), so in every other form.
+   !< is q itself (stage_state_is_q), so in every other form, and outside a stage window.
    class(stepper), intent(in) :: self         !< Stepper.
    real(R_P),      pointer    :: u(:,:,:,:,:) !< Stage state.
 
    u => null()
-   if (self%k_active > 0_I4P) then
-      if (self%on_q(self%k_active)) return
-   endif
+   if (self%k_active == 0_I4P) return
+   if (self%on_q(self%k_active)) return
    if (self%form == FORM_BUTCHER) &
       u(self%lb(1):,self%lb(2):,self%lb(3):,self%lb(4):,self%lb(5):) => self%regs(:,:,:,:,:,1)
    endfunction stage_state
 
    function rhs_register(self) result(r)
-   !< Where the caller writes the residual of the active stage, with the field's bounds.
+   !< Where the caller writes the residual of the active stage, with the field's bounds; null outside a stage window
+   !< (in the Butcher form, slot k_active + 1 would otherwise be the stage-state register).
    class(stepper), intent(in) :: self         !< Stepper.
    real(R_P),      pointer    :: r(:,:,:,:,:) !< Residual register.
    integer(I4P)               :: slot         !< Register slot.
 
+   r => null()
+   if (self%k_active == 0_I4P) return
    select case(self%form)
    case(FORM_BUTCHER)
       slot = self%k_active + 1_I4P

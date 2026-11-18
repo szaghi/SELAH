@@ -12,7 +12,8 @@ program selah_test_stepper
 !<  sin(2 pi (x - c t)) with c = sin(2 pi dx)/(2 pi dx): the error is the time integrator's alone. Every scheme in
 !<  every form it has reaches its order; the splittings reach theirs on a two-partition oscillator (q' = p, p' = -q).
 !<+ **Contract.** Ghost cells hold sentinels through a whole step wherever the caller does not fill them; the residual
-!<  register is distinct from the stage state; state_aliases_q is false for the Butcher form only.
+!<  register is distinct from the stage state; state_aliases_q is false for the Butcher form only; rhs_register() and
+!<  stage_state() are null outside a stage window (after begin_step, after each end_stage).
 !<+ **Stages on q.** The Butcher form with stages_on_q=.true. ('butcher-q'): stage_state_is_q(k) is true exactly for
 !<  the zero rows of A, stage_state() is null during those stages, and the solution is bitwise the one of the plain
 !<  Butcher form (the stage-1 copy only moves the same values).
@@ -121,7 +122,7 @@ contains
    real(R_P), allocatable   :: q(:,:,:,:,:), h(:,:,:,:,:)
    real(R_P)                :: dt, t, c, m0, m1, flux, flux_u, fb, x
    integer(I4P)             :: step, k, i, b, ierr
-   logical                  :: ghosts_ok, distinct_ok, telescoping_ok, on_q_ok
+   logical                  :: ghosts_ok, distinct_ok, telescoping_ok, on_q_ok, window_ok
 
    bx = box_interior(LAYOUT_V_FIRST, 1_I4P, NI, 1_I4P, 1_I4P, NGC, NB)
    allocate(q(1:1, 0:NI+1, 0:2, 0:2, 1:NB))
@@ -138,7 +139,7 @@ contains
    call st%initialize(name, form, lb=[1_I4P, 0_I4P, 0_I4P, 0_I4P, 1_I4P], ub=[1_I4P, NI+1_I4P, 2_I4P, 2_I4P, NB], &
                       stages_on_q=on_q)
    dt = 0.25_R_P / real(nsteps, R_P)
-   ghosts_ok = .true. ; distinct_ok = .true. ; telescoping_ok = .true. ; on_q_ok = .true.
+   ghosts_ok = .true. ; distinct_ok = .true. ; telescoping_ok = .true. ; on_q_ok = .true. ; window_ok = .true.
    call check(st%state_aliases_q() .eqv. (form /= FORM_BUTCHER), name//' '//form//': state_aliases_q')
    bt = butcher(name)
    do k=1, st%stages() ! q is the stage state: every stage of the aliasing forms, the zero rows of A with on_q
@@ -150,6 +151,7 @@ contains
       if (.not. periodic) m0 = mass(q_d)
       flux = 0._R_P ; flux_u = 0._R_P
       call st%begin_step(bx, q_d)
+      if (associated(st%rhs_register()) .or. associated(st%stage_state())) window_ok = .false. ! no stage open yet
       do k=1, st%stages()
          call st%begin_stage(k, bx, dt, q_d)
          if (st%stage_state_is_q(k)) then
@@ -168,6 +170,7 @@ contains
             flux_u = flux_u + fb / st%stages()   ! uniform weights: the control of the report
          endif
          call st%end_stage(k, bx, dt, q_d)
+         if (associated(st%rhs_register()) .or. associated(st%stage_state())) window_ok = .false. ! stage k closed
       enddo
       call st%finish_step(bx, dt, q_d)
       if (.not. periodic) then
@@ -195,6 +198,7 @@ contains
       if (any(h(:,:,0,:,:) /= SENTINEL) .or. any(h(:,:,2,:,:) /= SENTINEL)) ghosts_ok = .false.
       call check(ghosts_ok, name//' '//form//': no ghost cell written by the stepper (q and registers)')
       call check(distinct_ok, name//' '//form//': residual register distinct from the stage state')
+      call check(window_ok, name//' '//form//': rhs_register() and stage_state() null outside a stage window')
       call check(telescoping_ok, name//' '//form//': mass change = -dt sum_k w_k (boundary fluxes)_k')
       call check(on_q_ok, name//' '//form//merge(' on q', '     ', on_q)//': stage_state_is_q, stage_state() null on q')
    endif

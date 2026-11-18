@@ -59,7 +59,8 @@ ghost cells and evaluates residuals. The **stage contract** is the agreement tha
 2. The stepper never writes a ghost cell, of any register or of `q`.
 3. The caller may write the ghost cells of the stage state during that window: ghost exchange, AMR seam fill,
    physical boundaries.
-4. `rhs_register()` is written by the caller only, in the cells of the box, and is never the stage state.
+4. `rhs_register()` is written by the caller only, in the cells of the box, and is never the stage state. Outside the
+   window, `rhs_register()` and `stage_state()` are null: fetch them again at every stage.
 5. After `finish_step` the registers are scratch.
 
 `stage_weight(k)` is the effective Butcher weight $b_k$ of stage $k$ in every Runge–Kutta form, the weight a flux

@@ -18,7 +18,7 @@ the options around it, as a solver would use them:
    else `stage_state()`.
 2. The stepper never writes a ghost cell.
 3. The caller may write the ghost cells of the stage state.
-4. `rhs_register()` is distinct from the stage state.
+4. `rhs_register()` is distinct from the stage state, and null outside the window, as `stage_state()` is.
 5. After `finish_step` the registers are scratch.
 
 ## Setup
@@ -28,6 +28,7 @@ the options around it, as a solver would use them:
 | no ghost cell written (2) | every register and `q` start with a sentinel in their ghost layers; the layers the caller never fills keep it bit for bit through whole steps, every scheme and form | `selah_test_stepper` |
 | a kernel writes its box only | every kernel, both layouts, masked and unmasked, on a component range: every cell outside the box (ghosts, pool slots past the active blocks, other components, inactive cells) bitwise untouched | `selah_test_kernels` (316 checks) |
 | residual register distinct (4) | `associated(rhs_register(), stage_state)` false at every stage | `selah_test_stepper` |
+| no register outside a window (4) | `rhs_register()` and `stage_state()` not associated after `begin_step` and after every `end_stage`, every scheme and form | `selah_test_stepper` |
 | `state_aliases_q`, `stage_state_is_q` (1) | true exactly for the aliasing forms, and for the zero rows of A with `stages_on_q`; `stage_state()` null on such a stage | `selah_test_stepper` |
 | `stages_on_q` | the solution bitwise that of the plain Butcher form, every scheme | `selah_test_stepper` |
 | `registers=` | NaN-filled caller registers give the solution of the own registers bitwise, in the Butcher, two-register, 2N and Ketcheson forms: no form reads a register before writing it | `selah_test_stepper_options` |
