@@ -16,7 +16,8 @@ operator is verified once, not once per library plus once per test suite that co
 3. The goldens change. New files get new names (`*_v2`); the v1 files are deleted only when nothing reads them.
 4. A stepper for 1-D, 2-D, 3-D and 4-D fields is mandatory, besides the 5-D one ADAM uses.
 
-**Still open:** D1 (the docs examples) and D2 (GIDEON's quad-precision mode), §6.
+**Decided by the owner (2026-11-18), §6:** D1, the docs examples use GIDEON's operators; D2, `gideon_vv_advection`
+is excluded from GIDEON's `tests-gnu-r16`.
 
 ## 1. What changes, by repository (the 2026-11-18 audit)
 
@@ -151,7 +152,7 @@ The field shapes the stepper must take:
 
 ## 6. Phase 5: SELAH's docs examples (D1)
 
-**D1, for the owner.** Should the tutorial and cookbook examples (`docs/examples/src/`) use GIDEON's operators?
+**D1, decided 2026-11-18: yes.** Should the tutorial and cookbook examples (`docs/examples/src/`) use GIDEON's operators?
 - **Yes (recommended).** The tutorial then shows the ecosystem as it is meant to be used: the caller's residual
   (principle P2) written with GIDEON, the time step with SELAH. A reader who copies an example copies the real
   pattern. The cost: the docs-examples workflow fetches GIDEON (already fetched for the tests after phase 4), and
@@ -159,7 +160,7 @@ The field shapes the stepper must take:
 - **No.** The examples keep minimal inline residuals, labelled as the caller's code. That is two sources for a
   central difference in SELAH's repository, the situation this plan removes.
 
-**D2, for the owner.** GIDEON's R16P test mode and SELAH:
+**D2, decided 2026-11-18: (a).** GIDEON's R16P test mode and SELAH:
 - **(a), recommended.** Exclude `gideon_vv_advection` from `tests-gnu-r16`: the mode verifies the orders of the
   operators, which needs no time integration.
 - **(b).** Allow R16P in SELAH's host builds. The kernels would compile at R16P (no device), at the cost of a mode
