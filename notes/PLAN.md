@@ -2,7 +2,7 @@
 
 *Name:* **SELAH**, *Stage-wise Evolution Library for Accelerators and HPC* (decided 2026-11-17). Repository `szaghi/SELAH`, module prefix `selah_`, library files `libselah.a` / `libselah_r4.a`; **SELAH** in prose, *Selah* (italic) for the biblical word. *Selah* is the mark that appears 71 times in the Psalms and 3 in Habakkuk, usually read as a pause where the music stops and the singer breathes (the exact meaning is debated): the stage boundaries, where the orchestrator acts before the integrator continues. This file is the design record of the project (moved into the repository at M0).
 *Origin:* the ADAM time-integrator audit of 2026-11-17 and ADAM issue [#128](https://github.com/szaghi/adam/issues/128) (its defects are fixed in ADAM independently of this plan).
-*Status:* M0–M6 done (v0.1.0 and v0.2.0 released 2026-11-17; each milestone row of §4 records its night and its numbers). Open: M7 (the ADAM wiring, in ADAM), the forms deferred from M4 (leapfrog + RAW, Ketcheson 2S), the OpenMP-offload backend (decision 5), the second consumer (decision 3), the implicit stages of "Beyond v0.x".
+*Status:* M0–M6 done (v0.1.0 and v0.2.0 released 2026-11-17; each milestone row of §4 records its night and its numbers). Open: M7 (the ADAM wiring, in ADAM; unblocked 2026-11-19 by issue #2, `notes/space-time-separation.md` §9), the forms deferred from M4 (leapfrog + RAW, Ketcheson 2S), the OpenMP-offload backend (decision 5), the second consumer (decision 3), the implicit stages of "Beyond v0.x".
 
 ---
 

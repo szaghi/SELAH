@@ -1,7 +1,7 @@
 # Plan: one source of truth for time operators (SELAH), one for space operators (GIDEON, SETH)
 
-*Written 2026-11-18. Status: plan, nothing implemented. Repositories: SELAH `79c57ba` (main after the FOODIE audit), GIDEON
-`e84ac7b` (v0.3.0), SETH `0bccbb2`.*
+*Written 2026-11-18. **Status: done (2026-11-19), tracked in issue #2.** The plan was written against SELAH `79c57ba`,
+GIDEON `e84ac7b` (v0.3.0) and SETH `0bccbb2`; §9 records what each repository holds now.*
 
 ## 0. Goal and the owner's decisions
 
@@ -203,3 +203,32 @@ copy coming back unnoticed, not to parse Fortran.
 
 **After this plan:** M7, the ADAM wiring, on a SELAH whose own tests use GIDEON's operators: the same pairing ADAM
 will run in production.
+
+## 9. Done: the final state of each repository (2026-11-19)
+
+| Phase | Repository | Commits | What holds |
+|---|---|---|---|
+| 1 | SELAH | `a0dc4a0` `fa6dd51` `1ea5403` | the stepper on fields of rank 1 to 4 (one rank-5 implementation, explicit-shape bridges, `stage_state_view`/`rhs_register_view`); 848 checks, A30 jobs 1368451, 1368457 |
+| 2 | SETH | `11ebd46` `dbaae69` `2328cb0` `703e66d` `a76bd80` | the 10 hand-written SSP-RK3 steps are SELAH's `SCHEME_SSP_33` (rank 1, 2, 3); the report utilities split out so that only the 16 time-stepping programs depend on SELAH; those programs leave the OpenACC modes |
+| 3 | GIDEON | `01232a0` `204e075` | `gideon_vv_advection` advances with SELAH's RK4 (rank 1); out of `tests-gnu-r16` (D2) and of the OpenACC modes |
+| 4 | SELAH | `16d006b` `1e85348` `78b40f9` `bdd84c6` | the tests' space operators are GIDEON's (`fv_face_c2`, `fd_d1_c2`, `fv_face_ul1`, `fd_d2_c2`); golden v2 (12 R8P values 1 ulp, 21 R4P) |
+| 5 | SELAH | `5e75c51` | the docs examples' residuals are GIDEON's (D1); `static-gideon-gnu`, `docs_examples.sh` links `libgideon.a`; no example output changed |
+| 6 | SELAH, SETH, GIDEON | (this commit's night) | `scripts/check_separation.py`, the same file in the three repositories, run by every Matrix job: 0 findings in each, planted copies caught |
+
+What did not go as planned, and why:
+- **The OpenACC test modes** of GIDEON and SETH exclude the programs that use SELAH: SELAH and FUNDAL do not compile
+  under `-acc` without SELAH's device build (`fundal.H`'s host clause), and those programs hold host fields. Running
+  them on the device would need them rewritten for FUNDAL memory: not planned, not needed for the separation.
+- **Golden v2** came from 1-ulp changes, inside the tolerance: the C4 rule asks for a new file for any deliberate
+  change, so v2 it is.
+- **SETH's report data** (tables, figures) of the 16 programs were not regenerated: round-off changes only; the 2-D
+  cases' report mode takes hours.
+- **SETH's docs examples** (t03, t06–t11, `cookbook_euler`) still hand-write SSP-RK3: they were not in this plan; the
+  same migration as D1 is the recommendation (t11_gpu needs SELAH's device build). `check_separation.py` checks
+  SETH's `src/tests/` only, so they do not fail it.
+
+**Changelog.** No hand-written entries: each repository's `CHANGELOG.md` is generated from the commit messages by
+git-cliff at the next release (`scripts/release.sh`), and the commits above are written for it.
+
+**Next: M7, the ADAM wiring** (`notes/PLAN.md` §4), is unblocked: SELAH's own tests now pair SELAH's time operators
+with GIDEON's space operators, as ADAM will in production.
