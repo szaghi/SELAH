@@ -23,7 +23,8 @@ is welcome. The project follows a KISS (Keep It Simple and Stupid) philosophy.
 3. Test your changes: `fobis build --mode tests-gnu && bash scripts/run_tests.sh`, and the single-precision build
    (`fobis build --mode tests-gnu-r4 && bash scripts/run_tests.sh --exe-dir exe-r4`). A test or an example that needs a
    space operator (a residual) takes it from GIDEON, never a hand-written stencil: SELAH is the source of the time
-   operators, GIDEON and SETH of the space operators (issue #2)
+   operators, GIDEON and SETH of the space operators (issue #2); `python3 scripts/check_separation.py` checks it, and CI
+   runs it
 4. Check for unnecessary whitespace: `git diff --check`
 5. Submit a pull request with a clear commit message
 
