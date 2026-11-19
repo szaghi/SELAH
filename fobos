@@ -153,6 +153,7 @@ preproc   = -DFUNDAL_NO_MPI -DDEV_OAC -DCOMPILER_NVF
 # device twins are selah_test_device_*, selah_test_stepper and selah_test_stepper_options
 exclude   = src/tests/selah_test_kernels.F90 src/tests/selah_test_kernels_adam.F90 src/tests/selah_vv_ssp_tvd.F90
             src/tests/selah_vv_splitting_energy.F90 src/tests/selah_vv_forms.F90 src/tests/selah_test_golden.F90
+            src/tests/selah_test_forest.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 
@@ -249,6 +250,7 @@ exclude   = src/tests/selah_adam_reference.F90 src/tests/selah_test_adam_parity.
             src/tests/adam_fnl_rk_kernels.F90 src/tests/selah_adam_cpu_reference.F90 src/tests/selah_test_kernels_adam.F90
             src/tests/selah_test_kernels.F90 src/tests/selah_test_device_adam.F90 src/tests/selah_vv_ssp_tvd.F90
             src/tests/selah_vv_splitting_energy.F90 src/tests/selah_vv_forms.F90 src/tests/selah_test_golden.F90
+            src/tests/selah_test_forest.F90
 cflags    = -c -acc -gpu=$GPU_CC -Minfo=accel
 lflags    = -acc -gpu=$GPU_CC
 

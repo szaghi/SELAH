@@ -97,6 +97,11 @@ source-dir = "src/tests"
 main = "selah_test_stepper_options.F90"
 
 [[test]]
+name = "selah_test_forest"
+source-dir = "src/tests"
+main = "selah_test_forest.F90"
+
+[[test]]
 name = "selah_test_nonautonomous"
 source-dir = "src/tests"
 main = "selah_test_nonautonomous.F90"
