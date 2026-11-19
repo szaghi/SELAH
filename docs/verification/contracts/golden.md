@@ -19,9 +19,9 @@ inputs.
 
 | Item | Value |
 |---|---|
-| Cases | 41: every Runge–Kutta scheme in every form it has (3 steps of a periodic linear system, 32 values); every splitting (3 steps of a partitioned linear system); every kernel, box V_FIRST unmasked and V_LAST masked, and flat |
+| Cases | 41: every Runge–Kutta scheme in every form it has (3 steps of a periodic linear system, 32 values; its operator is 0.25 times GIDEON's centred second derivative plus 0.125 u); every splitting (3 steps of a partitioned linear system); every kernel, box V_FIRST unmasked and V_LAST masked, and flat |
 | Inputs | exact in binary: dyadic values $((37i + 11s) \bmod 61 - 30)/32$ and dyadic coefficients and steps (no libm, no random numbers), so the inputs are the same bits on every compiler and option |
-| Files | `src/tests/golden/selah_golden_v1.txt` (R8P) and `selah_golden_r4_v1.txt` (R4P), 1312 values each, written by gfortran 16.2 `-O3` (compiler and options in the header) |
+| Files | `src/tests/golden/selah_golden_v2.txt` (R8P) and `selah_golden_r4_v2.txt` (R4P), 1312 values each, written by gfortran 16.2 `-O3` (compiler and options in the header) |
 | Tolerance | $1000\,\varepsilon(R_P)$ relative to $\max(|v|, 1)$; every computed case must be in the file and every line of the file computed |
 | Rule | a golden file is never edited. `selah_test_golden write FILE` refuses to overwrite one. A deliberate change of results gets a new file (v2) and a new default path in the test |
 
@@ -46,6 +46,11 @@ Measured on 2026-11-17:
 
 ## Findings
 
+- **v2 (2026-11-19).** The linear system's operator became GIDEON's (issue #2): the same operator, written through
+  `gideon_fd_d2_c2`, rounds differently. 12 of the 1312 R8P values moved by 1 ulp (worst relative difference
+  1.11e-16) and 21 of the R4P values by about 1 ulp (1.49e-7), all in Runge–Kutta cases (the kernels and the
+  splittings do not use the operator). Inside the tolerance, but a deliberate change of results: new files, v2,
+  written by gfortran 16.2 `-O3`; v1 removed, nothing reads it.
 - gfortran and ifx agree bit for bit at every optimisation level: the kernels' private-sum-then-store order leaves the
   compilers nothing to reorder. nvfortran contracts some products into fused multiply–adds, a rounding per affected
   value.

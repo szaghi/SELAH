@@ -6,21 +6,24 @@ program selah_test_golden
 !< bound, passes them. This test pins the values: every Runge–Kutta scheme in every storage form it has (3 steps of a
 !< linear system), every splitting (3 steps of a partitioned linear system), and every kernel (box, both layouts,
 !< masked and unmasked; flat), on inputs exact in binary (dyadic values and coefficients: no libm, no random numbers),
-!< so that the inputs are the same bits on every compiler and option.
+!< so that the inputs are the same bits on every compiler and option. The linear system's operator is GIDEON's centred
+!< second derivative plus a reaction term, 0.25 d2u/dx2 + 0.125 u (issue #2: the space operators come from GIDEON).
+!< v2 (2026-11-19): that operator rounds 12 of the 1312 values 1 ulp away from v1's (the operator written by hand).
 !<
 !< Usage: selah_test_golden            compare with the golden file of the build's precision
 !<        selah_test_golden write FILE write a new golden file (refuses to overwrite an existing one)
-!< The golden file is src/tests/golden/selah_golden_v1.txt (R8P) or selah_golden_r4_v1.txt (R4P), looked up from the
+!< The golden file is src/tests/golden/selah_golden_v2.txt (R8P) or selah_golden_r4_v2.txt (R4P), looked up from the
 !< working directory, then from $SELAH_SRC. Tolerance: 1000 eps(R_P), relative to max(|value|, 1). A deliberate change
 !< of results gets a new file (v2, ...) and a new default path here; an existing file is never edited.
 use, intrinsic :: iso_fortran_env, only : compiler_version, compiler_options
 use selah
 use selah_test_tools, only : check, failures
+use gideon, only : gideon_fd_d2_c2
 implicit none
 integer(I4P), parameter   :: N=32
 real(R_P),    parameter   :: TOL = 1000._R_P * epsilon(1._R_P)
-character(*), parameter   :: GOLDEN_R8 = 'src/tests/golden/selah_golden_v1.txt'
-character(*), parameter   :: GOLDEN_R4 = 'src/tests/golden/selah_golden_r4_v1.txt'
+character(*), parameter   :: GOLDEN_R8 = 'src/tests/golden/selah_golden_v2.txt'
+character(*), parameter   :: GOLDEN_R4 = 'src/tests/golden/selah_golden_r4_v2.txt'
 integer,      parameter   :: MAXREC=200
 character(64)             :: labels(MAXREC) ! fixed capacity: growing a character array by concatenation lost every
 real(R_P)                 :: values(N,MAXREC) ! element but the last with nvfortran 26.9
@@ -86,6 +89,7 @@ contains
    real(R_P)                      :: v(N)
    real(R_P), allocatable, target :: y(:,:,:,:,:)
    real(R_P), pointer             :: u(:,:,:,:,:), r(:,:,:,:,:)
+   real(R_P)                      :: d
    type(stepper)                  :: st
    type(box)                      :: bx
    integer(I4P)                   :: step, k, i
@@ -101,8 +105,9 @@ contains
          if (st%stage_state_is_q(k)) then ; u => y ; else ; u => st%stage_state() ; endif
          r => st%rhs_register()
          u(1,0,1,1,1) = u(1,N,1,1,1) ; u(1,N+1,1,1,1) = u(1,1,1,1,1)
-         do i=1, N
-            r(1,i,1,1,1) = 0.25_R_P * (u(1,i-1,1,1,1) + u(1,i+1,1,1,1)) - 0.375_R_P * u(1,i,1,1,1)
+         do i=1, N                                ! 0.25 d2u/dx2 (GIDEON's centred FD, dx = 1) + 0.125 u
+            call gideon_fd_d2_c2([u(1,i-1,1,1,1), u(1,i,1,1,1), u(1,i+1,1,1,1)], 1._R_P, d)
+            r(1,i,1,1,1) = 0.25_R_P * d + 0.125_R_P * u(1,i,1,1,1)
          enddo
          call st%end_stage(k, bx, 0.0625_R_P, y)
       enddo
@@ -283,7 +288,7 @@ contains
 
    open(newunit=u, file=file, status='new', action='write', iostat=ios)
    if (ios /= 0) error stop 'selah_test_golden: the golden file exists (never overwrite it) or cannot be created'
-   write(u, '(A)') '# SELAH golden values v1: '//compiler_version()
+   write(u, '(A)') '# SELAH golden values, '//file(index(file, '/', back=.true.)+1:)//': '//compiler_version()
    write(u, '(A)') '# options: '//compiler_options()
    write(u, '(A,I0,A)') '# one line per case: label, then ', N, ' values (ES26.17)'
    do l=1, nrec

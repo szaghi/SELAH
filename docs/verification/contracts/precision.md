@@ -19,7 +19,7 @@ single-precision builds run and assert, and what they cannot.
 
 | Program | In R4P |
 |---|---|
-| kernels, device kernels, storage, tableau forms, stepper options, golden | the same checks; tolerances scale with $\varepsilon(R_P)$; the golden file `selah_golden_r4_v1.txt` |
+| kernels, device kernels, storage, tableau forms, stepper options, golden | the same checks; tolerances scale with $\varepsilon(R_P)$; the golden file `selah_golden_r4_v2.txt` |
 | schemes, splittings | coefficient checks within 64 ε(R4P); no observed orders (R4P coefficients cannot show the order of the exact ones) |
 | stepper | contract and telescoping; no observed orders |
 | stability | the polynomial, the closed-form limits and the SSP discs, to the rounding of R4P coefficients |
