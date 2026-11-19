@@ -223,9 +223,12 @@ What did not go as planned, and why:
   change, so v2 it is.
 - **SETH's report data** (tables, figures) of the 16 programs were not regenerated: round-off changes only; the 2-D
   cases' report mode takes hours.
-- **SETH's docs examples** (t03, t06–t11, `cookbook_euler`) still hand-write SSP-RK3: they were not in this plan; the
-  same migration as D1 is the recommendation (t11_gpu needs SELAH's device build). `check_separation.py` checks
-  SETH's `src/tests/` only, so they do not fail it.
+- **SETH's docs examples** (2026-11-19, after the plan): t06–t10 and `cookbook_euler` take their step from SELAH
+  (`static-selah-gnu`, linked by SETH's `docs_examples.sh`); t03 keeps its hand-written step (chapter 3 teaches what a
+  step is) and t11_gpu its own until it is wired to SELAH's device build: both are named waivers of
+  `check_separation.py`, which now scans GIDEON's and SETH's `docs/examples/src/` too.
+- **GIDEON's `cookbook_dissipation`** example writes its SSP-RK3 by hand, a copy the plan's audit had not listed (found
+  when the check's scan reached the docs examples): a named waiver, pending the same migration (the owner's decision).
 
 **Changelog.** No hand-written entries: each repository's `CHANGELOG.md` is generated from the commit messages by
 git-cliff at the next release (`scripts/release.sh`), and the commits above are written for it.
