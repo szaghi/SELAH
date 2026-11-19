@@ -8,7 +8,7 @@ recipe, the stages on q, the copy of q^n, the splitting sub-flow). The tests are
 with scripts/run_tests.sh; the mutant is *killed* when at least one test fails. A surviving mutant is a defect the
 suite cannot see: the report lists them.
 
-Usage (from the repository root, with fobis and the compilers of the mode on PATH, PENF and FUNDAL fetched):
+Usage (from the repository root, with fobis and the compilers of the mode on PATH, PENF, FUNDAL and GIDEON fetched):
 
     python3 scripts/mutation_test.py [--mode tests-gnu] [--workdir DIR] [--only NAME ...]
 
@@ -116,7 +116,7 @@ def main() -> int:
         dst = work / f
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(repo / f, dst)
-    for dep in ('PENF', 'FUNDAL'):
+    for dep in ('PENF', 'FUNDAL', 'GIDEON'):  # GIDEON: the tests' space operators (issue #2)
         shutil.copytree(repo / 'src/third_party' / dep, work / 'src/third_party' / dep, dirs_exist_ok=True)
     built, failed = failing_tests(work, args.mode)
     if not built or failed:
