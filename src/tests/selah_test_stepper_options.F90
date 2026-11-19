@@ -8,7 +8,8 @@ program selah_test_stepper_options
 !< The caller is the periodic 1-D advection of selah_test_stepper (NB blocks of NI cells, one ghost cell, central
 !< residual), here driven through the arguments that test does not use:
 !<
-!<+ **stage_time.** stage_time(k) is the abscissa c_k of the tableau in every Runge–Kutta form, 0 for a splitting.
+!<+ **stage_time.** stage_time(k) is the abscissa c_k of the tableau in every Runge–Kutta form; for a splitting, the
+!<  fractions of the other partition's flows before flow k (Strang: 0, 1/2, 1), with either partition first.
 !<+ **registers=.** The caller's registers, filled with NaN, give the solution of the stepper's own (zeroed) registers
 !<  bit for bit in every form of lsrk-54, ssp-54, ssp-33 and ssp-104: no form reads a register before writing it (the
 !<  2N form's first stage, A_1 = 0, included).
@@ -52,11 +53,12 @@ print '(A)', 'selah_test_stepper_options: ok'
 
 contains
    subroutine stage_times
-   !< stage_time(k) = c_k in every Runge–Kutta form; 0 for a splitting.
+   !< stage_time(k) = c_k in every Runge–Kutta form; for a splitting, the other partition's fractions before flow k.
    type(stepper)         :: st
-   type(butcher_tableau) :: bt
-   integer(I4P)          :: k
-   logical               :: ok
+   type(butcher_tableau)       :: bt
+   type(splitting_composition) :: sc
+   integer(I4P)                :: k
+   logical                     :: ok
 
    ok = .true.
    do s=1, size(RK_SCHEMES)
@@ -69,12 +71,20 @@ contains
    enddo
    call check(ok, 'stage_time(k) = c_k for every scheme')
    call st%initialize(SCHEME_STRANG, FORM_SPLITTING, lb=LB, ub=UB, partitions=reshape([1, 1, 1, 1], [2, 2]))
-   ok = .true.
-   do k=1, st%stages()
-      if (st%stage_time(k) /= 0._R_P) ok = .false.
-   enddo
+   call check(st%stages() == 3 .and. st%stage_time(1) == 0._R_P .and. st%stage_time(2) == 0.5_R_P .and. &
+              st%stage_time(3) == 1._R_P, 'stage_time = 0, 1/2, 1 for Strang')
    call st%destroy
-   call check(ok, 'stage_time(k) = 0 for a splitting')
+   ok = .true.
+   do s=1, size(SPLITTING_SCHEMES)
+      sc = splitting(trim(SPLITTING_SCHEMES(s)))
+      call st%initialize(trim(SPLITTING_SCHEMES(s)), FORM_SPLITTING, lb=LB, ub=UB, &
+                         partitions=reshape([1, 1, 1, 1], [2, 2]))
+      do k=1, st%stages()
+         if (st%stage_time(k) /= sum(sc%coefficient(1:k-1), mask=sc%partition(1:k-1) /= sc%partition(k))) ok = .false.
+      enddo
+      call st%destroy
+   enddo
+   call check(ok, 'stage_time(k) = the other partition''s fractions before flow k, every splitting')
    endsubroutine stage_times
 
    subroutine caller_registers(name, form)

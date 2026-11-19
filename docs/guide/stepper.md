@@ -48,7 +48,7 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 | `finish_step(bx, dt, q [, dq] [, mask, mask_comp])` | closes the step: the Butcher form computes $q^{n+1}$, and `dq` $= \sum_k b_k F_k$ in the same pass if asked | `dq` with any form other than Butcher stops the program; `dq` is 0 where the mask is inactive |
 | `stage_state_is_q(k)` | the state of stage `k` is `q` itself: evaluate its residual on `q` | true for every stage of the forms other than Butcher; for the zero rows of A with `stages_on_q` |
 | `stages()` | the stages of a step (the flows of a splitting) | |
-| `stage_time(k)` | the abscissa $c_k$ (fraction of the step) | 0 for a splitting |
+| `stage_time(k)` | the fraction of the step at which the residual of stage `k` is evaluated: the abscissa $c_k$ | for a splitting, the fractions of the other partition's flows before flow `k`: see [Time-dependent residuals](#time-dependent-residuals) |
 | `stage_weight(k)` | the effective Butcher weight $b_k$; for a splitting, the fraction of the step of flow `k` | in every Runge–Kutta form, the low-storage ones included |
 | `stage_partition(k)` | the partition flow `k` advances (1 or 2) | 0 for a Runge–Kutta form |
 | `state_aliases_q()` | the form keeps the stage state in `q` (every form but Butcher) | the per-stage `stage_state_is_q(k)` generalises it |
@@ -127,6 +127,33 @@ During such a stage `stage_state()` is null, so a caller that does not ask `stag
 instead of reading a stale register. The caller then writes the ghost cells of `q` at stage 1 (contract clause 3),
 which the plain Butcher form leaves alone. The solution is bitwise that of the plain Butcher form. On the A30 the option
 takes 6% off the integrator's SSP(5,4) step ([Performance](./performance)).
+
+## Time-dependent residuals
+
+A residual that depends on time (boundary conditions, sources, forcing) is evaluated at
+`t + st%stage_time(k)*dt`:
+
+```fortran
+do k=1, st%stages()
+   call st%begin_stage(k, bx, dt, q)
+   ! ... the residual of the stage state at time t + st%stage_time(k)*dt into st%rhs_register()
+   call st%end_stage(k, bx, dt, q)
+enddo
+call st%finish_step(bx, dt, q)
+t = t + dt
+```
+
+In a Runge–Kutta form `stage_time(k)` is the abscissa $c_k$. A splitting needs a definition: its sub-flows are
+explicit Euler steps of one partition, exact only when that partition's residual does not depend on its own variables.
+Time is a variable with $t' = 1$, so it advances with the flows of the partition whose residual does **not** depend
+on $t$ (those flows stay exact), and it is frozen through the flows of the other one (which stay exact too, their
+residual taken at a fixed time). `stage_time(k)` is therefore the sum of the fractions of the *other* partition's flows
+before flow $k$. Strang, partition 1 first, flows $(1, \tfrac12), (2, 1), (1, \tfrac12)$: `stage_time` is
+$0, \tfrac12, 1$. If partition 2 depends on time, its flow sees $t + \Delta t/2$; if partition 1 does, its flows see
+$t$ and $t + \Delta t$. Either way the composition keeps its order (measured: `selah_test_nonautonomous`).
+
+When **both** partitions' residuals depend on time, no sub-flow is exact and no stage time gives the composition's
+order: split the problem so that one partition's residual is autonomous.
 
 ## Forms
 

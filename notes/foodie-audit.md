@@ -116,8 +116,8 @@ FOODIE's active tests are the `tests-*` modes of its fobos. `src/tests/quaranten
 
 | FOODIE test | What it verifies | SELAH equivalent | For SELAH |
 |---|---|---|---|
-| `suite/foodie_test_convergence_order.f90` | every scheme, the Riccati equation U_t = a t U² (**nonlinear, non-autonomous**). dt halved 10 times; error L∞ over all steps (the final-time error can vanish); the order from the finest pair with errors in [1e-12, 1e-3], ±0.3, verified to order 6 | `selah_test_schemes` (y' = −y, y' = −y², both autonomous), `selah_test_stepper` (advection, autonomous) | **gap**: no SELAH test evaluates a time-dependent residual, so `stage_time(k)` has never been checked through an order. Port the Riccati case through the stepper (T1) |
-| `suite/foodie_test_polynomial_exactness.f90` | U_t = q t^{q−1}: exact for q ≤ p (quadrature conditions and stage times), not exact for q = p + 1 in an LMM (order not underestimated) | `selah_test_schemes` (order conditions in quad, stronger for RK); the stage-coefficient check of `selah_test_stepper` (q = 1 only) | **gap**: polynomial exactness through the stepper with t-dependent residuals, q ≤ p (T2) |
+| `suite/foodie_test_convergence_order.f90` | every scheme, the Riccati equation U_t = a t U² (**nonlinear, non-autonomous**). dt halved 10 times; error L∞ over all steps (the final-time error can vanish); the order from the finest pair with errors in [1e-12, 1e-3], ±0.3, verified to order 6 | `selah_test_schemes` (y' = −y, y' = −y², both autonomous), `selah_test_stepper` (advection, autonomous) | **done 2026-11-19** (T1): `selah_test_nonautonomous`, the Riccati equation through the stepper, every scheme and form, the declared order; the splittings on a forced oscillator |
+| `suite/foodie_test_polynomial_exactness.f90` | U_t = q t^{q−1}: exact for q ≤ p (quadrature conditions and stage times), not exact for q = p + 1 in an LMM (order not underestimated) | `selah_test_schemes` (order conditions in quad, stronger for RK); the stage-coefficient check of `selah_test_stepper` (q = 1 only) | **done 2026-11-19** (T2): `selah_test_nonautonomous`, exact to round-off for q ≤ p, every scheme and form and every splitting |
 | `tester/` (`foodie_tester.f90`, integrands `lcce`, `oscillation`, `polynomial`, `riccati`, `ladvection`) | a CLI driver: any scheme on any problem, solution export, order estimate | `scripts/run_vv.sh` with the `selah_vv_*` programs | no: SELAH's V&V programs cover the same ground non-interactively |
 | `lcce/foodie_test_lcce.f90` | linear constant-coefficient equation, CLI | `selah_vv_stability` (stability polynomials), `selah_test_schemes` | covered |
 | `oscillation/foodie_test_oscillation.f90` | inertial oscillation (nonlinear ODE system), CLI | `selah_vv_splitting_energy`, the harmonic oscillator of `selah_test_stepper` | covered |
@@ -135,7 +135,10 @@ What neither has, and D1 and D2 show is needed: **variable-dt tests** for any sc
 
 For a block-structured CFD and plasma solver on GPUs (ADAM), one line of reasoning each:
 
-1. **T1 + T2, the non-autonomous tests through the stepper** (Riccati, polynomial quadrature). These come first: they
+1. **Done 2026-11-19.** A splitting's `stage_time(k)` is the sum of the fractions of the other partition's flows
+   before flow k: time advances with the partition whose residual does not depend on t (its Euler sub-flows stay
+   exact), frozen through the other's; exact whichever partition is the time-dependent one (the guide's "Time-dependent
+   residuals"). **T1 + T2, the non-autonomous tests through the stepper** (Riccati, polynomial quadrature). These come first: they
    are cheap and they check `stage_time` on the path every consumer with time-dependent boundary conditions or
    sources uses. Before T1 is written, decide what a splitting's `stage_time` means: it currently returns 0. For a
    non-autonomous splitting, time is a third partition, and that is undefined in SELAH today.

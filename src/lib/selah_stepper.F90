@@ -37,6 +37,14 @@ module selah_stepper
 !< `stage_weight(k)` is the effective Butcher weight b_k of stage k in every Runge–Kutta form (the weight a flux
 !< register needs to accumulate the step's boundary fluxes); for a splitting it is the fraction of the step of flow k.
 !<
+!< **Stage time.** `stage_time(k)` is the fraction of the step at which the residual of stage k is evaluated: the
+!< abscissa c_k in every Runge–Kutta form. For a splitting, time is a variable with t' = 1, and a sub-flow is exact only
+!< when its partition's residual does not depend on its own variables; so time advances with the flows of the partition
+!< whose residual does not depend on t, and stays frozen through the other's. `stage_time(k)` is then the sum of the
+!< fractions of the flows of the other partition before flow k: the time flow k needs when its own residual is the one
+!< that depends on t, whichever partition that is (the composition keeps its order). When both residuals depend on t no
+!< sub-flow is exact, and the composition gives no order guarantee for the time dependence.
+!<
 !< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
 !< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
 !< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
@@ -558,13 +566,17 @@ contains
    endfunction stages
 
    pure function stage_time(self, k) result(c)
-   !< Abscissa c_k of stage k (fraction of the step); 0 for a splitting.
+   !< Fraction of the step at which the residual of stage k is evaluated: the abscissa c_k; for a splitting, the
+   !< fractions of the other partition's flows before flow k (see "Stage time" above).
    class(stepper), intent(in) :: self !< Stepper.
    integer(I4P),   intent(in) :: k    !< Stage.
    real(R_P)                  :: c    !< Abscissa.
 
-   c = 0._R_P
-   if (self%form /= FORM_SPLITTING) c = self%bt%c(k)
+   if (self%form == FORM_SPLITTING) then
+      c = sum(self%sc%coefficient(1:k-1), mask=self%sc%partition(1:k-1) /= self%sc%partition(k))
+   else
+      c = self%bt%c(k)
+   endif
    endfunction stage_time
 
    pure function stage_weight(self, k) result(w)
