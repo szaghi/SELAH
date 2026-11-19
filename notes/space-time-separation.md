@@ -225,11 +225,13 @@ What did not go as planned, and why:
   cases' report mode takes hours.
 - **SETH's docs examples** (2026-11-19, after the plan): t06–t10 and `cookbook_euler` take their step from SELAH
   (`static-selah-gnu`, linked by SETH's `docs_examples.sh`); t03 keeps its hand-written step (chapter 3 teaches what a
-  step is) and t11_gpu its own until it is wired to SELAH's device build: both are named waivers of
-  `check_separation.py`, which now scans GIDEON's and SETH's `docs/examples/src/` too.
+  step is), a named waiver of `check_separation.py`, which now scans GIDEON's and SETH's `docs/examples/src/` too.
+  t11_gpu (chapter 11, on the GPU) followed the same day on SELAH's device build: the field a FUNDAL device array,
+  SETH's fobos mode `example-t11-nvf-oac` (nvfortran, `-DDEV_OAC -DCOMPILER_NVF`); the same numbers on the RTX 4070
+  and on the A30 (medooza job 1368745), SELAH's stage kernels among the device launches.
 - **GIDEON's `cookbook_dissipation`** example wrote its SSP-RK3 by hand, a copy the plan's audit had not listed (found
   when the check's scan reached the docs examples). Migrated on 2026-11-19: SELAH's stepper, the same output; its
-  waiver is gone. The check's only waivers left are SETH's t03 (teaching) and t11_gpu (SELAH's device build).
+  waiver is gone. The check's one waiver left in the docs examples is SETH's t03 (teaching).
 
 **Changelog.** No hand-written entries: each repository's `CHANGELOG.md` is generated from the commit messages by
 git-cliff at the next release (`scripts/release.sh`), and the commits above are written for it.
