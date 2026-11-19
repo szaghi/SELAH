@@ -6,7 +6,8 @@ program selah_test_stepper
 !< SELAH test: the stepper, driven by a caller as a solver would drive it, on the host or the device.
 !<
 !< The caller here is a 1-D finite-volume advection u_t + u_x = 0 on NB blocks of NI cells with one ghost cell, its
-!< ghost fill and residual written as device loops (FUNDAL arrays: device memory in an OpenACC build).
+!< ghost fill and residual written as device loops (FUNDAL arrays: device memory in an OpenACC build). The face values
+!< of the residual are GIDEON's (gideon_fv_face_c2): the space operator comes from GIDEON, the time operator from SELAH.
 !<
 !<+ **Order.** On the periodic domain the central residual of a sine has an exact semi-discrete solution,
 !<  sin(2 pi (x - c t)) with c = sin(2 pi dx)/(2 pi dx): the error is the time integrator's alone. Every scheme in
@@ -33,6 +34,7 @@ use fundal, only : dev_init
 #endif
 use selah
 use selah_test_tools, only : check, failures
+use gideon, only : gideon_fv_face_c2
 use selah_vv_cases
 implicit none
 integer                 :: u_ord, u_tel !< Report files (SELAH_VV_DIR): stepper-orders.dat, telescoping.dat.
@@ -309,28 +311,33 @@ contains
    endsubroutine fill_ghosts
 
    subroutine residual(u, r)
-   !< The caller's residual: flux form, central face fluxes (u_L + u_R)/2.
+   !< The caller's residual: flux form, the face values gideon_fv_face_c2, (u_L + u_R)/2 (GIDEON: the space operator).
    real(R_P), intent(in)    :: u(1:,0:,0:,0:,1:)
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    integer(I4P)             :: b, i
+   real(R_P)                :: w(0:1), fl, fr
 
-   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r)
-   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r)
+   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r) private(w, fl, fr)
+   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r) private(w, fl, fr)
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(0.5_R_P*(u(1,i,1,1,b) + u(1,i+1,1,1,b)) - 0.5_R_P*(u(1,i-1,1,1,b) + u(1,i,1,1,b))) / DX
+         w = [u(1,i-1,1,1,b), u(1,i,1,1,b)]   ; call gideon_fv_face_c2(w, fl)
+         w = [u(1,i,1,1,b),   u(1,i+1,1,1,b)] ; call gideon_fv_face_c2(w, fr)
+         r(1,i,1,1,b) = -(fr - fl) / DX
       enddo
    enddo
    endsubroutine residual
 
    function boundary_flux(u_d) result(f)
-   !< F_right - F_left of the stage state: (u_N + ghost)/2 - (1 + u_1)/2.
+   !< F_right - F_left of the stage state, the residual's face values (gideon_fv_face_c2): (u_N + ghost)/2 - (1 + u_1)/2.
    real(R_P), intent(in) :: u_d(1:,0:,0:,0:,1:)
    real(R_P)             :: f
-   real(R_P)             :: h(1:1, 0:NI+1, 0:2, 0:2, 1:NB)
+   real(R_P)             :: h(1:1, 0:NI+1, 0:2, 0:2, 1:NB), fl, fr
 
    call dev_memcpy_from_device(dst=h, src=u_d)
-   f = 0.5_R_P*(h(1,NI,1,1,NB) + h(1,NI+1,1,1,NB)) - 0.5_R_P*(h(1,0,1,1,1) + h(1,1,1,1,1))
+   call gideon_fv_face_c2([h(1,NI,1,1,NB), h(1,NI+1,1,1,NB)], fr)
+   call gideon_fv_face_c2([h(1,0,1,1,1), h(1,1,1,1,1)], fl)
+   f = fr - fl
    endfunction boundary_flux
 
    function mass(q_d) result(m)

@@ -22,6 +22,7 @@ use fundal, only : dev_init
 #endif
 use selah
 use selah_test_tools, only : check, failures
+use gideon, only : gideon_fv_face_c2
 implicit none
 integer(I4P), parameter :: NI=16, NB=4, NGC=1                 !< Cells per block, blocks, ghosts.
 real(R_P),    parameter :: PI = acos(-1._R_P)
@@ -250,16 +251,19 @@ contains
    endsubroutine fill_ghosts
 
    subroutine residual(u, r)
-   !< Flux form, central face fluxes (u_L + u_R)/2.
+   !< The caller's residual: flux form, the face values gideon_fv_face_c2, (u_L + u_R)/2 (GIDEON: the space operator).
    real(R_P), intent(in)    :: u(1:,0:,0:,0:,1:)
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    integer(I4P)             :: b, i
+   real(R_P)                :: w(0:1), fl, fr
 
-   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r)
-   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r)
+   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r) private(w, fl, fr)
+   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r) private(w, fl, fr)
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(0.5_R_P*(u(1,i,1,1,b) + u(1,i+1,1,1,b)) - 0.5_R_P*(u(1,i-1,1,1,b) + u(1,i,1,1,b))) / DX
+         w = [u(1,i-1,1,1,b), u(1,i,1,1,b)]   ; call gideon_fv_face_c2(w, fl)
+         w = [u(1,i,1,1,b),   u(1,i+1,1,1,b)] ; call gideon_fv_face_c2(w, fr)
+         r(1,i,1,1,b) = -(fr - fl) / DX
       enddo
    enddo
    endsubroutine residual
