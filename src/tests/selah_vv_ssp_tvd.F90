@@ -14,6 +14,7 @@ program selah_vv_ssp_tvd
 !< and the frames of ssp-54 at nu = C and at 1.15 times its observed threshold (ssp-tvd-frames-*.dat).
 use selah
 use selah_test_tools, only : check, failures
+use gideon, only : gideon_fv_face_ul1
 use selah_vv_cases
 implicit none
 integer(I4P), parameter   :: N=100, NSTEPS=60, NSWEEP=40
@@ -67,6 +68,7 @@ contains
    real(R_P)                          :: growth
    real(R_P), allocatable, target     :: q(:,:,:,:,:)
    real(R_P), pointer                 :: u(:,:,:,:,:), r(:,:,:,:,:)
+   real(R_P)                          :: fl, fr
    type(stepper)                      :: st
    type(box)                          :: bx
    real(R_P)                          :: tv0, tv_old, tv_new, dx, dt
@@ -92,8 +94,9 @@ contains
          if (st%stage_state_is_q(k)) then ; u => q ; else ; u => st%stage_state() ; endif
          r => st%rhs_register()
          u(1,0,1,1,1) = u(1,N,1,1,1)                               ! periodic
-         do i=1, N
-            r(1,i,1,1,1) = -(u(1,i,1,1,1) - u(1,i-1,1,1,1)) / dx    ! first-order upwind
+         do i=1, N                                                 ! first-order upwind, GIDEON's face values
+            call gideon_fv_face_ul1([u(1,i-1,1,1,1)], fl) ; call gideon_fv_face_ul1([u(1,i,1,1,1)], fr)
+            r(1,i,1,1,1) = -(fr - fl) / dx
          enddo
          call st%end_stage(k, bx, dt, q)
       enddo

@@ -10,6 +10,7 @@ program selah_vv_forms
 !< difference).
 use selah
 use selah_test_tools, only : check, failures
+use gideon, only : gideon_fd_d1_c2
 use selah_vv_cases
 implicit none
 integer(I4P), parameter :: N=64, NSTEPS=40
@@ -45,6 +46,7 @@ contains
    real(R_P), allocatable, intent(out) :: hist(:,:)
    real(R_P), allocatable, target      :: q(:,:,:,:,:)
    real(R_P), pointer                  :: u(:,:,:,:,:), r(:,:,:,:,:)
+   real(R_P)                           :: d
    type(stepper)                       :: st
    type(box)                           :: bx
    real(R_P)                           :: dx, dt
@@ -64,8 +66,9 @@ contains
          if (st%stage_state_is_q(k)) then ; u => q ; else ; u => st%stage_state() ; endif
          r => st%rhs_register()
          u(1,0,1,1,1) = u(1,N,1,1,1) ; u(1,N+1,1,1,1) = u(1,1,1,1,1)
-         do i=1, N
-            r(1,i,1,1,1) = -(u(1,i+1,1,1,1) - u(1,i-1,1,1,1)) / (2._R_P * dx)
+         do i=1, N                                               ! -du/dx, GIDEON's centred FD of order 2
+            call gideon_fd_d1_c2([u(1,i-1,1,1,1), u(1,i,1,1,1), u(1,i+1,1,1,1)], dx, d)
+            r(1,i,1,1,1) = -d
          enddo
          call st%end_stage(k, bx, dt, q)
       enddo
