@@ -153,7 +153,7 @@ const authors = [
 
 ```bash [Build and test]
 git clone https://github.com/szaghi/SELAH && cd SELAH
-fobis fetch                                                   # PENF and FUNDAL, into src/third_party/
+fobis fetch                                                   # PENF, FUNDAL (and GIDEON, for the tests)
 fobis build --mode static-gnu                                 # lib/gnu/static/libselah.a
 fobis build --mode tests-gnu && bash scripts/run_tests.sh     # the verification programs
 ```

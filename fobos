@@ -25,10 +25,14 @@ check = fobis fetch
 # PENF and FUNDAL are compiled from their sources by the compiler of the mode (no per-compiler builds to keep in step).
 # FUNDAL gives the kernels their backend macros (fundal.H: host OpenMP, OpenACC, OpenMP offload) and, from M4, the
 # device allocator; its MPI handler is compiled empty (-DFUNDAL_NO_MPI): SELAH is per rank, MPI is the caller's.
+# GIDEON serves the tests and the docs examples only (issue #2: their space operators come from GIDEON, the one source
+# of the FD/FV operators; SELAH is the source of the time operators): the library modes build selah.F90's tree, which
+# does not use it
 [dependencies]
 deps_dir = src/third_party
 PENF     = https://github.com/szaghi/PENF :: branch=master
 FUNDAL   = https://github.com/szaghi/FUNDAL :: branch=main
+GIDEON   = https://github.com/szaghi/GIDEON :: branch=main
 
 [modes]
 # the first mode is the default (fobis build, scripts/install.sh): the library any gfortran can build
@@ -46,6 +50,7 @@ modes = static-gnu shared-gnu
 $EXDIRS = PENF/src/tests/ PENF/src/third_party/ PENF/scripts/ PENF/docs/
           FUNDAL/src/tests/ FUNDAL/src/examples/ FUNDAL/docs/ FUNDAL/compilers_proofs/ FUNDAL/build/ FUNDAL/exe/
           FUNDAL/references/ FUNDAL/scripts/ FUNDAL/cmake/
+          GIDEON/src/tests/ GIDEON/src/bench/ GIDEON/src/third_party/ GIDEON/docs/ GIDEON/scripts/ GIDEON/notes/
 $STD_GNU = -std=f2018
 $STD_INT = -standard-semantics -std18
 # NVIDIA compute capability of the OpenACC modes; override with --varset (e.g. --varset cc80)

@@ -123,7 +123,7 @@ Equivalences, the stage contract, pinned values, the device and the suite's own 
 ## Running it
 
 ```bash
-fobis fetch                                   # PENF and FUNDAL
+fobis fetch                                   # PENF, FUNDAL and GIDEON
 fobis build --mode tests-gnu && bash scripts/run_tests.sh
 bash scripts/run_vv.sh                        # report mode: data, figures, tables, casts
 python3 scripts/mutation_test.py              # C6: about half an hour

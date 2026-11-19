@@ -11,6 +11,10 @@ description = "Stage-wise Evolution Library for Accelerators and HPC: time-evolu
 PENF = { git="https://github.com/szaghi/PENF.git", branch="master" }
 FUNDAL = { git="https://github.com/szaghi/FUNDAL.git", branch="main" }
 
+# the tests take their space operators from GIDEON (issue #2)
+[dev-dependencies]
+GIDEON = { git="https://github.com/szaghi/GIDEON.git", branch="main" }
+
 [library]
 source-dir = "src/lib"
 

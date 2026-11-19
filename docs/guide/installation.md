@@ -12,12 +12,15 @@ icon: cpu-gpu
 - **Build tool:** [FoBiS](https://github.com/szaghi/FoBiS) 3.8 or later (`fobis`), or [fpm](https://fpm.fortran-lang.org).
 - **Dependencies:** [PENF](https://github.com/szaghi/PENF) (kinds) and [FUNDAL](https://github.com/szaghi/FUNDAL)
   (device memory and the portable directives), both fetched by `fobis fetch` and both compiled into SELAH's library.
+- **Test dependency:** [GIDEON](https://github.com/szaghi/GIDEON), for the tests and the docs examples: their space
+  operators (the residuals of the verification problems) are GIDEON's, the one source of the finite-difference and
+  finite-volume operators, as SELAH is the source of the time operators (issue #2). The library modes never compile it.
 
 ## Build with FoBiS
 
 ```bash
 git clone https://github.com/szaghi/SELAH && cd SELAH
-fobis fetch                      # PENF and FUNDAL into src/third_party/
+fobis fetch                      # PENF and FUNDAL, and GIDEON for the tests, into src/third_party/
 fobis build                      # the default mode: static library, gfortran, lib/gnu/static/libselah.a
 fobis build --mode tests-gnu     # the library and the tests, into exe/
 bash scripts/run_tests.sh        # run them

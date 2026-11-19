@@ -45,7 +45,7 @@ Every program is compiled the way your own program would be: against the static 
 carries PENF and FUNDAL.
 
 ```bash
-fobis fetch                       # PENF and FUNDAL into src/third_party
+fobis fetch                       # PENF, FUNDAL and GIDEON into src/third_party
 fobis build --mode static-gnu     # lib/gnu/static/libselah.a and its modules
 gfortran -cpp -DFUNDAL_NO_MPI -I lib/gnu/static/mod -I src/third_party/FUNDAL/src/lib \
          docs/examples/src/stepper.F90 lib/gnu/static/libselah.a -o stepper
