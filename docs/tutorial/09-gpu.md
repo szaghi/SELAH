@@ -14,7 +14,9 @@ bus during a step.
 <<< @/examples/snippets/gpu-field.F90{fortran}
 
 The caller's ghost fill and residual become device loops, written with the same macros SELAH uses
-(`fundal.H`: `DEVICEVAR` for OpenACC, `DEVICEPTR`/`OMPLOOP` for OpenMP; on the host they become plain loops):
+(`fundal.H`: `DEVICEVAR` for OpenACC, `DEVICEPTR`/`OMPLOOP` for OpenMP; on the host they become plain loops). The
+residual's stencil is GIDEON's `gideon_fd_d1_c2`, callable inside the device loop (`!$acc routine seq`) on a private
+three-cell window:
 
 <<< @/examples/snippets/gpu-kernels.F90{fortran}
 

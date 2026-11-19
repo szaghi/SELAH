@@ -9,7 +9,7 @@
 #
 # The library is built by FoBiS (mode static-gnu: gfortran, host, the archive carries PENF and FUNDAL) and every example
 # is compiled against it exactly as a user program would be: `gfortran -cpp -I<mods> -I<fundal.H dir> prog.F90
-# libselah.a`. The examples must print only values that do not depend on the machine (explicit formats; no timings,
+# libselah.a libgideon.a` (GIDEON's library, mode static-gideon-gnu: the examples' space operators, issue #2). The examples must print only values that do not depend on the machine (explicit formats; no timings,
 # no device names). Each run happens in a scratch directory with a minimal environment and no standard input. The
 # docs-examples check fails when the committed snippets or outputs differ from the regenerated ones.
 #
@@ -20,12 +20,13 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ex=$root/docs/examples
 build=$root/build/docs-examples # git-ignored
 lib=$root/lib/gnu/static        # fobis build --mode static-gnu
+glib=$root/lib/gnu/static-gideon # fobis build --mode static-gideon-gnu: the examples' space operators (issue #2)
 run_dir=$build/run
 home=/home/user                 # how the run directory is shown
 fc=${FC:-gfortran}
 
-[ -d "$root/src/third_party/FUNDAL/src" ] || (cd "$root" && fobis fetch) # a fresh clone: PENF and FUNDAL
-(cd "$root" && fobis build --mode static-gnu) > "$root/build-docs-examples.log" 2>&1 || {
+[ -d "$root/src/third_party/GIDEON/src" ] || (cd "$root" && fobis fetch) # a fresh clone: PENF, FUNDAL, GIDEON
+(cd "$root" && fobis build --mode static-gnu && fobis build --mode static-gideon-gnu) > "$root/build-docs-examples.log" 2>&1 || {
   cat "$root/build-docs-examples.log"; echo "docs_examples: library build failed" >&2; exit 1; }
 rm -f "$root/build-docs-examples.log"
 rm -rf -- "$build"
@@ -47,8 +48,8 @@ for src in "$ex"/src/*.F90; do
 done
 
 for src in "$ex"/src/*.F90; do
-  "$fc" -cpp -DFUNDAL_NO_MPI -O2 -I"$lib/mod" -I"$root/src/third_party/FUNDAL/src/lib" -J"$build/mod" \
-        -o "$build/bin/$(basename "$src" .F90)" "$src" "$lib/libselah.a"
+  "$fc" -cpp -DFUNDAL_NO_MPI -O2 -I"$lib/mod" -I"$glib/mod" -I"$root/src/third_party/FUNDAL/src/lib" -J"$build/mod" \
+        -o "$build/bin/$(basename "$src" .F90)" "$src" "$lib/libselah.a" "$glib/libgideon.a"
 done
 
 run() { # run [-s] ID COMMAND

@@ -2,6 +2,7 @@ program flux_register
 !< Tutorial, chapter 8: the boundary fluxes of each stage, weighted by stage_weight, telescope to the step's change of
 !< the mass. This is the identity an AMR flux register (reflux) relies on.
 use selah
+use gideon, only : gideon_fv_face_c2   ! the space operator: GIDEON's centred face value
 implicit none
 integer(I4P), parameter        :: NI=16, NB=4, NSTEPS=4
 real(R_P), allocatable, target :: q(:,:,:,:,:)
@@ -60,9 +61,12 @@ contains
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    real(R_P), intent(in)    :: dx
    integer(I4P)             :: b, i
+   real(R_P)                :: fl, fr
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(0.5_R_P*(u(1,i,1,1,b) + u(1,i+1,1,1,b)) - 0.5_R_P*(u(1,i-1,1,1,b) + u(1,i,1,1,b))) / dx
+         call gideon_fv_face_c2([u(1,i-1,1,1,b), u(1,i,1,1,b)], fl)
+         call gideon_fv_face_c2([u(1,i,1,1,b), u(1,i+1,1,1,b)], fr)
+         r(1,i,1,1,b) = -(fr - fl) / dx
       enddo
    enddo
    endsubroutine residual
@@ -71,6 +75,9 @@ contains
    !< F_right - F_left: the faces of the domain.
    real(R_P), intent(in) :: u(1:,0:,0:,0:,1:)
    real(R_P)             :: f
-   f = 0.5_R_P*(u(1,NI,1,1,NB) + u(1,NI+1,1,1,NB)) - 0.5_R_P*(u(1,0,1,1,1) + u(1,1,1,1,1))
+   real(R_P)             :: fl, fr
+   call gideon_fv_face_c2([u(1,NI,1,1,NB), u(1,NI+1,1,1,NB)], fr)
+   call gideon_fv_face_c2([u(1,0,1,1,1), u(1,1,1,1,1)], fl)
+   f = fr - fl
    endfunction boundary_flux
 endprogram flux_register

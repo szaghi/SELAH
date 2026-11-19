@@ -3,6 +3,7 @@
 program cookbook_amr
 !< Cookbook, AMR: refluxing with stage_weight; where the ghost cells of a stage come from.
 use selah
+use gideon, only : gideon_fd_d1_c2, gideon_fv_face_c2, gideon_fv_face_ul1   ! the space operators: GIDEON's
 implicit none
 integer(I4P), parameter :: NI=16, NB=2
 real(R_P),    parameter :: PI=acos(-1._R_P)
@@ -138,9 +139,10 @@ contains
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    real(R_P), intent(in)    :: dx
    integer(I4P)             :: b, i
+   real(R_P)                :: d
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(u(1,i+1,1,1,b) - u(1,i-1,1,1,b)) / (2._R_P*dx)
+         call gideon_fd_d1_c2([u(1,i-1,1,1,b), u(1,i,1,1,b), u(1,i+1,1,1,b)], dx, d) ; r(1,i,1,1,b) = -d
       enddo
    enddo
    endsubroutine residual_central
@@ -154,8 +156,8 @@ contains
    integer(I4P)             :: b, i
    do b=1, NB
       do i=1, NI
-         fl = 0.5_R_P*(u(1,i-1,1,1,b) + u(1,i,1,1,b))
-         fr = 0.5_R_P*(u(1,i,1,1,b) + u(1,i+1,1,1,b))
+         call gideon_fv_face_c2([u(1,i-1,1,1,b), u(1,i,1,1,b)], fl)
+         call gideon_fv_face_c2([u(1,i,1,1,b), u(1,i+1,1,1,b)], fr)
          if (b == 2 .and. i == 1) fl = face_flux_2(u)
          r(1,i,1,1,b) = -(fr - fl) / dx
       enddo
@@ -163,17 +165,17 @@ contains
    endsubroutine residual
 
    pure function face_flux_1(u) result(f)
-   !< The shared face as block 1 sees it: central.
+   !< The shared face as block 1 sees it: central (GIDEON's gideon_fv_face_c2).
    real(R_P), intent(in) :: u(1:,0:,0:,0:,1:)
    real(R_P)             :: f
-   f = 0.5_R_P*(u(1,NI,1,1,1) + u(1,NI+1,1,1,1))
+   call gideon_fv_face_c2([u(1,NI,1,1,1), u(1,NI+1,1,1,1)], f)
    endfunction face_flux_1
 
    pure function face_flux_2(u) result(f)
-   !< The shared face as block 2 sees it: upwind (its left ghost).
+   !< The shared face as block 2 sees it: upwind, its left ghost (GIDEON's gideon_fv_face_ul1).
    real(R_P), intent(in) :: u(1:,0:,0:,0:,1:)
    real(R_P)             :: f
-   f = u(1,0,1,1,2)
+   call gideon_fv_face_ul1([u(1,0,1,1,2)], f)
    endfunction face_flux_2
 
    function mass(q) result(m)

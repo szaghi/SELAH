@@ -1,6 +1,7 @@
 program masks
 !< Tutorial, chapter 7: a mask freezes solid cells; the two-register form of ssp-33 on the periodic advection.
 use selah
+use gideon, only : gideon_fd_d1_c2   ! the space operator: GIDEON's centred first derivative
 implicit none
 integer(I4P), parameter        :: NI=16, NB=4, NSTEPS=8
 real(R_P),    parameter        :: PI=acos(-1._R_P)
@@ -58,9 +59,10 @@ contains
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    real(R_P), intent(in)    :: dx
    integer(I4P)             :: b, i
+   real(R_P)                :: d
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(u(1,i+1,1,1,b) - u(1,i-1,1,1,b)) / (2._R_P*dx)
+         call gideon_fd_d1_c2([u(1,i-1,1,1,b), u(1,i,1,1,b), u(1,i+1,1,1,b)], dx, d) ; r(1,i,1,1,b) = -d
       enddo
    enddo
    endsubroutine residual

@@ -17,12 +17,13 @@ real(R_P), intent(in)    :: u(1:,0:,0:,0:,1:)
 real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
 real(R_P), intent(in)    :: dx
 integer(I4P)             :: b, i
+real(R_P)                :: w(-1:1), d
 
-!$acc parallel loop independent collapse(2) DEVICEVAR(u, r)
-!$omp OMPLOOP collapse(2) DEVICEPTR(u, r)
+!$acc parallel loop independent collapse(2) DEVICEVAR(u, r) private(w, d)
+!$omp OMPLOOP collapse(2) DEVICEPTR(u, r) private(w, d)
 do b=1, NB
    do i=1, NI
-      r(1,i,1,1,b) = -(u(1,i+1,1,1,b) - u(1,i-1,1,1,b)) / (2._R_P*dx)
+      w = [u(1,i-1,1,1,b), u(1,i,1,1,b), u(1,i+1,1,1,b)] ; call gideon_fd_d1_c2(w, dx, d) ; r(1,i,1,1,b) = -d
    enddo
 enddo
 endsubroutine residual

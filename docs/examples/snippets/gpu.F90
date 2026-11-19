@@ -9,6 +9,7 @@ use fundal, only : dev_alloc, dev_free, dev_memcpy_to_device, dev_memcpy_from_de
 use fundal, only : dev_init
 #endif
 use selah
+use gideon, only : gideon_fd_d1_c2   ! the space operator: GIDEON's (!$acc routine seq: callable on the device)
 implicit none
 integer(I4P), parameter :: NI=16, NB=4, NSTEPS=16
 real(R_P),    parameter :: PI=acos(-1._R_P), T_END=0.25_R_P
@@ -77,12 +78,13 @@ contains
    real(R_P), intent(inout) :: r(1:,0:,0:,0:,1:)
    real(R_P), intent(in)    :: dx
    integer(I4P)             :: b, i
+   real(R_P)                :: w(-1:1), d
 
-   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r)
-   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r)
+   !$acc parallel loop independent collapse(2) DEVICEVAR(u, r) private(w, d)
+   !$omp OMPLOOP collapse(2) DEVICEPTR(u, r) private(w, d)
    do b=1, NB
       do i=1, NI
-         r(1,i,1,1,b) = -(u(1,i+1,1,1,b) - u(1,i-1,1,1,b)) / (2._R_P*dx)
+         w = [u(1,i-1,1,1,b), u(1,i,1,1,b), u(1,i+1,1,1,b)] ; call gideon_fd_d1_c2(w, dx, d) ; r(1,i,1,1,b) = -d
       enddo
    enddo
    endsubroutine residual

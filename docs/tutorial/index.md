@@ -11,7 +11,10 @@ drift).
 
 The model problem is the linear advection $u_t + u_x = 0$ on the periodic unit interval, split into 4 blocks of 16
 cells with one ghost cell each. The residual is the central difference
-$R_i = -(u_{i+1} - u_{i-1})/(2\Delta x)$. Its semi-discrete solution is known exactly,
+$R_i = -(u_{i+1} - u_{i-1})/(2\Delta x)$, computed by [GIDEON](https://szaghi.github.io/GIDEON/)'s
+`gideon_fd_d1_c2`: SELAH is the source of the time operators, GIDEON of the space operators, and a solver built on
+SELAH takes its residual from a space-operator library rather than writing the stencil itself. Its semi-discrete
+solution is known exactly,
 $u(x,t) = \sin(2\pi(x - ct))$ with $c = \sin(2\pi\Delta x)/(2\pi\Delta x)$, so every error printed below belongs to the
 time integrator alone.
 

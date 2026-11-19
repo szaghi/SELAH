@@ -36,7 +36,7 @@ GIDEON   = https://github.com/szaghi/GIDEON :: branch=main
 
 [modes]
 # the first mode is the default (fobis build, scripts/install.sh): the library any gfortran can build
-modes = static-gnu shared-gnu
+modes = static-gnu shared-gnu static-gideon-gnu
         static-nvf shared-nvf
         static-intel shared-intel
         tests-gnu tests-gnu-debug tests-gnu-coverage tests-gnu-omp
@@ -78,6 +78,16 @@ $GPU_CC = cc89
 help      = Static library, gfortran, optimised
 template  = template-lib-static template-gnu template-release
 build_dir = lib/gnu/static/
+
+# GIDEON's library, built from its fetched sources with SELAH's toolchain: the space operators of the docs examples,
+# which scripts/docs_examples.sh links after libselah.a (issue #2: the examples' residuals are GIDEON's)
+[static-gideon-gnu]
+help      = GIDEON's static library from src/third_party/GIDEON, gfortran, optimised (the docs examples' space operators)
+template  = template-gnu template-release
+target    = src/third_party/GIDEON/src/lib/gideon.F90
+mklib     = static
+output    = libgideon.a
+build_dir = lib/gnu/static-gideon/
 
 [shared-gnu]
 help      = Shared library, gfortran, optimised
