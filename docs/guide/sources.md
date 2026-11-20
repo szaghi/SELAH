@@ -35,6 +35,42 @@ The schemes, the forms and the properties SELAH implements and verifies, with th
 - E. Hairer, C. Lubich, G. Wanner, *Geometric Numerical Integration*, 2nd ed., Springer, 2006. Symplecticity and the
   long-time energy behaviour of [P3](/verification/properties/splitting-energy).
 
+## Limiters, additive splitting and particles
+
+- X. Zhang, C.-W. Shu, *On positivity-preserving high order discontinuous Galerkin schemes for compressible Euler
+  equations on rectangular meshes*, J. Comput. Phys. 229 (2010) 8918–8934. A limiter inside SSP stages: the
+  forward-Euler step each stage must make admissible (`stage_euler_fraction`).
+- B. Sportisse, *An analysis of operator splitting techniques in the stiff case*, J. Comput. Phys. 161 (2000)
+  140–168. Strang splitting with a stiff operator: its order reduction, the stiff operator outside.
+- S. Blanes, F. Casas, *On the necessity of negative coefficients for operator splitting schemes of order higher than
+  two*, Appl. Numer. Math. 54 (2005) 23–37. Why `additive_splitting` refuses the high-order compositions for an
+  irreversible operator.
+- R. H. D. Townsend, *An exact integration scheme for radiative cooling in hydrodynamical simulations*, Astrophys. J.
+  Suppl. 181 (2009) 391–397. The exact cooling flow of the model problem of [A6](/verification/accuracy/additive-splitting).
+- T. Quinn, R. P. Perrine, D. C. Richardson, R. Barnes, *A symplectic integrator for Hill's equations*, Astron. J. 139
+  (2010) 803–807. Kick–drift–kick for sink particles.
+- J. P. Boris, *Relativistic plasma simulation: optimization of a hybrid code*, Proc. Fourth Conf. Numerical
+  Simulation of Plasmas, NRL, 1970, 3–67. `PUSHER_BORIS`.
+- H. Qin, S. Zhang, J. Xiao, J. Liu, Y. Sun, W. M. Tang, *Why is Boris algorithm so good?*, Phys. Plasmas 20 (2013)
+  084503. Volume preservation.
+- J.-L. Vay, *Simulation of beams or plasmas crossing at relativistic velocity*, Phys. Plasmas 15 (2008) 056701.
+  `PUSHER_VAY`, the force-free test.
+- A. V. Higuera, J. R. Cary, *Structure-preserving second-order integration of relativistic charged particle
+  trajectories in electromagnetic fields*, Phys. Plasmas 24 (2017) 052104. `PUSHER_HIGUERA_CARY`.
+- T. Zh. Esirkepov, *Exact charge conservation scheme for Particle-in-Cell simulation with an arbitrary form-factor*,
+  Comput. Phys. Commun. 135 (2001) 144–153. The charge-conserving current the stage currents rest on.
+
+## Perfectly matched layers and exponential integrators
+
+- J.-P. Bérenger, *A perfectly matched layer for the absorption of electromagnetic waves*, J. Comput. Phys. 114 (1994)
+  185–200.
+- M. Kuzuoglu, R. Mittra, *Frequency dependence of the constitutive parameters of causal perfectly matched
+  anisotropic absorbers*, IEEE Microw. Guided Wave Lett. 6 (1996) 447–449. The complex-frequency-shifted PML.
+- J. A. Roden, S. D. Gedney, *Convolution PML (CPML): an efficient FDTD implementation of the CFS-PML for arbitrary
+  media*, Microw. Opt. Technol. Lett. 27 (2000) 334–339. The recursion whose Runge–Kutta analogue `decay=` is.
+- M. Hochbruck, A. Ostermann, *Exponential integrators*, Acta Numer. 19 (2010) 209–286. The exponential stage format
+  and its equilibrium conditions.
+
 ## Software
 
 - [ADAM](https://github.com/szaghi/adam): the code SELAH was carved from, and the oracle of [C1](/verification/contracts/adam-equivalence).

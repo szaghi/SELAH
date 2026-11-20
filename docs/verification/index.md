@@ -53,6 +53,14 @@ The findings that change how SELAH should be used, each documented on its page:
 - **A splitting reaches its order only with exact sub-flows.** The stepper's sub-flow is forward Euler on one
   partition: exact when that partition's residual does not depend on itself (separable Hamiltonians), first order
   otherwise ([A4](./accuracy/splittings)).
+- **A limiter inside an SSP step must use each stage's own forward-Euler step**, `stage_euler_fraction(k)` times
+  $\Delta t$: less loses positivity, $\Delta t$ itself over-limits ssp-54 and ssp-104 ([P2](./properties/ssp-coefficients)).
+- **Splitting a field step with your own flow: the cheap flow outside, Lie or Strang only** for irreversible flows;
+  each operator integrates its own time ([A6](./accuracy/additive-splitting)).
+- **A companion stepped with the field is the coupled Runge–Kutta step, bitwise** ([C8](./contracts/companion)); the
+  stage currents keep Gauss's law at every stage ([C9](./contracts/stage-currents)).
+- **A stiff decay integrated exactly (`decay=`) is stable at any step and second order**, whatever the scheme
+  ([P5](./properties/decay)).
 - **In single precision some schemes lose their exact stability properties at round-off.** rk4, for instance, keeps
   its imaginary-axis interval only to within about 1e-8 of $|R| = 1$ ([A5](./accuracy/stability),
   [C7](./contracts/precision)).
