@@ -14,3 +14,4 @@ of a Hamiltonian, conservation through a flux register.
 | [P2 SSP coefficients](./ssp-coefficients) | physics | the coefficients computed from the Shu–Osher forms match the published ones |
 | [P3 Splitting energy](./splitting-energy) | physics | the energy error of a splitting stays bounded over 1000 periods; a Runge–Kutta scheme's drifts |
 | [P4 Conservation](./conservation) | physics | the stage fluxes weighted by `stage_weight` telescope to the mass change, in every form |
+| [P5 Exact decay](./decay) | physics | a linear decay integrated exactly (`decay=`): frozen source exact at any step, equilibria, stability, order 2 |

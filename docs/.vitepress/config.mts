@@ -160,6 +160,7 @@ export default withMermaid({
           { text: 'P2 SSP coefficients',            link: '/verification/properties/ssp-coefficients' },
           { text: 'P3 Splitting energy',            link: '/verification/properties/splitting-energy' },
           { text: 'P4 Conservation',                link: '/verification/properties/conservation' },
+          { text: 'P5 Exact decay',                 link: '/verification/properties/decay' },
         ] },
         { text: 'Contracts', collapsed: false, items: [
           { text: 'Overview',                       link: '/verification/contracts/' },

@@ -17,7 +17,7 @@
    call begin_step_x(self, bx, ubq, q, ubm, mask, mask_comp)
    endsubroutine SELAH_BEGIN_STEP
 
-   subroutine SELAH_BEGIN_STAGE(self, k, bx, dt, q, mask, mask_comp)
+   subroutine SELAH_BEGIN_STAGE(self, k, bx, dt, q, mask, mask_comp, decay)
    !< begin_stage for a field of rank k < 5.
    class(stepper), intent(inout)        :: self                    !< Stepper.
    integer(I4P),   intent(in)           :: k                       !< Stage.
@@ -26,12 +26,16 @@
    real(R_P),      intent(in)           :: q(SELAH_FRONT_DIMS)     !< Solution.
    real(R_P),      intent(in), optional :: mask(SELAH_FRONT_DIMS)  !< Mask (q's rank, its own components).
    integer(I4P),   intent(in), optional :: mask_comp               !< Mask component.
+   real(R_P),      intent(in), optional :: decay(SELAH_FRONT_DIMS) !< Decay rate (q's shape).
    integer(I4P)                         :: ubq(5), ubm(5)          !< Upper bounds of q and of the mask, as rank 5.
 
    call check_front(self, bx, SELAH_FRONT_RANK, shape(q, kind=I4P), ubq)
+   if (present(decay)) then
+      if (any(shape(decay) /= shape(q))) error stop 'selah stepper: decay must have the shape of q'
+   endif
    ubm = ubq
    if (present(mask)) ubm = front_ub(bx, shape(mask, kind=I4P))
-   call begin_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
+   call begin_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp, decay)
    endsubroutine SELAH_BEGIN_STAGE
 
    subroutine SELAH_END_STAGE(self, k, bx, dt, q, mask, mask_comp)
@@ -51,7 +55,7 @@
    call end_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
    endsubroutine SELAH_END_STAGE
 
-   subroutine SELAH_FINISH_STEP(self, bx, dt, q, dq, mask, mask_comp)
+   subroutine SELAH_FINISH_STEP(self, bx, dt, q, dq, mask, mask_comp, decay)
    !< finish_step for a field of rank k < 5.
    class(stepper), intent(inout)           :: self                   !< Stepper.
    type(box),      intent(in)              :: bx                     !< Box of the field's rank.
@@ -60,15 +64,19 @@
    real(R_P),      intent(inout), optional :: dq(SELAH_FRONT_DIMS)   !< Step residual (q's shape).
    real(R_P),      intent(in),    optional :: mask(SELAH_FRONT_DIMS) !< Mask (q's rank, its own components).
    integer(I4P),   intent(in),    optional :: mask_comp              !< Mask component.
+   real(R_P),      intent(in),    optional :: decay(SELAH_FRONT_DIMS) !< Decay rate (q's shape).
    integer(I4P)                            :: ubq(5), ubm(5)         !< Upper bounds of q and of the mask, as rank 5.
 
    call check_front(self, bx, SELAH_FRONT_RANK, shape(q, kind=I4P), ubq)
    if (present(dq)) then
       if (any(shape(dq) /= shape(q))) error stop 'selah stepper: dq must have the shape of q'
    endif
+   if (present(decay)) then
+      if (any(shape(decay) /= shape(q))) error stop 'selah stepper: decay must have the shape of q'
+   endif
    ubm = ubq
    if (present(mask)) ubm = front_ub(bx, shape(mask, kind=I4P))
-   call finish_step_x(self, bx, dt, ubq, q, dq, ubm, mask, mask_comp)
+   call finish_step_x(self, bx, dt, ubq, q, dq, ubm, mask, mask_comp, decay)
    endsubroutine SELAH_FINISH_STEP
 
    subroutine SELAH_STATE_VIEW(self, u)

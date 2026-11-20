@@ -100,6 +100,8 @@ Strong stability, the SSP coefficients, long-time energy behaviour and conservat
 
 [![Telescoping](/verification/telescoping.png)<strong>P4 Conservation</strong><span>the stage fluxes weighted by stage_weight telescope to the step's mass change</span><em>physics</em>](./properties/conservation)
 
+[<strong>P5 Exact decay</strong><span>a stiff linear decay integrated exactly: frozen source exact at any step, the explicit step at zero rate, stable</span><em>physics</em>](./properties/decay)
+
 </div>
 
 ## Contracts

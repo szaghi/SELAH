@@ -40,12 +40,12 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 |---|---|---|
 | `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q] [, components] [, masked_q])` | sets the scheme and form for a field of rank `size(lb)` (1 to 5); allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `components` is required below rank 5 ([fields of rank 1 to 4](#fields-of-rank-1-to-4)). `registers` (see below), for rank 5 only. `masked_q`: the [mask policy](#masks). Calls `destroy` first, so a stepper can be re-initialised |
 | `begin_step(bx, q [, mask, mask_comp])` | opens a step: the two-register and Ketcheson forms keep a copy of $q^n$ | |
-| `begin_stage(k, bx, dt, q [, mask, mask_comp])` | opens stage `k`: the Butcher form builds its state into its register (unless `stage_state_is_q(k)`) | `k` from 1 to `stages()`, in order |
+| `begin_stage(k, bx, dt, q [, mask, mask_comp] [, decay])` | opens stage `k`: the Butcher form builds its state into its register (unless `stage_state_is_q(k)`) | `k` from 1 to `stages()`, in order; `decay`: [a decay integrated exactly](#a-decay-integrated-exactly) |
 | `stage_state()` | pointer to the stage state, with the field's bounds | Butcher form only; **null** on a stage evaluated on `q`, and always null in the other forms (their state is `q`). **Null** outside a stage window (before `begin_stage`, after `end_stage`) |
 | `rhs_register()` | pointer to the register the caller writes the residual of the active stage into, with the field's bounds | write the cells of the box; for a splitting, the components of `stage_partition(k)`. **Null** outside a stage window (before `begin_stage`, after `end_stage`) |
 | `stage_state_view(u)`, `rhs_register_view(r)` | the same two pointers at the field's rank: `u` and `r` are pointers of rank 1 to 5 | null exactly when `stage_state()` and `rhs_register()` are; the rank must be the field's |
 | `end_stage(k, bx, dt, q [, mask, mask_comp])` | closes stage `k`: the two-register, 2N, Ketcheson and splitting forms advance `q` here | |
-| `finish_step(bx, dt, q [, dq] [, mask, mask_comp])` | closes the step: the Butcher form computes $q^{n+1}$, and `dq` $= \sum_k b_k F_k$ in the same pass if asked | `dq` with any form other than Butcher stops the program; `dq` is 0 where the mask is inactive |
+| `finish_step(bx, dt, q [, dq] [, mask, mask_comp] [, decay])` | closes the step: the Butcher form computes $q^{n+1}$, and `dq` $= \sum_k b_k F_k$ in the same pass if asked | `dq` with any form other than Butcher stops the program; `dq` is 0 where the mask is inactive |
 | `stage_state_is_q(k)` | the state of stage `k` is `q` itself: evaluate its residual on `q` | true for every stage of the forms other than Butcher; for the zero rows of A with `stages_on_q` |
 | `stages()` | the stages of a step (the flows of a splitting) | |
 | `stage_time(k)` | the fraction of the step at which the residual of stage `k` is evaluated: the abscissa $c_k$ | for a splitting, the fractions of the other partition's flows before flow `k`: see [Time-dependent residuals](#time-dependent-residuals) |
@@ -163,6 +163,30 @@ kernels never touch the rest. A layout with the particles first, `(np, 8)` (the 
 regrid): between steps its registers are scratch. Stepped together, field and companion are bitwise the two stepped as
 one state (`selah_test_companion`, every form). The stage window of the two must coincide: a companion's stage state
 and residual register are, like the field's, null outside it.
+
+## A decay integrated exactly
+
+For a state $\psi' = g - \lambda\psi$ with $\lambda \ge 0$ per element and constant in time, the auxiliary fields of
+a perfectly matched layer (PML) above all, the decay is often far stiffer than the rest: $\lambda\Delta t$ beyond the
+scheme's real-axis bound makes the explicit stages blow up. Pass the rate as `decay` (an array of the state's shape) at
+every `begin_stage` and at `finish_step`, and write the source $g$ alone as the residual:
+
+```fortran
+call sp%begin_stage(k, bp, dt, psi, decay=lambda)   ! psi: a companion of the field stepper
+! ... the residual: g = (sigma/kappa^2) d_n F only, without -lambda psi
+call sp%finish_step(bp, dt, psi, decay=lambda)
+```
+
+With $z = -\lambda\Delta t$ the state of stage $i$ is $e^{c_i z}\psi^n + \varphi_1(c_i z)\,\Delta t\sum_j a_{ij} g_j$
+and the step $e^{z}\psi^n + \varphi_1(z)\,\Delta t\sum_j b_j g_j$, $\varphi_1(z) = (e^z - 1)/z$: exponential Euler on
+the Runge–Kutta-averaged source, the Runge–Kutta analogue of the convolutional PML of Roden & Gedney (2000). It is exact
+for a source frozen over the step and for static equilibria at any $\lambda\Delta t$, stable for any $\lambda\Delta t$,
+second order with a varying source (whatever the scheme's order), and bitwise the explicit step where $\lambda = 0$.
+The Butcher form only, no mask, no `dq`.
+
+The source is stiff too ($g \propto \hat\sigma$): inside a stiff layer the coupled field–ψ system has a smaller
+stable step than either part alone. Take the time step from the coupled limit, not from a CFL condition and a
+$\lambda\Delta t$ condition separately (`notes/companions-pushers-pml.md` §5 has the coupled limits of the catalogue).
 
 ## Masks
 

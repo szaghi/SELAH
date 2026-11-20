@@ -66,6 +66,14 @@ module selah_stepper
 !< part (particles 1..n of a pool, the components that evolve), and the kernels never touch the rest. Re-initialise it
 !< when its shape changes (a regrid). Stepped together, field and companion are bitwise the two stepped as one state.
 !<
+!< **A decay integrated exactly.** For a state psi' = g - lambda psi (lambda >= 0 per element, constant in time: the
+!< auxiliary fields of a perfectly matched layer), `decay=lambda` at every begin_stage and at finish_step makes the
+!< caller's residual the source g alone and integrates the decay exactly (selah_kernels_exp: exponential Euler on the
+!< Runge–Kutta-averaged source): exact for a frozen source and for static equilibria at any lambda dt, stable for any
+!< lambda dt, second order with a varying source; bitwise the explicit step where lambda = 0. Butcher form, no mask,
+!< no dq. The stiff source coupling still lowers the stable step inside a stiff layer (notes/companions-pushers-pml.md
+!< §5): the caller's step limit is the coupled one.
+!<
 !< **Charge-conserving stage currents.** A field whose divergence must track a charge (Maxwell's Gauss law in a
 !< particle-in-cell solver) stays consistent at every stage if the weighted sum of the stage currents,
 !< sum_{r<=k} a_{k+1,r} J_r, is the current that moves the charge from q^n to the state of stage k+1. Within the window
@@ -104,6 +112,7 @@ use selah_splittings
 use selah_storage
 use selah_box
 use selah_kernels
+use selah_kernels_exp, only : stage_state_exp_box, step_update_exp_box
 implicit none
 private
 public :: stepper
@@ -336,7 +345,7 @@ contains
    self%k_active = 0_I4P
    endsubroutine begin_step_r5
 
-   subroutine begin_stage_r5(self, k, bx, dt, q, mask, mask_comp)
+   subroutine begin_stage_r5(self, k, bx, dt, q, mask, mask_comp, decay)
    !< Open stage k: build its state (Butcher form, unless the stage's state is q; every other form keeps it in q).
    class(stepper), intent(inout)        :: self                 !< Stepper.
    integer(I4P),   intent(in)           :: k                    !< Stage.
@@ -345,10 +354,17 @@ contains
    real(R_P),      intent(in)           :: q(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Solution.
    real(R_P),      intent(in), optional :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Mask.
    integer(I4P),   intent(in), optional :: mask_comp            !< Mask component.
+   real(R_P),      intent(in), optional :: decay(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Decay rate.
 
-   if (self%form == FORM_BUTCHER .and. .not. self%on_q(k)) &
+   if (present(decay)) then
+      call check_decay(self, present(mask))
+      if (.not. self%on_q(k)) &
+         call stage_state_exp_box(bx, k-1_I4P, dt, self%at_d(:,k), self%bt%c(k), q, self%regs(:,:,:,:,:,2:), decay, &
+                                  self%regs(:,:,:,:,:,1))
+   elseif (self%form == FORM_BUTCHER .and. .not. self%on_q(k)) then
       call selah_stage_state(bx, k-1_I4P, dt, self%at_d(:,k), q, self%regs(:,:,:,:,:,2:), self%regs(:,:,:,:,:,1), &
                              mask, mask_comp, masked_q=self%masked_q)
+   endif
    self%k_active = k
    endsubroutine begin_stage_r5
 
@@ -388,7 +404,7 @@ contains
    self%k_active = 0_I4P
    endsubroutine end_stage_r5
 
-   subroutine finish_step_r5(self, bx, dt, q, dq, mask, mask_comp)
+   subroutine finish_step_r5(self, bx, dt, q, dq, mask, mask_comp, decay)
    !< Close the step: the Butcher form advances q now (with the step residual dq if asked); the others already have.
    class(stepper), intent(inout)           :: self               !< Stepper.
    type(box),      intent(in)              :: bx                 !< Box.
@@ -397,8 +413,13 @@ contains
    real(R_P),      intent(inout), optional :: dq(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Step residual.
    real(R_P),      intent(in),    optional :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Mask.
    integer(I4P),   intent(in),    optional :: mask_comp          !< Mask component.
+   real(R_P),      intent(in),    optional :: decay(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Decay rate.
 
-   if (self%form == FORM_BUTCHER) then
+   if (present(decay)) then
+      call check_decay(self, present(mask))
+      if (present(dq)) error stop 'selah stepper: the step residual dq is not computed with decay'
+      call step_update_exp_box(bx, self%nstages, dt, self%b_d, self%regs(:,:,:,:,:,2:), decay, q)
+   elseif (self%form == FORM_BUTCHER) then
       call selah_step_update(bx, self%nstages, dt, self%b_d, self%regs(:,:,:,:,:,2:), q, dq, mask, mask_comp)
    elseif (present(dq)) then
       error stop 'selah stepper: the step residual dq is computed by the Butcher form only'
@@ -505,7 +526,7 @@ contains
    call self%begin_step_r5(bx, q, mask, mask_comp)
    endsubroutine begin_step_x
 
-   subroutine begin_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
+   subroutine begin_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp, decay)
    !< begin_stage through an explicit-shape rank-5 view.
    class(stepper), intent(inout)        :: self    !< Stepper.
    integer(I4P),   intent(in)           :: k       !< Stage.
@@ -518,8 +539,10 @@ contains
    real(R_P),      intent(in), optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
                                                 bx%lb(5):ubm(5)) !< Mask.
    integer(I4P),   intent(in), optional :: mask_comp !< Mask component.
+   real(R_P),      intent(in), optional :: decay(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                                 bx%lb(5):ubq(5)) !< Decay rate.
 
-   call self%begin_stage_r5(k, bx, dt, q, mask, mask_comp)
+   call self%begin_stage_r5(k, bx, dt, q, mask, mask_comp, decay)
    endsubroutine begin_stage_x
 
    subroutine end_stage_x(self, k, bx, dt, ubq, q, ubm, mask, mask_comp)
@@ -539,7 +562,7 @@ contains
    call self%end_stage_r5(k, bx, dt, q, mask, mask_comp)
    endsubroutine end_stage_x
 
-   subroutine finish_step_x(self, bx, dt, ubq, q, dq, ubm, mask, mask_comp)
+   subroutine finish_step_x(self, bx, dt, ubq, q, dq, ubm, mask, mask_comp, decay)
    !< finish_step through an explicit-shape rank-5 view.
    class(stepper), intent(inout)           :: self   !< Stepper.
    type(box),      intent(in)              :: bx     !< Box.
@@ -553,9 +576,20 @@ contains
    real(R_P),      intent(in),    optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
                                                    bx%lb(5):ubm(5)) !< Mask.
    integer(I4P),   intent(in),    optional :: mask_comp !< Mask component.
+   real(R_P),      intent(in),    optional :: decay(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                                    bx%lb(5):ubq(5)) !< Decay rate.
 
-   call self%finish_step_r5(bx, dt, q, dq, mask, mask_comp)
+   call self%finish_step_r5(bx, dt, q, dq, mask, mask_comp, decay)
    endsubroutine finish_step_x
+
+   subroutine check_decay(self, masked)
+   !< decay= is the Butcher form's, without a mask.
+   class(stepper), intent(in) :: self   !< Stepper.
+   logical,        intent(in) :: masked !< A mask was passed.
+
+   if (self%form /= FORM_BUTCHER) error stop 'selah stepper: decay= is the Butcher form''s'
+   if (masked) error stop 'selah stepper: decay= takes no mask'
+   endsubroutine check_decay
 
    subroutine lookahead_x(self, k, bx, dt, ubq, q, u, ubm, mask, mask_comp)
    !< lookahead through an explicit-shape rank-5 view.
