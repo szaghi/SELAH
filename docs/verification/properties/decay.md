@@ -22,7 +22,7 @@ and its order.
 | Item | Value |
 |---|---|
 | Frozen source | 5 cells, $\lambda\Delta t$ = 0.1, 1, 10, $10^3$, $10^6$, $g = 1$, $\psi^0 = 3$, 8 steps; exact $g/\lambda + (\psi^0 - g/\lambda)e^{-\lambda t}$ |
-| $\lambda = 0$ | 3 steps against the same steps without `decay` |
+| $\lambda = 0$ | 3 steps against the same steps without `decay`; then $\lambda$ the smallest subnormal |
 | Coupled pair | $u' = -\psi + J$ (the field stepper), $\psi' = \sigma u - \lambda\psi$ (a companion with `decay`), $\sigma = 3$, $J = 1/2$ |
 | Equilibrium | from $u^* = \lambda J/\sigma$, $\psi^* = J$, $\lambda\Delta t = 50$, 4 steps |
 | Stability | from $(1, 0)$, $\lambda\Delta t = 50$, 20 steps: with `decay`, and with $-\lambda\psi$ in the residual (explicit) |
@@ -40,6 +40,7 @@ and its order.
 |---|---|---|
 | frozen source, the largest relative error over every $\lambda\Delta t$ and step | 3.4e-16 … 1.0e-15 (ssp-54), every scheme | $10^{-13}$ |
 | $\lambda = 0$ | bitwise the explicit step, every scheme | exact |
+| $\lambda$ the smallest subnormal ($\lambda\Delta t/2$ rounds to 0) | bitwise the explicit step, no NaN | exact |
 | coupled equilibrium at $\lambda\Delta t = 50$ | kept, every scheme | 64 ε |
 | stability at $\lambda\Delta t = 50$ | bounded with `decay`; the explicit stages blow up, every scheme | — |
 | coupled order | 1.01 (euler), 1.98 (ssp-22, ssp-33, lsrk-33), 2.00 (ssp-54, ssp-104, rk4, lsrk-54) | $\min(p, 2) \pm 0.15$ |

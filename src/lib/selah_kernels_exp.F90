@@ -14,7 +14,8 @@ module selah_kernels_exp
 !< e^z psi^n + phi_1(z) dt sum_j b_j g_j, phi_1(z) = (e^z - 1)/z (exponential Euler on the Runge–Kutta-averaged
 !< source: `notes/companions-pushers-pml.md` §5, variant F). Exact for a source frozen over the step, any lambda dt;
 !< second order with a varying source; where lambda = 0, bitwise the explicit kernels (selah_kernels_box). No mask.
-!< phi_1 is evaluated without cancellation: e^(z/2) sinh(z/2)/(z/2), and (e^z - 1)/z where e^z is negligible.
+!< phi_1 is evaluated without cancellation: e^(z/2) sinh(z/2)/(z/2), and (e^z - 1)/z where e^z is negligible; where
+!< z/2 is 0 (z = 0, or a subnormal z whose half rounds to 0) the explicit expression, never 0/0.
 use penf, only : I4P
 use selah_kind_parameters, only : R_P
 use selah_box, only : box
@@ -55,10 +56,10 @@ contains
                      d = d + dt * coef(k) * regs(i1,i2,i3,i4,i5,k)
                   enddo
                   z = -c * lam(i1,i2,i3,i4,i5) * dt
-                  if (z == 0._R_P) then
+                  x = 0.5_R_P * z
+                  if (x == 0._R_P) then ! z = 0, or a subnormal z whose half rounds to 0: explicit
                      u(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5) + d
                   else
-                     x = 0.5_R_P * z
                      if (x < -20._R_P) then
                         ph = (exp(z) - 1._R_P) / z
                      else
@@ -102,10 +103,10 @@ contains
                      d = d + coef(k) * regs(i1,i2,i3,i4,i5,k)
                   enddo
                   z = -lam(i1,i2,i3,i4,i5) * dt
-                  if (z == 0._R_P) then
+                  x = 0.5_R_P * z
+                  if (x == 0._R_P) then ! z = 0, or a subnormal z whose half rounds to 0: explicit
                      q(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5) + dt * d
                   else
-                     x = 0.5_R_P * z
                      if (x < -20._R_P) then
                         ph = (exp(z) - 1._R_P) / z
                      else

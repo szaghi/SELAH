@@ -11,7 +11,8 @@ program selah_test_decay
 !<+ **Frozen source.** g constant: psi^n = g/lambda + (psi^0 - g/lambda) e^(-lambda t^n) to 1e-13 relative, for lambda dt
 !<  = 0.1, 1, 10, 1e3, 1e6, every Runge–Kutta scheme (the explicit stages blow up for lambda dt above the real-axis
 !<  bound).
-!<+ **lambda = 0.** Bitwise the run without `decay` (every scheme).
+!<+ **lambda = 0.** Bitwise the run without `decay` (every scheme); so is lambda the smallest subnormal, whose
+!<  lambda dt/2 rounds to 0 (the kernels' guard: never 0/0).
 !<+ **Coupled, two-way.** A field u and its auxiliary psi, the PML's structure: u' = -psi + J, psi' = sigma u - lambda psi
 !<  (u: the field stepper; psi: a companion with decay). (i) The static equilibrium u* = lambda J / sigma, psi* = J is
 !<  kept to round-off at lambda dt = 50; (ii) the observed order with a smooth start is 2 (1 for euler; the variant's
@@ -101,6 +102,21 @@ contains
    enddo
    call dev_memcpy_from_device(dst=h, src=q) ; call dev_memcpy_from_device(dst=ex, src=q0)
    call check(all(h == ex), name//': lambda = 0 bitwise the explicit step')
+   ! lambda the smallest subnormal: lambda dt / 2 rounds to 0, the kernels take the explicit branch (never 0/0)
+   hl = nearest(0._R_P, 1._R_P) ; h = P0
+   call dev_memcpy_to_device(dst=lam, src=hl) ; call dev_memcpy_to_device(dst=q, src=h)
+   do step=1, 3
+      call st%begin_step(bx, q)
+      do k=1, st%stages()
+         call st%begin_stage(k, bx, dt, q, decay=lam)
+         call st%rhs_register_view(r)
+         call constant(G, r)
+         call st%end_stage(k, bx, dt, q)
+      enddo
+      call st%finish_step(bx, dt, q, decay=lam)
+   enddo
+   call dev_memcpy_from_device(dst=h, src=q)
+   call check(all(h == ex), name//': lambda subnormal, bitwise the explicit step (no NaN)')
    call st%destroy
    call dev_free(q) ; call dev_free(q0) ; call dev_free(lam)
    endsubroutine frozen
