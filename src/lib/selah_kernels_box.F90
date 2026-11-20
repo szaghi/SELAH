@@ -19,7 +19,7 @@ module selah_kernels_box
 !< **Mask.** With `mask` present, a cell is active where `mask(..., mask_comp) < 0` (ADAM's immersed-boundary distance,
 !< negative in the fluid; `mask_comp` defaults to the last component, ADAM's all-solids summary). The mask has the
 !< field's shape with its own number of components. Inactive cells are left untouched, except the step residual `dq`,
-!< which is 0 there.
+!< which is 0 there, and the stage state with `masked_q` (`stage_state_box`), which is q there.
 !<
 !< **Summation order.** The sums over registers form a private sum and store once, as ADAM's FNL kernels do, so the
 !< results are bitwise those of ADAM's device path (src/tests: the parity test).
@@ -129,10 +129,12 @@ contains
    endif
    endsubroutine lincomb_box
 
-   subroutine stage_state_box(bx, n, dt, coef, q, regs, u, mask, mask_comp)
+   subroutine stage_state_box(bx, n, dt, coef, q, regs, u, mask, mask_comp, masked_q)
    !< u = q + sum_{k=1..n} dt coef(k) regs(k) over the box: the state of a stage of a Butcher form, from the solution and
    !< the residuals of the previous stages (coef = row s of A, n = s - 1). n = 0 gives u = q, through the copy kernel:
-   !< the summing loop with nothing to sum ran at 0.57 of the copy's speed on the A30 (M5, job 1368098).
+   !< the summing loop with nothing to sum ran at 0.57 of the copy's speed on the A30 (M5, job 1368098). With
+   !< `masked_q`, the inactive cells of u take q (the stepper's mask policy) in the same pass, instead of being left
+   !< untouched.
    type(box),    intent(in)           :: bx                   !< Box.
    integer(I4P), intent(in)           :: n                    !< Registers summed.
    real(R_P),    intent(in)           :: dt                   !< Time step.
@@ -142,16 +144,40 @@ contains
    real(R_P),    intent(inout)        :: u(SELAH_BOUNDS)      !< Stage state.
    real(R_P),    intent(in), optional :: mask(SELAH_BOUNDS)   !< Active where mask(..., mask_comp) < 0.
    integer(I4P), intent(in), optional :: mask_comp            !< Mask component (default: the last).
+   logical,      intent(in), optional :: masked_q             !< The inactive cells of u take q (default .false.).
    real(R_P)                          :: d                    !< Private sum.
    integer(I4P)                       :: k                    !< Counter.
+   logical                            :: fill                 !< The inactive cells take q.
 #include "selah_kernel_decl.INC"
 
+   fill = .false.
+   if (present(masked_q)) fill = masked_q
    if (n == 0_I4P) then
-      call copy_box(bx, q, u, mask, mask_comp)
+      if (fill) then ! every cell of the box takes q
+         call copy_box(bx, q, u)
+      else
+         call copy_box(bx, q, u, mask, mask_comp)
+      endif
       return
    endif
 #include "selah_kernel_setup.INC"
-   if (present(mask)) then
+   if (present(mask) .and. fill) then
+#undef SELAH_MASK_ARG
+#define SELAH_MASK_ARG , mask
+#define SELAH_FILL
+      if (bx%layout == LAYOUT_V_FIRST) then
+#define SELAH_ACTIVE mask(mc,i2,i3,i4,i5) < 0._R_P
+#include "selah_kernel_stage_state.INC"
+#undef SELAH_ACTIVE
+      else
+#define SELAH_ACTIVE mask(i1,i2,i3,i4,mc) < 0._R_P
+#include "selah_kernel_stage_state.INC"
+#undef SELAH_ACTIVE
+      endif
+#undef SELAH_FILL
+#undef SELAH_MASK_ARG
+#define SELAH_MASK_ARG
+   elseif (present(mask)) then
 #undef SELAH_MASK_ARG
 #define SELAH_MASK_ARG , mask
       if (bx%layout == LAYOUT_V_FIRST) then

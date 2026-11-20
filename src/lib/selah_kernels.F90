@@ -7,7 +7,7 @@ module selah_kernels
 !<| `selah_copy`                | y = x                                   | masked | unmasked |
 !<| `selah_axpy`                | y = y + alpha x                         | masked | unmasked |
 !<| `selah_lincomb`             | y = alpha x + beta y                    | masked | unmasked |
-!<| `selah_stage_state`         | u = q + sum_k dt coef(k) regs(k)        | masked | unmasked |
+!<| `selah_stage_state`         | u = q + sum_k dt coef(k) regs(k)        | masked [, inactive u = q] | unmasked |
 !<| `selah_step_update`         | q = q + dt sum_k coef(k) regs(k) [, dq] | masked, dq = 0 inactive | unmasked |
 !<| `selah_shu_osher_2r_stage`  | q = a q0 + b q + dt c r                 | masked | unmasked |
 !<| `selah_williamson_2n_stage` | dqr = a dqr + dt r; q = q + b dqr       | masked | unmasked |

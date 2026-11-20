@@ -122,6 +122,25 @@ contains
    call check(untouched_ok, label//': every other cell bitwise untouched')
    endsubroutine compare
 
+   function masked_reference(bx, e, q, mask, mc) result(m)
+   !< e in the active cells of the box, q in its inactive ones, e elsewhere (compare checks the box cells only).
+   type(box),    intent(in) :: bx
+   real(R_P),    intent(in) :: e(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   real(R_P),    intent(in) :: q(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   real(R_P),    intent(in) :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)
+   integer(I4P), intent(in) :: mc
+   real(R_P), allocatable   :: m(:,:,:,:,:)
+   integer(I4P)             :: i1, i2, i3, i4, i5
+
+   m = e
+   do i5=lbound(e,5), ubound(e,5) ; do i4=lbound(e,4), ubound(e,4) ; do i3=lbound(e,3), ubound(e,3)
+   do i2=lbound(e,2), ubound(e,2) ; do i1=lbound(e,1), ubound(e,1)
+      if (inside(bx, [i1,i2,i3,i4,i5])) then
+         if (.not. active(bx, mask, mc, [i1,i2,i3,i4,i5])) m(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5)
+      endif
+   enddo ; enddo ; enddo ; enddo ; enddo
+   endfunction masked_reference
+
    subroutine test_box(bx, lname)
    !< Every box kernel, unmasked and masked.
    type(box),    intent(in) :: bx    !< Box.
@@ -170,6 +189,12 @@ contains
             call selah_stage_state(bx, n, DT, COEF, q, regs, u, mask, mc)
          endif
          call compare(bx, u, y0, e, min(mode, 1_I4P), mask, mc, 'stage_state n='//achar(48+n)//' '//tag)
+         if (mode > 0) then ! the stepper's mask policy: the inactive cells of the box take q
+            u = y0
+            call selah_stage_state(bx, n, DT, COEF, q, regs, u, mask, mc, masked_q=.true.)
+            call compare(bx, u, y0, masked_reference(bx, e, q, mask, mc), 0_I4P, mask, mc, &
+                         'stage_state masked_q n='//achar(48+n)//' '//tag)
+         endif
       enddo
       ! step_update, with the step residual
       y = y0 ; dq = dq0 ; e = 0._R_P

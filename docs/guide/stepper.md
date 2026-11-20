@@ -38,7 +38,7 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 
 | Procedure | What it does | Preconditions and notes |
 |---|---|---|
-| `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q] [, components])` | sets the scheme and form for a field of rank `size(lb)` (1 to 5); allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `components` is required below rank 5 ([fields of rank 1 to 4](#fields-of-rank-1-to-4)). `registers` (see below), for rank 5 only. Calls `destroy` first, so a stepper can be re-initialised |
+| `initialize(scheme, form, lb, ub [, partitions] [, registers] [, stages_on_q] [, components] [, masked_q])` | sets the scheme and form for a field of rank `size(lb)` (1 to 5); allocates `registers_needed(scheme, form)` registers with the bounds `lb:ub` through FUNDAL (device memory in a device build), or takes the caller's | stops if the scheme has no such form, or a splitting comes without `partitions`. `partitions(:,p)` = `(v1, v2)`, the components of partition `p`. `components` is required below rank 5 ([fields of rank 1 to 4](#fields-of-rank-1-to-4)). `registers` (see below), for rank 5 only. `masked_q`: the [mask policy](#masks). Calls `destroy` first, so a stepper can be re-initialised |
 | `begin_step(bx, q [, mask, mask_comp])` | opens a step: the two-register and Ketcheson forms keep a copy of $q^n$ | |
 | `begin_stage(k, bx, dt, q [, mask, mask_comp])` | opens stage `k`: the Butcher form builds its state into its register (unless `stage_state_is_q(k)`) | `k` from 1 to `stages()`, in order |
 | `stage_state()` | pointer to the stage state, with the field's bounds | Butcher form only; **null** on a stage evaluated on `q`, and always null in the other forms (their state is `q`). **Null** outside a stage window (before `begin_stage`, after `end_stage`) |
@@ -129,6 +129,30 @@ During such a stage `stage_state()` is null, so a caller that does not ask `stag
 instead of reading a stale register. The caller then writes the ghost cells of `q` at stage 1 (contract clause 3),
 which the plain Butcher form leaves alone. The solution is bitwise that of the plain Butcher form. On the A30 the option
 takes 6% off the integrator's SSP(5,4) step ([Performance](./performance)).
+
+## Masks
+
+With `mask` present the kernels update the active cells only: a cell is active where `mask(..., mask_comp) < 0`
+(ADAM's immersed-boundary distance, negative in the fluid; `mask_comp` defaults to the last component). The masked
+cells of `q` keep their values through the step, in every form.
+
+The stage state is another matter. The forms other than Butcher keep it in `q`, so its masked cells hold $q^n$. The
+Butcher form builds it in a register, and a masked cell of that register is left as it was: the previous stage's,
+the previous step's, or the register's initial value. A caller whose residual reads masked cells (an immersed
+boundary extrapolating from the solid side, a stencil that reaches into a solid block) asks for the **mask policy**
+at initialisation:
+
+```fortran
+call st%initialize(scheme, FORM_BUTCHER, lb, ub, masked_q=.true.)
+```
+
+and the masked cells of every stage state then hold $q^n$, written by the stage-state kernel in the same pass that
+builds the active cells (no extra pass over the field). This is the Runge–Kutta solution of $u' = 0$ in the masked
+cells. Bitwise, it is what a caller gets by copying $q^n$ into the masked cells of the stage state itself after
+`begin_stage` (ADAM's adapter did so before szaghi/adam#134; `selah_test_stepper_options`). Default `.false.`: the
+register's masked cells are left untouched. A caller whose masked cells must evolve within the step (ghost values of
+an immersed boundary rebuilt from the fluid at every stage) still writes them itself, between `begin_stage` and its
+residual.
 
 ## Time-dependent residuals
 

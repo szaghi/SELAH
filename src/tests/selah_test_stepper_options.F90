@@ -18,6 +18,11 @@ program selah_test_stepper_options
 !<+ **finish_step(dq=).** The step residual is (q^{n+1} - q^n)/dt to round-off.
 !<+ **mask=.** With half of the blocks solid (mask > 0), the solid cells of q keep their values bit for bit through
 !<  whole steps, in every form, and the fluid cells stay finite.
+!<+ **masked_q=.** The mask policy: with masked_q, the solid cells of every stage state are q^n bit for bit (the
+!<  Butcher register, which the plain mask leaves untouched, filled with NaN before the step to show it), in every
+!<  Runge–Kutta scheme (Butcher form, with and without stages_on_q) and every other form; every stage state and the
+!<  solution are bitwise those of the run without masked_q in which the caller copies q^n into the solid cells of the
+!<  stage state (ADAM's adapter before szaghi/adam#134), whose fluid cells read them.
 use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_finite
 use fundal, only : dev_alloc, dev_free, dev_memcpy_to_device, dev_memcpy_from_device
 #if defined DEV_OAC || defined DEV_OMP
@@ -51,6 +56,13 @@ call masked(SCHEME_SSP_54, FORM_BUTCHER)
 call masked(SCHEME_SSP_33, FORM_SHU_OSHER_2R)
 call masked(SCHEME_LSRK_54, FORM_WILLIAMSON_2N)
 call masked(SCHEME_SSP_104, FORM_KETCHESON_2R)
+do s=1, size(RK_SCHEMES)
+   call masked_stage_q(trim(RK_SCHEMES(s)), FORM_BUTCHER, .false.)
+enddo
+call masked_stage_q(SCHEME_SSP_54, FORM_BUTCHER, .true.)
+call masked_stage_q(SCHEME_SSP_33, FORM_SHU_OSHER_2R, .false.)
+call masked_stage_q(SCHEME_LSRK_54, FORM_WILLIAMSON_2N, .false.)
+call masked_stage_q(SCHEME_SSP_104, FORM_KETCHESON_2R, .false.)
 if (failures > 0) error stop 'selah_test_stepper_options: failed'
 print '(A)', 'selah_test_stepper_options: ok'
 
@@ -185,6 +197,77 @@ contains
    call st%destroy
    call dev_free(q_d) ; call dev_free(m_d)
    endsubroutine masked
+
+   subroutine masked_stage_q(name, form, on_q)
+   !< Blocks 2 and 4 solid: with masked_q, the solid cells of every stage state are q^n; the stage states and the
+   !< solution are those of the same steps without masked_q where the caller copies q^n into the solid cells of the
+   !< stage state itself (ADAM's adapter before #134), bit for bit. The registers start as NaN.
+   character(*), intent(in) :: name, form
+   logical,      intent(in) :: on_q
+   type(stepper)            :: st, sr
+   type(box)                :: bx
+   real(R_P), pointer       :: q_d(:,:,:,:,:)=>null(), p_d(:,:,:,:,:)=>null(), m_d(:,:,:,:,:)=>null()
+   real(R_P), pointer       :: g_d(:,:,:,:,:,:)=>null(), h_d(:,:,:,:,:,:)=>null()
+   real(R_P), pointer       :: u_d(:,:,:,:,:), v_d(:,:,:,:,:), r_d(:,:,:,:,:)
+   real(R_P), allocatable   :: m(:,:,:,:,:), qn(:,:,:,:,:), u(:,:,:,:,:), v(:,:,:,:,:), nan6(:,:,:,:,:,:)
+   real(R_P)                :: dt
+   integer(I4P)             :: step, k, b, nreg, ierr
+   logical                  :: solid_q, fluid_same
+
+   bx = box_interior(LAYOUT_V_FIRST, 1_I4P, NI, 1_I4P, 1_I4P, NGC, NB)
+   call field(q_d) ; call field(p_d)
+   allocate(m(1:1,0:NI+1,0:2,0:2,1:NB), qn(1:1,0:NI+1,0:2,0:2,1:NB), u(1:1,0:NI+1,0:2,0:2,1:NB), &
+            v(1:1,0:NI+1,0:2,0:2,1:NB))
+   do b=1, NB
+      m(:,:,:,:,b) = merge(1._R_P, -1._R_P, mod(b, 2) == 0)
+   enddo
+   call dev_alloc(fptr_dev=m_d, ubounds=UB, lbounds=LB, ierr=ierr)
+   call dev_memcpy_to_device(dst=m_d, src=m)
+   nreg = registers_needed(name, form)
+   allocate(nan6(1:1,0:NI+1,0:2,0:2,1:NB,1:nreg))
+   nan6 = ieee_value(1._R_P, ieee_quiet_nan)
+   call dev_alloc(fptr_dev=g_d, ubounds=[UB, nreg], lbounds=[LB, 1_I4P], ierr=ierr)
+   call dev_alloc(fptr_dev=h_d, ubounds=[UB, nreg], lbounds=[LB, 1_I4P], ierr=ierr)
+   call dev_memcpy_to_device(dst=g_d, src=nan6)
+   call dev_memcpy_to_device(dst=h_d, src=nan6)
+   call st%initialize(name, form, lb=LB, ub=UB, registers=g_d, stages_on_q=on_q, masked_q=.true.)
+   call sr%initialize(name, form, lb=LB, ub=UB, registers=h_d, stages_on_q=on_q)
+   dt = 0.25_R_P / 8._R_P
+   solid_q = .true. ; fluid_same = .true.
+   do step=1, 2
+      call dev_memcpy_from_device(dst=qn, src=q_d)
+      call st%begin_step(bx, q_d, mask=m_d) ; call sr%begin_step(bx, p_d, mask=m_d)
+      do k=1, st%stages()
+         call st%begin_stage(k, bx, dt, q_d, mask=m_d) ; call sr%begin_stage(k, bx, dt, p_d, mask=m_d)
+         if (st%stage_state_is_q(k)) then
+            u_d => q_d ; v_d => p_d
+         else
+            u_d => st%stage_state() ; v_d => sr%stage_state()
+         endif
+         call dev_memcpy_from_device(dst=u, src=u_d)
+         call dev_memcpy_from_device(dst=v, src=v_d)
+         if (.not. sr%stage_state_is_q(k)) then ! ADAM's adapter before #134: the caller copies q^n into the solid cells
+            v(:,1:NI,:,:,2:NB:2) = qn(:,1:NI,:,:,2:NB:2)
+            call dev_memcpy_to_device(dst=v_d, src=v)
+         endif
+         solid_q = solid_q .and. all(u(:,1:NI,1,1,2:NB:2) == qn(:,1:NI,1,1,2:NB:2))
+         fluid_same = fluid_same .and. all(u(:,1:NI,1,1,1:NB:2) == v(:,1:NI,1,1,1:NB:2))
+         call fill_ghosts(u_d) ; call fill_ghosts(v_d)
+         r_d => st%rhs_register() ; call residual(u_d, r_d)
+         r_d => sr%rhs_register() ; call residual(v_d, r_d)
+         call st%end_stage(k, bx, dt, q_d, mask=m_d) ; call sr%end_stage(k, bx, dt, p_d, mask=m_d)
+      enddo
+      call st%finish_step(bx, dt, q_d, mask=m_d) ; call sr%finish_step(bx, dt, p_d, mask=m_d)
+   enddo
+   call dev_memcpy_from_device(dst=u, src=q_d)
+   call dev_memcpy_from_device(dst=v, src=p_d)
+   call check(solid_q, name//' '//form//merge(' (stages on q)', '              ', on_q)// &
+              ': masked_q, the solid cells of every stage state are q^n')
+   call check(fluid_same .and. all(u(:,1:NI,1,1,:) == v(:,1:NI,1,1,:)), name//' '//form// &
+              merge(' (stages on q)', '              ', on_q)//': masked_q bitwise the caller''s own copy of q^n')
+   call st%destroy ; call sr%destroy
+   call dev_free(q_d) ; call dev_free(p_d) ; call dev_free(m_d) ; call dev_free(g_d) ; call dev_free(h_d)
+   endsubroutine masked_stage_q
 
    subroutine advect(name, form, nsteps, q_final, regs_d)
    !< nsteps periodic steps to t = 0.25; the final solution on the host.

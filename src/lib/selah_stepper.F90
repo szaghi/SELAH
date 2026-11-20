@@ -52,6 +52,12 @@ module selah_stepper
 !< f_k dt times its residual admissible (positive, bounded) keeps every later stage and the step admissible. For a
 !< splitting, flow k is a forward-Euler step of fraction c_k on its partition (0 for a backward flow).
 !<
+!< **Mask policy.** With `mask` present, the kernels update the active cells only. With `masked_q=.true.` at
+!< initialisation, the masked cells of every stage state hold q^n: the Butcher form writes q^n into them as it builds
+!< the stage state (in the same pass); the other forms keep the stage state in q, whose masked cells no update touches.
+!< A caller whose residual reads masked cells (an immersed boundary extrapolating from the solid side) then sees q^n
+!< there at every stage. Default `.false.`: the Butcher register's masked cells are left untouched (v0.1.0 behaviour).
+!<
 !< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
 !< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
 !< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
@@ -107,6 +113,7 @@ type :: stepper
    logical, allocatable        :: on_q(:)                 !< Stage k's state is q itself.
    real(R_P), allocatable      :: ef(:)                   !< Forward-Euler fraction of each stage (Shu–Osher form).
    real(R_P)                   :: cssp = 0._R_P           !< SSP coefficient of the Shu–Osher form, 0 if none.
+   logical                     :: masked_q = .false.      !< The masked cells of every stage state are q^n.
    contains
       procedure, pass(self) :: initialize
       procedure, pass(self) :: destroy
@@ -139,7 +146,7 @@ type :: stepper
 endtype stepper
 
 contains
-   subroutine initialize(self, scheme, form, lb, ub, partitions, registers, stages_on_q, components)
+   subroutine initialize(self, scheme, form, lb, ub, partitions, registers, stages_on_q, components, masked_q)
    !< Set the scheme and its storage form for a field of rank size(lb); allocate the registers (or take the caller's).
    class(stepper),     intent(inout)                  :: self          !< Stepper.
    character(*),       intent(in)                     :: scheme        !< Scheme name (selah_schemes, selah_splittings).
@@ -151,6 +158,8 @@ contains
                                                                        !< zero are evaluated on q (default .false.).
    logical,            intent(in), optional           :: components    !< Rank below 5: the field's first dimension
                                                                        !< holds its components (selah_box).
+   logical,            intent(in), optional           :: masked_q      !< The masked cells of every stage state are
+                                                                       !< q^n (default .false.: left untouched).
    integer(I4P)                                       :: nreg, ierr  !< Registers needed, error status.
    integer(I4P)                                       :: k           !< Stage.
    type(box)                                          :: bx          !< The field's dimensions as rank 5.
@@ -165,6 +174,8 @@ contains
       error stop 'selah stepper: a field of rank below 5 needs components= (its first dimension holds components?)'
    self%components = .true.
    if (present(components)) self%components = components
+   self%masked_q = .false.
+   if (present(masked_q)) self%masked_q = masked_q
    if (self%rank == 5_I4P .and. .not. self%components) error stop 'selah stepper: a rank-5 field has components'
    bx = box_range(lb, lb, ub, self%components)
    self%lb = bx%lb
@@ -263,7 +274,7 @@ contains
    if (allocated(self%ef)) deallocate(self%ef)
    self%cssp = 0._R_P
    self%owned = .false. ; self%nstages = 0_I4P ; self%k_active = 0_I4P
-   self%rank = 5_I4P ; self%components = .true.
+   self%rank = 5_I4P ; self%components = .true. ; self%masked_q = .false.
    endsubroutine destroy
 
    subroutine begin_step_r5(self, bx, q, mask, mask_comp)
@@ -293,7 +304,7 @@ contains
 
    if (self%form == FORM_BUTCHER .and. .not. self%on_q(k)) &
       call selah_stage_state(bx, k-1_I4P, dt, self%at_d(:,k), q, self%regs(:,:,:,:,:,2:), self%regs(:,:,:,:,:,1), &
-                             mask, mask_comp)
+                             mask, mask_comp, masked_q=self%masked_q)
    self%k_active = k
    endsubroutine begin_stage_r5
 

@@ -1,7 +1,7 @@
    ! Loop of the box kernel stage_state of SELAH (selah_kernels_box): u = q + sum_k dt coef(k) regs(k): the stage
    ! state of a Butcher form (ADAM FNL's compute_stage: the private sum, then one store).
-   ! Included unmasked, and once per layout with SELAH_ACTIVE the mask condition; SELAH_MASK_ARG adds the mask to the
-   ! data clauses. Only the cells of the box are visited: dimension 1 innermost, the contiguous one.
+   ! Included unmasked, and once per layout with SELAH_ACTIVE the mask condition (and SELAH_FILL: the inactive cells
+   ! take q); SELAH_MASK_ARG adds the mask to the data clauses. Only the cells of the box are visited: dimension 1 innermost, the contiguous one.
    !$acc parallel loop independent collapse(5) DEVICEVAR(coef, q, regs, u SELAH_MASK_ARG) private(d)
    !$omp OMPLOOP collapse(5) DEVICEPTR(coef, q, regs, u SELAH_MASK_ARG) private(d)
    do i5=lo5, hi5
@@ -18,6 +18,10 @@
                      d = d + dt * coef(k) * regs(i1,i2,i3,i4,i5,k)
                   enddo
                   u(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5) + d
+#ifdef SELAH_FILL
+                  else
+                  u(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5)
+#endif
 #ifdef SELAH_ACTIVE
                   endif
 #endif

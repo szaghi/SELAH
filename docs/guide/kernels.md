@@ -54,7 +54,7 @@ the rank-5 view: pass a lower-rank field to the stepper, which takes it at its o
 | `selah_copy`                | y = x |
 | `selah_axpy`                | y = y + α x |
 | `selah_lincomb`             | y = α x + β y |
-| `selah_stage_state`         | u = q + Σₖ Δt coef(k) regs(k): the state of a stage of a Butcher form (n = 0: a copy) |
+| `selah_stage_state`         | u = q + Σₖ Δt coef(k) regs(k): the state of a stage of a Butcher form (n = 0: a copy); with `masked_q`, u = q in the inactive cells, in the same pass |
 | `selah_step_update`         | q = q + Δt Σₖ coef(k) regs(k), with the step residual dq = Σₖ coef(k) regs(k) when asked |
 | `selah_shu_osher_2r_stage`  | q = a q⁰ + b q + Δt c r: a stage of a two-register Shu–Osher form |
 | `selah_williamson_2n_stage` | ΔQ = A ΔQ + Δt r; q = q + B ΔQ: a stage of a Williamson 2N form |
@@ -92,7 +92,7 @@ included unmasked and once per layout masked. OpenMP offload has the directives 
 
 | What | Case |
 |---|---|
-| every kernel, cell by cell: values in the box, every other cell bitwise untouched (316 checks) | [C3](/verification/contracts/stage-contract) |
+| every kernel, cell by cell: values in the box, every other cell bitwise untouched (348 checks) | [C3](/verification/contracts/stage-contract) |
 | ADAM's FNL kernels bitwise, ADAM's CPU loops within 4 ε (1.00 ε measured) | [C1](/verification/contracts/adam-equivalence) |
 | on an NVIDIA A30 | [C5](/verification/contracts/device) |
 | pinned values | [C4](/verification/contracts/golden) |

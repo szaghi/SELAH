@@ -26,13 +26,14 @@ the options around it, as a solver would use them:
 | Clause or option | How it is checked | Program |
 |---|---|---|
 | no ghost cell written (2) | every register and `q` start with a sentinel in their ghost layers; the layers the caller never fills keep it bit for bit through whole steps, every scheme and form | `selah_test_stepper` |
-| a kernel writes its box only | every kernel, both layouts, masked and unmasked, on a component range: every cell outside the box (ghosts, pool slots past the active blocks, other components, inactive cells) bitwise untouched | `selah_test_kernels` (316 checks) |
+| a kernel writes its box only | every kernel, both layouts, masked and unmasked, on a component range: every cell outside the box (ghosts, pool slots past the active blocks, other components, inactive cells) bitwise untouched | `selah_test_kernels` (348 checks) |
 | residual register distinct (4) | `associated(rhs_register(), stage_state)` false at every stage | `selah_test_stepper` |
 | no register outside a window (4) | `rhs_register()` and `stage_state()` not associated after `begin_step` and after every `end_stage`, every scheme and form | `selah_test_stepper` |
 | `state_aliases_q`, `stage_state_is_q` (1) | true exactly for the aliasing forms, and for the zero rows of A with `stages_on_q`; `stage_state()` null on such a stage | `selah_test_stepper` |
 | `stages_on_q` | the solution bitwise that of the plain Butcher form, every scheme | `selah_test_stepper` |
 | `registers=` | NaN-filled caller registers give the solution of the own registers bitwise, in the Butcher, two-register, 2N and Ketcheson forms: no form reads a register before writing it | `selah_test_stepper_options` |
 | masks | solid blocks of `q` bitwise untouched through whole steps in four forms; `mask_comp` absent = the last component | `selah_test_stepper_options`, `selah_test_kernels` |
+| the mask policy (`masked_q`) | the solid cells of every stage state are $q^n$ bitwise, every Runge–Kutta scheme in the Butcher form (with and without `stages_on_q`, registers filled with NaN) and every other form; every stage state and the solution bitwise those of a caller that copies $q^n$ into the solid cells itself; the stage-state kernel with `masked_q`, both layouts, both mask components, 0 and 3 registers: inactive box cells $= q$, active cells the stage state, every other cell untouched | `selah_test_stepper_options`, `selah_test_kernels` |
 | `stage_time`, `finish_step(dq=)` | $c_k$; for a splitting the other partition's fractions before flow $k$; $dq = (q^{n+1} - q^n)/\Delta t$ to round-off | `selah_test_stepper_options` |
 | ADAM's forest | two steppers (realms) driven stage by stage together: `begin_stage(k)` on every realm, the seam fill of every stage state from the neighbours', the residuals, `end_stage(k)` on every realm; per-stage seams give the single-block solution bitwise; lagged seams (#113: the ghosts of $q$ kept through the step, copied into the stage state in the Butcher form) the lagged scheme's definition to 1000 ε; $\sum_k$ `stage_weight(k)` $F_k$ telescopes every block's mass change; end-of-step reflux (on $q$ after `finish_step`) and per-stage reflux (on `rhs_register()` before `end_stage`) conserve the mass to round-off; the caller's registers written or NaN-filled between steps (ADAM's D_flux diagnostic) leave the solution bitwise | `selah_test_forest` |
 | time-dependent residuals | through the stepper, every scheme and form: $u' = q\,t^{q-1}$ exact to round-off for $q \le p$ (Runge–Kutta stage times and weights; for a splitting, with either partition time-dependent); the observed order $p$ on a nonlinear non-autonomous problem (the Riccati equation; a forced oscillator for the splittings) | `selah_test_nonautonomous` |
@@ -49,8 +50,8 @@ bash scripts/run_tests.sh       # runs the xfail programs and passes them when t
 
 ## Results
 
-All checks pass on every compiler, in both precisions, and on the GPU: 314 in `selah_test_stepper`, 23 in
-`selah_test_stepper_options`, 848 in `selah_test_stepper_ranks` (694 in R4P), 316 in `selah_test_kernels`. The three
+All checks pass on every compiler, in both precisions, and on the GPU: 314 in `selah_test_stepper`, 49 in
+`selah_test_stepper_options`, 848 in `selah_test_stepper_ranks` (694 in R4P), 348 in `selah_test_kernels`. The three
 expected failures stop with their messages. The A30 jobs of 2026-11-17 ([C5](./device)) ran 248 checks of
 `selah_test_stepper`, before the stage window and the stage coefficients were added. Job 1368457 ran all of them on
 the A30.

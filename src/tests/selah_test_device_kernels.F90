@@ -10,7 +10,8 @@ program selah_test_device_kernels
 !< device may contract to FMA), every other cell is bitwise untouched (ghosts, pool slots past the active blocks,
 !< masked-out cells), dq is exactly 0 where the mask is inactive. Both layouts, unmasked and masked, 3 of 6 blocks
 !< active; then the stage state with no register (a copy), the step update without dq, the 2N stage with a = 0, a
-!< component range (box_components) and an explicit mask component; every flat kernel too. In a device build
+!< component range (box_components) and an explicit mask component; the stage state with masked_q (inactive cells
+!< of the box = q); every flat kernel too. In a device build
 !< `dev_init(require_device=.true.)` forbids a silent host fallback.
 use fundal, only : dev_alloc, dev_free, dev_memcpy_to_device, dev_memcpy_from_device, dev_assign_to_device
 #if defined DEV_OAC || defined DEV_OMP
@@ -134,6 +135,8 @@ contains
    character(*), intent(in) :: lname
    real(R_P), allocatable   :: x(:,:,:,:,:), y0(:,:,:,:,:), q(:,:,:,:,:), r(:,:,:,:,:), mask(:,:,:,:,:), e(:,:,:,:,:)
    real(R_P), allocatable   :: regs(:,:,:,:,:,:), sum_b(:,:,:,:,:)
+   real(R_P), allocatable   :: em(:,:,:,:,:)
+   integer(I4P)             :: i1, i2, i3, i4, i5
    real(R_P), pointer       :: x_d(:,:,:,:,:)=>null(), y_d(:,:,:,:,:)=>null(), q_d(:,:,:,:,:)=>null()
    real(R_P), pointer       :: r_d(:,:,:,:,:)=>null(), m_d(:,:,:,:,:)=>null(), dq_d(:,:,:,:,:)=>null()
    real(R_P), pointer       :: regs_d(:,:,:,:,:,:)=>null()
@@ -183,6 +186,16 @@ contains
          e = e + DT * COEF(ierr) * regs(:,:,:,:,:,ierr)
       enddo
       call compare(bx, mask, masked, y_d, y0, e, tag//'stage_state')
+      if (masked) then ! the mask policy: the inactive cells of the box take q
+         call dev_memcpy_to_device(dst=y_d, src=y0)
+         call selah_stage_state(bx, NR, DT, coef_d, q_d, regs_d, y_d, m_d, masked_q=.true.)
+         em = e
+         do i5=bx%lo(5), bx%hi(5) ; do i4=bx%lo(4), bx%hi(4) ; do i3=bx%lo(3), bx%hi(3)
+         do i2=bx%lo(2), bx%hi(2) ; do i1=bx%lo(1), bx%hi(1)
+            if (.not. updated(bx, mask, .true., [i1,i2,i3,i4,i5])) em(i1,i2,i3,i4,i5) = q(i1,i2,i3,i4,i5)
+         enddo ; enddo ; enddo ; enddo ; enddo
+         call compare(bx, mask, .false., y_d, y0, em, tag//'stage_state masked_q (inactive cells = q)')
+      endif
       call dev_memcpy_to_device(dst=y_d, src=y0) ; call dev_memcpy_to_device(dst=dq_d, src=y0)
       if (masked) then
          call selah_step_update(bx, NR, DT, coef_d, regs_d, y_d, dq_d, m_d)
