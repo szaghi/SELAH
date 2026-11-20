@@ -77,6 +77,7 @@ export default withMermaid({
             { text: 'Kernels',   link: '/guide/kernels' },
             { text: 'Stepper',   link: '/guide/stepper' },
             { text: 'Composition', link: '/guide/composition' },
+            { text: 'Particles', link: '/guide/particles' },
             { text: 'Precision', link: '/guide/precision' },
             { text: 'API',       link: '/api/' },
           ],
@@ -151,6 +152,7 @@ export default withMermaid({
           { text: 'A5 Linear stability',            link: '/verification/accuracy/stability' },
           { text: 'A6 Additive splitting',          link: '/verification/accuracy/additive-splitting' },
           { text: 'A7 Particle sub-flows',          link: '/verification/accuracy/particle-flows' },
+          { text: 'A8 Particle pushers',            link: '/verification/accuracy/pushers' },
         ] },
         { text: 'Properties', collapsed: false, items: [
           { text: 'Overview',                       link: '/verification/properties/' },

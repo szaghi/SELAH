@@ -17,6 +17,7 @@ use selah_box
 use selah_kernels
 use selah_stepper
 use selah_additive_splitting
+use selah_pushers
 implicit none
 private
 ! kinds
@@ -43,4 +44,6 @@ public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
 public :: stepper
 ! L2: additive splitting of the field step and the caller's flow
 public :: additive_splitting, OPERATOR_FIELD, OPERATOR_FLOW, SCHEME_LIE, ADDITIVE_SCHEMES
+! L1: the two-level particle pushers
+public :: PUSHER_BORIS, PUSHER_BORIS_RELATIVISTIC, PUSHER_VAY, PUSHER_HIGUERA_CARY, selah_push
 endmodule selah

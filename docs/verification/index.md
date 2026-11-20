@@ -80,6 +80,8 @@ stability regions. [Group page](./accuracy/).
 
 [<strong>A7 Particle sub-flows</strong><span>KDK's discrete solution, Kepler orders and bounded energy, gas and sinks coupled</span><em>physics</em>](./accuracy/particle-flows)
 
+[<strong>A8 Particle pushers</strong><span>Boris, relativistic Boris, Vay, Higuera–Cary against their defining equations and the literature's properties</span><em>physics</em>](./accuracy/pushers)
+
 </div>
 
 ## Properties
