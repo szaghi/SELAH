@@ -76,6 +76,10 @@ stability regions. [Group page](./accuracy/).
 
 [![Stability](/verification/stability.png)<strong>A5 Linear stability</strong><span>the regions |R(z)| ≤ 1 from the library's tableaux, against closed forms</span><em>physics</em>](./accuracy/stability)
 
+[<strong>A6 Additive splitting</strong><span>the field step and the caller's flow: orders with exact sub-flows, through the stepper, time-dependent, stiff</span><em>physics</em>](./accuracy/additive-splitting)
+
+[<strong>A7 Particle sub-flows</strong><span>KDK's discrete solution, Kepler orders and bounded energy, gas and sinks coupled</span><em>physics</em>](./accuracy/particle-flows)
+
 </div>
 
 ## Properties

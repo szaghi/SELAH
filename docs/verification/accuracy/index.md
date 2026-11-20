@@ -14,3 +14,5 @@ Does every scheme have the order it declares, in every way SELAH can run it? And
 | [A3 Orders through the stepper](./stepper-orders) | physics | the observed order of every scheme in every storage form, driven by the stepper |
 | [A4 Splittings](./splittings) | physics | the observed order of the four compositions, both partition orders, two Hamiltonian problems |
 | [A5 Linear stability](./stability) | physics | the stability regions from the library's own tableaux, against closed forms and the SSP disc |
+| [A6 Additive splitting](./additive-splitting) | physics | the field step composed with the caller's flow: orders with exact sub-flows, through the stepper, with time-dependent terms and a stiff flow |
+| [A7 Particle sub-flows](./particle-flows) | physics | kick and drift as the splitting form: KDK's discrete solution, Kepler orders and energy, gas and sinks coupled |

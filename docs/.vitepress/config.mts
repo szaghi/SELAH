@@ -76,6 +76,7 @@ export default withMermaid({
             { text: 'Schemes',   link: '/guide/schemes' },
             { text: 'Kernels',   link: '/guide/kernels' },
             { text: 'Stepper',   link: '/guide/stepper' },
+            { text: 'Composition', link: '/guide/composition' },
             { text: 'Precision', link: '/guide/precision' },
             { text: 'API',       link: '/api/' },
           ],
@@ -148,6 +149,8 @@ export default withMermaid({
           { text: 'A3 Orders through the stepper',  link: '/verification/accuracy/stepper-orders' },
           { text: 'A4 Splittings',                  link: '/verification/accuracy/splittings' },
           { text: 'A5 Linear stability',            link: '/verification/accuracy/stability' },
+          { text: 'A6 Additive splitting',          link: '/verification/accuracy/additive-splitting' },
+          { text: 'A7 Particle sub-flows',          link: '/verification/accuracy/particle-flows' },
         ] },
         { text: 'Properties', collapsed: false, items: [
           { text: 'Overview',                       link: '/verification/properties/' },

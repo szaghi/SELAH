@@ -32,6 +32,8 @@ when they exit with an error. The suite runs:
 | `selah_test_forest` | the stepper driven as ADAM's forest drives its integrator: two realms of two blocks, seams filled per stage or lagged (#113), every Runge–Kutta scheme and form: per-stage seams give the single-block solution bitwise; lagged seams the lagged scheme's definition; the reflux register telescopes; end-of-step and per-stage reflux conserve; caller registers are scratch between steps (the D_flux diagnostic) | 220 | [C3](./contracts/stage-contract) |
 | `selah_test_nonautonomous` | time-dependent residuals through the stepper, every scheme and form: $u' = q\,t^{q-1}$ exact for $q \le p$ (splittings with either partition time-dependent); observed orders on the Riccati equation and on a forced oscillator | 44 (22 in R4P, without the orders) | [C3](./contracts/stage-contract) |
 | `selah_test_stage_euler` | the per-stage forward-Euler fractions and the SSP coefficient against the literature, in every form; planted Shu–Osher forms; a positivity limiter through the stepper: positive with $f_k\,\Delta t$, negative with half of it | 76 | [P2](./properties/ssp-coefficients) |
+| `selah_test_additive_splitting` | the field step composed with the caller's flow: queries, orders of lie, strang and the palindromes with exact sub-flows (either operator first), with the stepper as the field step, with both terms time-dependent, with a stiff flow (the cooling model) | 48 (14 in R4P, the queries) | [A6](./accuracy/additive-splitting) |
+| `selah_test_particle_flows` | kick and drift through the splitting form: KDK's discrete solution and phase error on the oscillator, Kepler orders and bounded energy for every splitting, gas and sinks coupled through the additive splitting | 16 (6 in R4P, the oscillator) | [A7](./accuracy/particle-flows) |
 | `selah_test_stepper_ranks` | fields of rank 1 to 4, seven shapes: rank k bitwise rank 5, orders, the stage contract, stage coefficients, masks, splittings | 848 (694 in R4P, without the RK orders) | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [C5](./contracts/device) |
 | `selah_test_golden` | 1312 pinned values | 42 | [C4](./contracts/golden) |
 | `selah_vv_stability` | stability polynomials, axis limits, SSP discs | 22 | [A5](./accuracy/stability) |
@@ -40,6 +42,7 @@ when they exit with an error. The suite runs:
 | `selah_vv_forms` | every low-storage form on its Butcher form's solution | 6 | [C2](./contracts/forms) |
 | `selah_test_xfail_dq_form` | `dq` for a non-Butcher form stops the program | — | [C3](./contracts/stage-contract) |
 | `selah_test_xfail_registers` | registers numbered from 0 stop the program | — | [C3](./contracts/stage-contract) |
+| `selah_test_xfail_additive_backward` | an additive splitting with backward substeps, not declared reversible, stops the program | — | [A6](./accuracy/additive-splitting) |
 | `selah_test_xfail_form` | a scheme in a form it does not have stops the program | — | [C3](./contracts/stage-contract) |
 
 The benchmarks (`src/bench/`, modes `bench-*`) are not tests: they time, they do not assert.

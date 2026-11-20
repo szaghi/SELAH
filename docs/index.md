@@ -144,6 +144,7 @@ const authors = [
 | `SCHEME_YOSHIDA_4`       | `yoshida-4`       | 7  | 4 | splitting (1) | Yoshida (1990) |
 | `SCHEME_BLANES_MOAN_S6`  | `blanes-moan-s6`  | 13 | 4 | splitting (1) | Blanes & Moan (2002), S6 |
 | `SCHEME_BLANES_MOAN_S10` | `blanes-moan-s10` | 21 | 6 | splitting (1) | Blanes & Moan (2002), S10 |
+| `SCHEME_LIE`             | `lie`            | 2  | 1 | additive splitting only (`additive_splitting`) | Trotter (1959) |
 
 ## Quick start
 

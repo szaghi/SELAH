@@ -16,6 +16,7 @@ use selah_storage
 use selah_box
 use selah_kernels
 use selah_stepper
+use selah_additive_splitting
 implicit none
 private
 ! kinds
@@ -40,4 +41,6 @@ public :: selah_copy, selah_axpy, selah_lincomb, selah_stage_state, selah_step_u
 public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
 ! L2: stepper
 public :: stepper
+! L2: additive splitting of the field step and the caller's flow
+public :: additive_splitting, OPERATOR_FIELD, OPERATOR_FLOW, SCHEME_LIE, ADDITIVE_SCHEMES
 endmodule selah

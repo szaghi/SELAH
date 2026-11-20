@@ -112,6 +112,16 @@ source-dir = "src/tests"
 main = "selah_test_stage_euler.F90"
 
 [[test]]
+name = "selah_test_additive_splitting"
+source-dir = "src/tests"
+main = "selah_test_additive_splitting.F90"
+
+[[test]]
+name = "selah_test_particle_flows"
+source-dir = "src/tests"
+main = "selah_test_particle_flows.F90"
+
+[[test]]
 name = "selah_test_stepper_ranks"
 source-dir = "src/tests"
 main = "selah_test_stepper_ranks.F90"
