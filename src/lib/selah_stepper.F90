@@ -143,6 +143,7 @@ contains
    integer(I4P)                                       :: nreg, ierr  !< Registers needed, error status.
    integer(I4P)                                       :: k           !< Stage.
    type(box)                                          :: bx          !< The field's dimensions as rank 5.
+   real(R_P), allocatable                             :: at(:,:)     !< Transposed A, a contiguous array.
 
    call self%destroy
    self%scheme = trim(adjustl(scheme))
@@ -166,7 +167,11 @@ contains
    select case(self%form)
    case(FORM_BUTCHER)
       self%nstages = self%bt%stages
-      call dev_assign_to_device(dst=self%at_d, src=transpose(self%bt%a))
+      ! A^T through a contiguous array, not the expression transpose(A): gfortran 14.3 passes that expression on to
+      ! FUNDAL's contiguous dummy without the copy it needs, so at_d held A itself (every Butcher stage state but the
+      ! first wrong; seen in ADAM's build, -cpp -O0/-O2; SELAH's -std=f2018 build hides it)
+      at = transpose(self%bt%a)
+      call dev_assign_to_device(dst=self%at_d, src=at)
       call dev_assign_to_device(dst=self%b_d, src=self%bt%b)
    case(FORM_SHU_OSHER_2R)
       self%r2 = shu_osher_2r(self%scheme)

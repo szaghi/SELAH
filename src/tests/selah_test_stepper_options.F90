@@ -8,6 +8,8 @@ program selah_test_stepper_options
 !< The caller is the periodic 1-D advection of selah_test_stepper (NB blocks of NI cells, one ghost cell, central
 !< residual), here driven through the arguments that test does not use:
 !<
+!<+ **The device copy of A^T.** The Butcher form keeps A^T on the device (a column per stage); copied back, it is the
+!<  transpose of the tableau's A, bit for bit, for every Runge–Kutta scheme (gfortran 14.3 once stored A itself).
 !<+ **stage_time.** stage_time(k) is the abscissa c_k of the tableau in every Runge–Kutta form; for a splitting, the
 !<  fractions of the other partition's flows before flow k (Strang: 0, 1/2, 1), with either partition first.
 !<+ **registers=.** The caller's registers, filled with NaN, give the solution of the stepper's own (zeroed) registers
@@ -35,6 +37,7 @@ integer(I4P)            :: s
 call dev_init(require_device=.true.)
 print '(A)', 'device build'
 #endif
+call transposed_a
 call stage_times
 call caller_registers(SCHEME_LSRK_54, FORM_WILLIAMSON_2N)
 call caller_registers(SCHEME_LSRK_54, FORM_BUTCHER)
@@ -52,6 +55,28 @@ if (failures > 0) error stop 'selah_test_stepper_options: failed'
 print '(A)', 'selah_test_stepper_options: ok'
 
 contains
+   subroutine transposed_a
+   !< The device copy of A^T is the transpose of the tableau's A, bit for bit, for every Runge–Kutta scheme.
+   type(stepper)          :: st      !< Stepper.
+   real(R_P), allocatable :: at(:,:) !< A^T copied back to the host.
+   logical                :: ok      !< Every scheme.
+   integer(I4P)           :: m       !< Scheme.
+
+   ok = .true.
+   do m=1, size(RK_SCHEMES)
+      call st%initialize(scheme=trim(RK_SCHEMES(m)), form=FORM_BUTCHER, lb=LB, ub=UB)
+      allocate(at, mold=st%bt%a)
+      call dev_memcpy_from_device(dst=at, src=st%at_d)
+      if (any(at /= transpose(st%bt%a))) then
+         ok = .false.
+         print '(A)', '  '//trim(RK_SCHEMES(m))//': the device A^T is not the transpose of A'
+      endif
+      deallocate(at)
+      call st%destroy
+   enddo
+   call check(ok, 'the device copy of A^T is the transpose of A, every scheme')
+   endsubroutine transposed_a
+
    subroutine stage_times
    !< stage_time(k) = c_k in every Runge–Kutta form; for a splitting, the other partition's fractions before flow k.
    type(stepper)         :: st
