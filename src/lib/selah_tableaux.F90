@@ -31,6 +31,9 @@ public :: shu_osher_from_2r
 public :: is_explicit
 public :: ssp_coefficient
 public :: euler_step_fractions
+public :: stability_polynomial
+public :: imag_axis_bound
+public :: real_axis_bound
 
 type :: butcher_tableau
    !< Butcher tableau of an s-stage Runge–Kutta scheme.
@@ -223,4 +226,124 @@ contains
       enddo
    enddo
    endfunction euler_step_fractions
+   pure function stability_polynomial(bt) result(g)
+   !< Coefficients of the stability polynomial of an explicit tableau, \(R(z) = \sum_{k=0}^{s} g_k z^k\):
+   !< \(g_0 = 1\), \(g_k = b^T A^{k-1} \mathbf 1\).
+   type(butcher_tableau), intent(in) :: bt                 !< Butcher tableau (explicit).
+   real(R_P)                         :: g(0:bt%stages)     !< Coefficients.
+   real(R_P)                         :: v(bt%stages)       !< A^{k-1} 1.
+   integer(I4P)                      :: k                  !< Counter.
+
+   g(0) = 1._R_P
+   v = 1._R_P
+   do k=1, bt%stages
+      g(k) = sum(bt%b * v)
+      v = matmul(bt%a, v)
+   enddo
+   endfunction stability_polynomial
+
+   pure function imag_axis_bound(bt) result(beta)
+   !< The imaginary-axis stability bound: the largest \(\beta\) with \(|R(iy)| \le 1\) for \(|y| \le \beta\), 0 when
+   !< none (euler, ssp-22). The step of an oscillatory mode of frequency \(\omega\) (a gyration, a wave) is stable
+   !< for \(\omega \Delta t \le \beta\).
+   !<
+   !< \(P(w) = |R(iy)|^2 - 1\) is a polynomial in \(w = y^2\); its coefficients of \(w^j\), \(2j \le p\), vanish
+   !< for a scheme of order p (\(R\) agrees with \(e^z\) to \(z^p\)) and are set to 0, so that the rounding of the
+   !< tableau's digits does not decide the sign near 0. \(\beta = 0\) when the lowest remaining coefficient is
+   !< positive, else \(\sqrt{w^*}\), \(w^*\) the first point where \(P\) turns positive (a scan of \(y\) by
+   !< 1e-3, then bisection to round-off).
+   type(butcher_tableau), intent(in) :: bt          !< Butcher tableau (explicit).
+   real(R_P)                         :: beta        !< Bound.
+   real(R_P)                         :: g(0:bt%stages), pw(0:bt%stages) !< R's coefficients; P's in w.
+   real(R_P)                         :: re(0:bt%stages), im(0:bt%stages) !< Re R(iy) and Im R(iy)/y as polynomials in w.
+   real(R_P)                         :: lo, hi, mid !< Bisection.
+   integer(I4P)                      :: j, k, s     !< Counters, stages.
+
+   s = bt%stages
+   g = stability_polynomial(bt)
+   re = 0._R_P ; im = 0._R_P
+   do k=0, s
+      if (mod(k, 2_I4P) == 0_I4P) then
+         re(k/2) = re(k/2) + (-1._R_P)**(k/2) * g(k)
+      else
+         im((k-1)/2) = im((k-1)/2) + (-1._R_P)**((k-1)/2) * g(k)
+      endif
+   enddo
+   pw = 0._R_P
+   do j=0, s
+      do k=0, s - j
+         pw(j+k) = pw(j+k) + re(j) * re(k)
+         if (j + k + 1 <= s) pw(j+k+1) = pw(j+k+1) + im(j) * im(k)
+      enddo
+   enddo
+   pw(0) = pw(0) - 1._R_P
+   do j=0, s
+      if (2 * j <= bt%order) pw(j) = 0._R_P
+   enddo
+   beta = 0._R_P
+   do j=0, s
+      if (pw(j) > 0._R_P) return
+      if (pw(j) < 0._R_P) exit
+   enddo
+   if (all(pw == 0._R_P)) then
+      beta = huge(1._R_P)
+      return
+   endif
+   hi = 0._R_P
+   do while (p_of(hi + 1.e-3_R_P) <= 0._R_P .and. hi < 100._R_P)
+      hi = hi + 1.e-3_R_P
+   enddo
+   lo = hi ; hi = hi + 1.e-3_R_P
+   do k=1, 100
+      mid = 0.5_R_P * (lo + hi)
+      if (p_of(mid) <= 0._R_P) then ; lo = mid ; else ; hi = mid ; endif
+   enddo
+   beta = lo
+   contains
+      pure function p_of(y) result(p)
+      !< P(y^2), Horner.
+      real(R_P), intent(in) :: y
+      real(R_P)             :: p
+      integer(I4P)          :: i
+
+      p = pw(s)
+      do i=s-1, 0, -1
+         p = p * y**2 + pw(i)
+      enddo
+      endfunction p_of
+   endfunction imag_axis_bound
+
+   pure function real_axis_bound(bt) result(beta)
+   !< The real-axis stability bound: the largest \(\beta\) with \(|R(-x)| \le 1\) for \(0 \le x \le \beta\) (a decay of
+   !< rate \(\lambda\) is stable for \(\lambda \Delta t \le \beta\)); a scan by 1e-3, then bisection.
+   type(butcher_tableau), intent(in) :: bt          !< Butcher tableau (explicit).
+   real(R_P)                         :: beta        !< Bound.
+   real(R_P)                         :: g(0:bt%stages) !< R's coefficients.
+   real(R_P)                         :: lo, hi, mid !< Bisection.
+   integer(I4P)                      :: k           !< Counter.
+
+   g = stability_polynomial(bt)
+   hi = 0._R_P
+   do while (abs(r_of(-(hi + 1.e-3_R_P))) <= 1._R_P .and. hi < 100._R_P)
+      hi = hi + 1.e-3_R_P
+   enddo
+   lo = hi ; hi = hi + 1.e-3_R_P
+   do k=1, 100
+      mid = 0.5_R_P * (lo + hi)
+      if (abs(r_of(-mid)) <= 1._R_P) then ; lo = mid ; else ; hi = mid ; endif
+   enddo
+   beta = lo
+   contains
+      pure function r_of(x) result(r)
+      !< R(x), Horner.
+      real(R_P), intent(in) :: x
+      real(R_P)             :: r
+      integer(I4P)          :: i
+
+      r = g(bt%stages)
+      do i=bt%stages-1, 0, -1
+         r = r * x + g(i)
+      enddo
+      endfunction r_of
+   endfunction real_axis_bound
 endmodule selah_tableaux

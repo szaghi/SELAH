@@ -58,6 +58,14 @@ module selah_stepper
 !< A caller whose residual reads masked cells (an immersed boundary extrapolating from the solid side) then sees q^n
 !< there at every stage. Default `.false.`: the Butcher register's masked cells are left untouched (v0.1.0 behaviour).
 !<
+!< **Companion states.** A state that advances with the field in the same step, its residual built inside the field's
+!< (particles pushed by the fields of each stage, a perfectly matched layer's auxiliary fields), is the same scheme
+!< applied to another state: a companion is a second stepper, `initialize_companion(field, lb, ub, ...)`, with the
+!< field stepper's scheme, form and stages on q, driven through the same calls in the same stage window (begin_stage
+!< of both, the residuals of both, end_stage of both). Its bounds are a capacity: the box of each call is the active
+!< part (particles 1..n of a pool, the components that evolve), and the kernels never touch the rest. Re-initialise it
+!< when its shape changes (a regrid). Stepped together, field and companion are bitwise the two stepped as one state.
+!<
 !< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
 !< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
 !< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
@@ -116,6 +124,7 @@ type :: stepper
    logical                     :: masked_q = .false.      !< The masked cells of every stage state are q^n.
    contains
       procedure, pass(self) :: initialize
+      procedure, pass(self) :: initialize_companion
       procedure, pass(self) :: destroy
       procedure, pass(self), private :: begin_step_r1, begin_step_r2, begin_step_r3, begin_step_r4, begin_step_r5
       procedure, pass(self), private :: begin_stage_r1, begin_stage_r2, begin_stage_r3, begin_stage_r4, begin_stage_r5
@@ -141,6 +150,8 @@ type :: stepper
       procedure, pass(self) :: stage_partition
       procedure, pass(self) :: stage_euler_fraction
       procedure, pass(self) :: ssp_coefficient => stepper_ssp_coefficient
+      procedure, pass(self) :: imag_axis_bound => stepper_imag_axis_bound
+      procedure, pass(self) :: real_axis_bound => stepper_real_axis_bound
       procedure, pass(self) :: state_aliases_q
       procedure, pass(self) :: stage_state_is_q
 endtype stepper
@@ -241,6 +252,24 @@ contains
       self%owned = .true.
    endif
    endsubroutine initialize
+
+   subroutine initialize_companion(self, field, lb, ub, partitions, registers, components)
+   !< A companion of the stepper `field`: a stepper of the same scheme, form and stages on q, for another state that
+   !< advances with the field in the same step (see "Companion states" above).
+   class(stepper),     intent(inout)                  :: self          !< Companion.
+   class(stepper),     intent(in)                     :: field         !< The field's stepper, initialised.
+   integer(I4P),       intent(in)                     :: lb(:), ub(:)  !< Bounds of the companion's state (rank k).
+   integer(I4P),       intent(in), optional           :: partitions(2,2) !< Splitting: the companion's partitions.
+   real(R_P),          intent(in), optional, pointer  :: registers(:,:,:,:,:,:) !< The caller's registers (rank 5).
+   logical,            intent(in), optional           :: components    !< Rank below 5: the first dimension holds
+                                                                       !< components.
+
+   if (field%nstages == 0_I4P) error stop 'selah stepper: a companion needs an initialised field stepper'
+   if (field%form == FORM_SPLITTING .and. .not. present(partitions)) &
+      error stop 'selah stepper: a companion of a splitting needs the components of its own partitions'
+   call self%initialize(field%scheme, field%form, lb, ub, partitions=partitions, registers=registers, &
+                        stages_on_q=any(field%on_q) .and. field%form == FORM_BUTCHER, components=components)
+   endsubroutine initialize_companion
 
    subroutine euler_steps(self)
    !< The forward-Euler fraction of each stage and the SSP coefficient: from the scheme's Shu–Osher form, whatever the
@@ -670,6 +699,26 @@ contains
 
    c = self%cssp
    endfunction stepper_ssp_coefficient
+
+   pure function stepper_imag_axis_bound(self) result(beta)
+   !< The scheme's imaginary-axis stability bound (selah_tableaux `imag_axis_bound`): an oscillatory mode of frequency
+   !< omega (a gyration, a wave) is stable for omega dt <= beta; 0 for euler, ssp-22 and a splitting.
+   class(stepper), intent(in) :: self !< Stepper.
+   real(R_P)                  :: beta !< Bound.
+
+   beta = 0._R_P
+   if (self%form /= FORM_SPLITTING) beta = imag_axis_bound(self%bt)
+   endfunction stepper_imag_axis_bound
+
+   pure function stepper_real_axis_bound(self) result(beta)
+   !< The scheme's real-axis stability bound (selah_tableaux `real_axis_bound`): a decay of rate lambda is stable for
+   !< lambda dt <= beta; 0 for a splitting.
+   class(stepper), intent(in) :: self !< Stepper.
+   real(R_P)                  :: beta !< Bound.
+
+   beta = 0._R_P
+   if (self%form /= FORM_SPLITTING) beta = real_axis_bound(self%bt)
+   endfunction stepper_real_axis_bound
 
    pure function state_aliases_q(self) result(yes)
    !< The stage state is q itself (every form but the Butcher one).

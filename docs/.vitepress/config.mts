@@ -168,6 +168,7 @@ export default withMermaid({
           { text: 'C5 Device',                      link: '/verification/contracts/device' },
           { text: 'C6 Mutation testing',            link: '/verification/contracts/mutation' },
           { text: 'C7 Precision',                   link: '/verification/contracts/precision' },
+          { text: 'C8 Companion states',            link: '/verification/contracts/companion' },
         ] },
       ],
     },

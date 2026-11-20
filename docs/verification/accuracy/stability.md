@@ -46,6 +46,15 @@ and the 2N schemes.*
 
 <!--@include: ../_tables/stability.md-->
 
+## The library's bounds
+
+`imag_axis_bound()` and `real_axis_bound()` (selah_tableaux, the stepper) compute the two limits in the working
+precision: the imaginary one from $P(w) = |R(iy)|^2 - 1$ as a polynomial in $w = y^2$, its coefficients of $w^j$,
+$2j \le p$, set to the exact 0 the order gives them (so that the rounding of the tableau's digits does not open or
+close an interval at the origin). They agree with this case's quadruple-precision bisection to $10^{-6}$ for every
+scheme (`selah_vv_stability`), and with the closed forms ($\sqrt 3$, $2\sqrt 2$, 0) in `selah_test_rk_particles`.
+PRISM's hard-coded imaginary-axis bound of SSP(5,4), 3.278, is the table's 3.278356.
+
 ## Findings
 
 - Every polynomial agrees with $e^z$ up to $z^p$, every closed-form limit matches, and every SSP scheme is stable on

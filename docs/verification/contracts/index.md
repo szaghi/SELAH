@@ -17,3 +17,4 @@ programs against, values pinned between releases, the device, and the suite's ow
 | [C5 Device](./device) | contract | kernels and stepper on an NVIDIA A30, against the host and ADAM |
 | [C6 Mutation testing](./mutation) | contract | 28 deliberate defects, each caught by the suite |
 | [C7 Precision](./precision) | contract | what runs, and what is asserted, in single precision |
+| [C8 Companion states](./companion) | contract | a companion and its field are the coupled Runge–Kutta step, bitwise; active extent, layouts, rebuild; particles pushed on it |

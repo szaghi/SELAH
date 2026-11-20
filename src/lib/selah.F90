@@ -24,7 +24,7 @@ public :: I4P, I8P, R4P, R8P, R_P
 ! coefficient forms and conversions
 public :: butcher_tableau, shu_osher_form, shu_osher_2r_form, williamson_2n_form
 public :: butcher_from_shu_osher, butcher_from_shu_osher_2r, butcher_from_williamson_2n, shu_osher_from_2r
-public :: is_explicit, ssp_coefficient, euler_step_fractions
+public :: is_explicit, ssp_coefficient, euler_step_fractions, stability_polynomial, imag_axis_bound, real_axis_bound
 ! Runge–Kutta catalogue
 public :: SCHEME_EULER, SCHEME_SSP_22, SCHEME_SSP_33, SCHEME_SSP_54, SCHEME_SSP_104
 public :: SCHEME_RK4, SCHEME_LSRK_33, SCHEME_LSRK_54, RK_SCHEMES

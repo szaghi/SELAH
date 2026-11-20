@@ -34,9 +34,11 @@ when they exit with an error. The suite runs:
 | `selah_test_stage_euler` | the per-stage forward-Euler fractions and the SSP coefficient against the literature, in every form; planted Shu–Osher forms; a positivity limiter through the stepper: positive with $f_k\,\Delta t$, negative with half of it | 76 | [P2](./properties/ssp-coefficients) |
 | `selah_test_additive_splitting` | the field step composed with the caller's flow: queries, orders of lie, strang and the palindromes with exact sub-flows (either operator first), with the stepper as the field step, with both terms time-dependent, with a stiff flow (the cooling model) | 48 (14 in R4P, the queries) | [A6](./accuracy/additive-splitting) |
 | `selah_test_particle_flows` | kick and drift through the splitting form: KDK's discrete solution and phase error on the oscillator, Kepler orders and bounded energy for every splitting, gas and sinks coupled through the additive splitting | 16 (6 in R4P, the oscillator) | [A7](./accuracy/particle-flows) |
+| `selah_test_companion` | a field and a companion (`initialize_companion`) coupled both ways: bitwise one state in every form, both particle layouts, active extent within a capacity, rebuild, the coupled orders | 53 (42 in R4P, without the orders) | [C8](./contracts/companion) |
+| `selah_test_rk_particles` | `imag_axis_bound`, `real_axis_bound` against closed forms and computed values; gyration $w_n = R^n w_0$ on a companion; stability at the bound; the $E\times B$ drift kept | 71 (51 in R4P) | [C8](./contracts/companion), [A5](./accuracy/stability) |
 | `selah_test_stepper_ranks` | fields of rank 1 to 4, seven shapes: rank k bitwise rank 5, orders, the stage contract, stage coefficients, masks, splittings | 848 (694 in R4P, without the RK orders) | [A3](./accuracy/stepper-orders), [C3](./contracts/stage-contract), [C5](./contracts/device) |
 | `selah_test_golden` | 1312 pinned values | 42 | [C4](./contracts/golden) |
-| `selah_vv_stability` | stability polynomials, axis limits, SSP discs | 22 | [A5](./accuracy/stability) |
+| `selah_vv_stability` | stability polynomials, axis limits (and the library's `imag_axis_bound`, `real_axis_bound` against them), SSP discs | 30 | [A5](./accuracy/stability) |
 | `selah_vv_ssp_tvd` | TVD up to $\nu = C$ | 5 | [P1](./properties/ssp-tvd) |
 | `selah_vv_splitting_energy` | bounded energy error for splittings, drift for Runge–Kutta | 5 | [P3](./properties/splitting-energy) |
 | `selah_vv_forms` | every low-storage form on its Butcher form's solution | 6 | [C2](./contracts/forms) |

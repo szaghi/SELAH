@@ -12,7 +12,7 @@ program selah_vv_stability
 !<  its real-axis limit is at most -2C.
 !< Report mode (SELAH_VV_DIR): |R| on a grid around each scheme's region (stability-<scheme>.dat), the coefficients
 !< and the limits (stability-summary.dat).
-use selah
+use selah, lib_stability_polynomial => stability_polynomial
 use selah_test_tools, only : QP, check, failures
 use selah_vv_cases
 implicit none
@@ -36,6 +36,10 @@ do s=1, size(RK_SCHEMES)
               name//': R(z) agrees with exp(z) up to z^p')
    xr = real_limit(coef) ; yi = imag_limit(coef)
    print '(A,2F12.6)', '        '//name//' real and imaginary limits:', real(xr, R8P), real(yi, R8P)
+   ! the library's bounds (selah_tableaux, R_P arithmetic) against this QP bisection
+   call check(abs(real(imag_axis_bound(bt), QP) - merge(0._QP, yi, yi < 0.1_QP)) < max(1.e-6_QP, 1.e3_QP*TOL_AXIS) .and. &
+              abs(real(real_axis_bound(bt), QP) + xr) < max(1.e-6_QP, 1.e3_QP*TOL_AXIS), &
+              name//': imag_axis_bound and real_axis_bound agree with the bisection')
    select case(name)
    case('euler', 'ssp-22')
       ! no interval on the imaginary axis: |R(iy)| - 1 ~ y^4/8 (ssp-22), so the rounding opens one up to (8 TOL_AXIS)^(1/4)

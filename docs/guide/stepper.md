@@ -52,8 +52,10 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 | `stage_weight(k)` | the effective Butcher weight $b_k$; for a splitting, the fraction of the step of flow `k` | in every Runge–Kutta form, the low-storage ones included |
 | `stage_partition(k)` | the partition flow `k` advances (1 or 2) | 0 for a Runge–Kutta form |
 | `stage_euler_fraction(k)` | the forward-Euler step stage `k`'s residual takes, as a fraction of `dt`: $f_k = \max_i \beta_{ik}/\alpha_{ik}$ of the scheme's Shu–Osher form | the step a limiter must make admissible: see [Limiters](#limiters-and-forward-euler-steps). 0 when the scheme is not SSP; a splitting's flow: $c_k$ (0 if negative) |
+| `imag_axis_bound()`, `real_axis_bound()` | the largest $\beta$ with $\lvert R(iy)\rvert \le 1$ on $[0, \beta]$ and with $\lvert R(-x)\rvert \le 1$ on $[0, \beta]$: a mode of frequency $\omega$ (a gyration, a wave) is stable for $\omega\,\Delta t \le$ `imag_axis_bound()`, a decay of rate $\lambda$ for $\lambda\,\Delta t \le$ `real_axis_bound()` | from the stability polynomial of the tableau; 0 for a splitting. euler and ssp-22 have no imaginary-axis interval (0) |
 | `ssp_coefficient()` | the SSP coefficient $C$ of the scheme, from its Shu–Osher form | 0 when the scheme is not SSP, and for a splitting; $\max_k f_k = 1/C$ |
 | `state_aliases_q()` | the form keeps the stage state in `q` (every form but Butcher) | the per-stage `stage_state_is_q(k)` generalises it |
+| `initialize_companion(field, lb, ub [, partitions] [, registers] [, components])` | a stepper of the scheme, form and stages on q of the stepper `field`, for another state that advances with the field | see [Companion states](#companion-states) |
 | `destroy()` | frees what the stepper owns | no finalizer: call it |
 
 ## Fields of rank 1 to 4
@@ -129,6 +131,36 @@ During such a stage `stage_state()` is null, so a caller that does not ask `stag
 instead of reading a stale register. The caller then writes the ghost cells of `q` at stage 1 (contract clause 3),
 which the plain Butcher form leaves alone. The solution is bitwise that of the plain Butcher form. On the A30 the option
 takes 6% off the integrator's SSP(5,4) step ([Performance](./performance)).
+
+## Companion states
+
+A state that advances with the field in the same step, its residual built inside the field's at each stage (particles
+pushed by the fields of each stage, the auxiliary fields of a perfectly matched layer), is the same scheme applied to
+another state. A **companion** is a second stepper with the field stepper's scheme, form and stages on q, driven by
+the same calls in the same stage window:
+
+```fortran
+call st%initialize(SCHEME_SSP_54, FORM_BUTCHER, lb, ub)                      ! the field
+call sp%initialize_companion(st, lb=[1, 1], ub=[8, np_max], components=.true.) ! the particles, (8, np_max)
+! each step, n particles active, components 1:6 evolving
+bp = box_range(lb=[1, 1], lo=[1, 1], hi=[6, n], components=.true.)
+call st%begin_step(bx, q) ; call sp%begin_step(bp, p)
+do k=1, st%stages()
+   call st%begin_stage(k, bx, dt, q) ; call sp%begin_stage(k, bp, dt, p)
+   ! the residuals of both: the particles' from the stage fields, the field's from the stage particles
+   call st%end_stage(k, bx, dt, q) ; call sp%end_stage(k, bp, dt, p)
+enddo
+call st%finish_step(bx, dt, q) ; call sp%finish_step(bp, dt, p)
+! then what the caller does on the final state: particle wrap and migration
+```
+
+The companion's bounds are a **capacity**; the box of each call is the active part: the particles `1..n` of a pool
+whose `n` changes between steps, the components that evolve (charge and mass, components 7:8, stay as they are). The
+kernels never touch the rest. A layout with the particles first, `(np, 8)` (the device's), is a rank-2 field with
+`components=.false.` whose box ranges over `1:n` and `1:6`. Re-initialise the companion when its shape changes (a
+regrid): between steps its registers are scratch. Stepped together, field and companion are bitwise the two stepped as
+one state (`selah_test_companion`, every form). The stage window of the two must coincide: a companion's stage state
+and residual register are, like the field's, null outside it.
 
 ## Masks
 

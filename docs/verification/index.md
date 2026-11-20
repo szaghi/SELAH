@@ -122,6 +122,8 @@ Equivalences, the stage contract, pinned values, the device and the suite's own 
 
 [<strong>C7 Precision</strong><span>what runs and what is asserted in single precision</span><em>contract</em>](./contracts/precision)
 
+[<strong>C8 Companion states</strong><span>a companion and its field are the coupled step, bitwise; active extent, layouts, rebuild; particles pushed on it</span><em>contract</em>](./contracts/companion)
+
 </div>
 
 ## Running it
