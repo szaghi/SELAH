@@ -66,6 +66,17 @@ module selah_stepper
 !< part (particles 1..n of a pool, the components that evolve), and the kernels never touch the rest. Re-initialise it
 !< when its shape changes (a regrid). Stepped together, field and companion are bitwise the two stepped as one state.
 !<
+!< **Charge-conserving stage currents.** A field whose divergence must track a charge (Maxwell's Gauss law in a
+!< particle-in-cell solver) stays consistent at every stage if the weighted sum of the stage currents,
+!< sum_{r<=k} a_{k+1,r} J_r, is the current that moves the charge from q^n to the state of stage k+1. Within the window
+!< of stage k, after the particles' residual, `lookahead(k, bx, dt, q, u)` (a companion's) gives that state, u = q^n +
+!< dt sum_{r<=k} a_{k+1,r} R_r (b at the last stage: the step's result); the caller deposits the charge-conserving
+!< current H of the displacement q^n -> u; `stage_current(k, bx, h, jr, jk)` (the field's) gives J_k = (H - sum_{r<k}
+!< a_{k+1,r} J_r) / a_{k+1,k}, the current of the field's residual at stage k. Then sum_{r<=k} a_{k+1,r} J_r = H at every
+!< stage and sum_k b_k J_k = H(q^n -> q^{n+1}) at the step. It needs a_{k+1,k} /= 0 and b_s /= 0
+!< (`stage_current_admissible()`); the individual J_k are amplified (up to 25 times for ssp-104), only their weighted
+!< sums are physical. Butcher form.
+!<
 !< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
 !< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
 !< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
@@ -134,6 +145,7 @@ type :: stepper
                                         stage_state_view_r4, stage_state_view_r5
       procedure, pass(self), private :: rhs_register_view_r1, rhs_register_view_r2, rhs_register_view_r3, &
                                         rhs_register_view_r4, rhs_register_view_r5
+      procedure, pass(self), private :: lookahead_r1, lookahead_r2, lookahead_r3, lookahead_r4, lookahead_r5
       generic :: begin_step => begin_step_r1, begin_step_r2, begin_step_r3, begin_step_r4, begin_step_r5
       generic :: begin_stage => begin_stage_r1, begin_stage_r2, begin_stage_r3, begin_stage_r4, begin_stage_r5
       generic :: end_stage => end_stage_r1, end_stage_r2, end_stage_r3, end_stage_r4, end_stage_r5
@@ -142,6 +154,9 @@ type :: stepper
                                      stage_state_view_r4, stage_state_view_r5
       generic :: rhs_register_view => rhs_register_view_r1, rhs_register_view_r2, rhs_register_view_r3, &
                                       rhs_register_view_r4, rhs_register_view_r5
+      generic :: lookahead => lookahead_r1, lookahead_r2, lookahead_r3, lookahead_r4, lookahead_r5
+      procedure, pass(self) :: stage_current
+      procedure, pass(self) :: stage_current_admissible
       procedure, pass(self) :: stage_state
       procedure, pass(self) :: rhs_register
       procedure, pass(self) :: stages
@@ -542,6 +557,25 @@ contains
    call self%finish_step_r5(bx, dt, q, dq, mask, mask_comp)
    endsubroutine finish_step_x
 
+   subroutine lookahead_x(self, k, bx, dt, ubq, q, u, ubm, mask, mask_comp)
+   !< lookahead through an explicit-shape rank-5 view.
+   class(stepper), intent(in)           :: self    !< Stepper.
+   integer(I4P),   intent(in)           :: k       !< Stage.
+   type(box),      intent(in)           :: bx      !< Box.
+   real(R_P),      intent(in)           :: dt      !< Time step.
+   integer(I4P),   intent(in)           :: ubq(5)  !< Upper bounds of q (and u).
+   real(R_P),      intent(in)           :: q(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                             bx%lb(5):ubq(5)) !< Solution.
+   real(R_P),      intent(inout)        :: u(bx%lb(1):ubq(1),bx%lb(2):ubq(2),bx%lb(3):ubq(3),bx%lb(4):ubq(4), &
+                                             bx%lb(5):ubq(5)) !< Look-ahead state.
+   integer(I4P),   intent(in)           :: ubm(5)  !< Upper bounds of the mask.
+   real(R_P),      intent(in), optional :: mask(bx%lb(1):ubm(1),bx%lb(2):ubm(2),bx%lb(3):ubm(3),bx%lb(4):ubm(4), &
+                                                bx%lb(5):ubm(5)) !< Mask.
+   integer(I4P),   intent(in), optional :: mask_comp !< Mask component.
+
+   call self%lookahead_r5(k, bx, dt, q, u, mask, mask_comp)
+   endsubroutine lookahead_x
+
    ! ---- the rank-k fronts (selah_stepper_front.INC, once per rank)
 #define SELAH_FRONT_RANK 1_I4P
 #define SELAH_FRONT_DIMS :
@@ -551,6 +585,7 @@ contains
 #define SELAH_FINISH_STEP finish_step_r1
 #define SELAH_STATE_VIEW stage_state_view_r1
 #define SELAH_RHS_VIEW rhs_register_view_r1
+#define SELAH_LOOKAHEAD lookahead_r1
 #define SELAH_VIEW_BOUNDS l(1):h(1)
 #include "selah_stepper_front.INC"
 #undef SELAH_FRONT_RANK
@@ -561,6 +596,7 @@ contains
 #undef SELAH_FINISH_STEP
 #undef SELAH_STATE_VIEW
 #undef SELAH_RHS_VIEW
+#undef SELAH_LOOKAHEAD
 #undef SELAH_VIEW_BOUNDS
 #define SELAH_FRONT_RANK 2_I4P
 #define SELAH_FRONT_DIMS :,:
@@ -570,6 +606,7 @@ contains
 #define SELAH_FINISH_STEP finish_step_r2
 #define SELAH_STATE_VIEW stage_state_view_r2
 #define SELAH_RHS_VIEW rhs_register_view_r2
+#define SELAH_LOOKAHEAD lookahead_r2
 #define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2)
 #include "selah_stepper_front.INC"
 #undef SELAH_FRONT_RANK
@@ -580,6 +617,7 @@ contains
 #undef SELAH_FINISH_STEP
 #undef SELAH_STATE_VIEW
 #undef SELAH_RHS_VIEW
+#undef SELAH_LOOKAHEAD
 #undef SELAH_VIEW_BOUNDS
 #define SELAH_FRONT_RANK 3_I4P
 #define SELAH_FRONT_DIMS :,:,:
@@ -589,6 +627,7 @@ contains
 #define SELAH_FINISH_STEP finish_step_r3
 #define SELAH_STATE_VIEW stage_state_view_r3
 #define SELAH_RHS_VIEW rhs_register_view_r3
+#define SELAH_LOOKAHEAD lookahead_r3
 #define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2),l(3):h(3)
 #include "selah_stepper_front.INC"
 #undef SELAH_FRONT_RANK
@@ -599,6 +638,7 @@ contains
 #undef SELAH_FINISH_STEP
 #undef SELAH_STATE_VIEW
 #undef SELAH_RHS_VIEW
+#undef SELAH_LOOKAHEAD
 #undef SELAH_VIEW_BOUNDS
 #define SELAH_FRONT_RANK 4_I4P
 #define SELAH_FRONT_DIMS :,:,:,:
@@ -608,6 +648,7 @@ contains
 #define SELAH_FINISH_STEP finish_step_r4
 #define SELAH_STATE_VIEW stage_state_view_r4
 #define SELAH_RHS_VIEW rhs_register_view_r4
+#define SELAH_LOOKAHEAD lookahead_r4
 #define SELAH_VIEW_BOUNDS l(1):h(1),l(2):h(2),l(3):h(3),l(4):h(4)
 #include "selah_stepper_front.INC"
 #undef SELAH_FRONT_RANK
@@ -618,6 +659,7 @@ contains
 #undef SELAH_FINISH_STEP
 #undef SELAH_STATE_VIEW
 #undef SELAH_RHS_VIEW
+#undef SELAH_LOOKAHEAD
 #undef SELAH_VIEW_BOUNDS
 
    subroutine stage_state_view_r5(self, u)
@@ -635,6 +677,68 @@ contains
 
    r => self%rhs_register()
    endsubroutine rhs_register_view_r5
+
+   subroutine lookahead_r5(self, k, bx, dt, q, u, mask, mask_comp)
+   !< The look-ahead state of stage k (see "Charge-conserving stage currents" above): u = q + dt sum_{r<=k} a_{k+1,r} R_r
+   !< (b_r at the last stage), the state of stage k+1 (the step's result at the last stage) built from the residuals
+   !< written so far. In the window of stage k, after its residual; Butcher form.
+   class(stepper), intent(in)           :: self                 !< Stepper.
+   integer(I4P),   intent(in)           :: k                    !< Stage.
+   type(box),      intent(in)           :: bx                   !< Box.
+   real(R_P),      intent(in)           :: dt                   !< Time step.
+   real(R_P),      intent(in)           :: q(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Solution.
+   real(R_P),      intent(inout)        :: u(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Look-ahead state.
+   real(R_P),      intent(in), optional :: mask(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):) !< Mask.
+   integer(I4P),   intent(in), optional :: mask_comp            !< Mask component.
+
+   if (self%form /= FORM_BUTCHER) error stop 'selah stepper: the look-ahead state is the Butcher form''s'
+   if (k /= self%k_active) error stop 'selah stepper: lookahead(k) inside the window of stage k, after its residual'
+   if (k < self%nstages) then
+      call selah_stage_state(bx, k, dt, self%at_d(:,k+1), q, self%regs(:,:,:,:,:,2:), u, mask, mask_comp, &
+                             masked_q=self%masked_q)
+   else
+      call selah_stage_state(bx, k, dt, self%b_d, q, self%regs(:,:,:,:,:,2:), u, mask, mask_comp, &
+                             masked_q=self%masked_q)
+   endif
+   endsubroutine lookahead_r5
+
+   subroutine stage_current(self, k, bx, h, jr, jk)
+   !< The stage current of stage k whose weighted sum with the earlier ones is h (see "Charge-conserving stage
+   !< currents" above): jk = (h - sum_{r<k} a_{k+1,r} jr(r)) / a_{k+1,k} (b at the last stage). jr holds the stage
+   !< currents of stages 1..k-1 (the caller's registers, rank 5 plus the stage); Butcher form; stops on a scheme
+   !< for which `stage_current_admissible()` is false.
+   class(stepper), intent(in)    :: self                 !< Stepper.
+   integer(I4P),   intent(in)    :: k                    !< Stage.
+   type(box),      intent(in)    :: bx                   !< Box (of the grid arrays, rank 5).
+   real(R_P),      intent(in)    :: h(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)     !< The weighted sum wanted.
+   real(R_P),      intent(in)    :: jr(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):,1:) !< Stage currents 1..k-1.
+   real(R_P),      intent(inout) :: jk(bx%lb(1):,bx%lb(2):,bx%lb(3):,bx%lb(4):,bx%lb(5):)    !< Stage current k.
+
+   if (self%form /= FORM_BUTCHER) error stop 'selah stepper: stage_current is the Butcher form''s'
+   if (.not. self%stage_current_admissible()) &
+      error stop 'selah stepper: the scheme cannot give stage currents (a zero a(k+1,k) or b(s))'
+   if (k < 1_I4P .or. k > self%nstages) error stop 'selah stepper: stage_current of a stage the scheme does not have'
+   if (k < self%nstages) then
+      call selah_stage_current(bx, k, self%at_d(:,k+1), h, jr, jk)
+   else
+      call selah_stage_current(bx, k, self%b_d, h, jr, jk)
+   endif
+   endsubroutine stage_current
+
+   pure function stage_current_admissible(self) result(yes)
+   !< Every a(k+1,k), k < s, and b(s) is non-zero: the stage currents exist (every Runge–Kutta scheme of the
+   !< catalogue); false for a splitting.
+   class(stepper), intent(in) :: self !< Stepper.
+   logical                    :: yes  !< Admissible.
+   integer(I4P)               :: k    !< Stage.
+
+   yes = .false.
+   if (self%form == FORM_SPLITTING .or. self%nstages == 0_I4P) return
+   yes = self%bt%b(self%nstages) /= 0._R_P
+   do k=1, self%nstages-1
+      yes = yes .and. self%bt%a(k+1,k) /= 0._R_P
+   enddo
+   endfunction stage_current_admissible
 
    pure function stages(self) result(n)
    !< Stages of a step (flows of a splitting).

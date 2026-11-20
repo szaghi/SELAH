@@ -37,6 +37,7 @@ public :: stage_state_box
 public :: step_update_box
 public :: shu_osher_2r_stage_box
 public :: williamson_2n_stage_box
+public :: stage_current_box
 
 contains
    subroutine copy_box(bx, x, y, mask, mask_comp)
@@ -344,4 +345,21 @@ contains
    endif
    endif
    endsubroutine williamson_2n_stage_box
+   subroutine stage_current_box(bx, n, coef, h, regs, y)
+   !< y = (h - sum_{r=1..n-1} coef(r) regs(r)) / coef(n) over the box: the stage current that makes the weighted sum of
+   !< the stage currents equal a given one (coef = row n+1 of A, or b at the last stage; selah_stepper `stage_current`).
+   type(box),    intent(in)    :: bx                    !< Box.
+   integer(I4P), intent(in)    :: n                     !< Stage (coef(n) /= 0).
+   real(R_P),    intent(in)    :: coef(1:)              !< Coefficients [n or more].
+   real(R_P),    intent(in)    :: h(SELAH_BOUNDS)       !< The weighted sum wanted.
+   real(R_P),    intent(in)    :: regs(SELAH_BOUNDS,1:) !< The previous stage currents [..., n-1 or more].
+   real(R_P),    intent(inout) :: y(SELAH_BOUNDS)       !< Stage current n.
+   real(R_P)                   :: d                     !< Private sum.
+   integer(I4P)                :: k                     !< Counter.
+#include "selah_kernel_decl.INC"
+
+   lo1 = bx%lo(1) ; lo2 = bx%lo(2) ; lo3 = bx%lo(3) ; lo4 = bx%lo(4) ; lo5 = bx%lo(5) ! no mask: the setup's range only
+   hi1 = bx%hi(1) ; hi2 = bx%hi(2) ; hi3 = bx%hi(3) ; hi4 = bx%hi(4) ; hi5 = bx%hi(5)
+#include "selah_kernel_stage_current.INC"
+   endsubroutine stage_current_box
 endmodule selah_kernels_box

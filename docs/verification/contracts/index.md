@@ -18,3 +18,4 @@ programs against, values pinned between releases, the device, and the suite's ow
 | [C6 Mutation testing](./mutation) | contract | 28 deliberate defects, each caught by the suite |
 | [C7 Precision](./precision) | contract | what runs, and what is asserted, in single precision |
 | [C8 Companion states](./companion) | contract | a companion and its field are the coupled Runge–Kutta step, bitwise; active extent, layouts, rebuild; particles pushed on it |
+| [C9 Stage currents](./stage-currents) | contract | Gauss's law at every stage and step with the stage currents; the look-ahead state |

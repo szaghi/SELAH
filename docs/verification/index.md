@@ -126,6 +126,8 @@ Equivalences, the stage contract, pinned values, the device and the suite's own 
 
 [<strong>C8 Companion states</strong><span>a companion and its field are the coupled step, bitwise; active extent, layouts, rebuild; particles pushed on it</span><em>contract</em>](./contracts/companion)
 
+[<strong>C9 Stage currents</strong><span>the weighted stage currents are the charge-conserving current of each stage: Gauss's law to round-off</span><em>contract</em>](./contracts/stage-currents)
+
 </div>
 
 ## Running it

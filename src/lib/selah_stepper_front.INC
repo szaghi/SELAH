@@ -98,3 +98,22 @@
    slot = rhs_slot(self)
    if (slot > 0_I4P) r(SELAH_VIEW_BOUNDS) => self%regs(:,:,:,:,:,slot)
    endsubroutine SELAH_RHS_VIEW
+
+   subroutine SELAH_LOOKAHEAD(self, k, bx, dt, q, u, mask, mask_comp)
+   !< lookahead for a field of rank k < 5.
+   class(stepper), intent(in)           :: self                    !< Stepper.
+   integer(I4P),   intent(in)           :: k                       !< Stage.
+   type(box),      intent(in)           :: bx                      !< Box of the field's rank.
+   real(R_P),      intent(in)           :: dt                      !< Time step.
+   real(R_P),      intent(in)           :: q(SELAH_FRONT_DIMS)     !< Solution.
+   real(R_P),      intent(inout)        :: u(SELAH_FRONT_DIMS)     !< Look-ahead state (q's shape).
+   real(R_P),      intent(in), optional :: mask(SELAH_FRONT_DIMS)  !< Mask (q's rank, its own components).
+   integer(I4P),   intent(in), optional :: mask_comp               !< Mask component.
+   integer(I4P)                         :: ubq(5), ubm(5)          !< Upper bounds of q and of the mask, as rank 5.
+
+   call check_front(self, bx, SELAH_FRONT_RANK, shape(q, kind=I4P), ubq)
+   if (any(shape(u) /= shape(q))) error stop 'selah stepper: the look-ahead state must have the shape of q'
+   ubm = ubq
+   if (present(mask)) ubm = front_ub(bx, shape(mask, kind=I4P))
+   call lookahead_x(self, k, bx, dt, ubq, q, u, ubm, mask, mask_comp)
+   endsubroutine SELAH_LOOKAHEAD

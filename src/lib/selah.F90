@@ -39,7 +39,7 @@ public :: registers_needed
 ! L1: box and kernels
 public :: box, LAYOUT_V_FIRST, LAYOUT_V_LAST, box_interior, box_range, box_components, box_dim, component_dim
 public :: selah_copy, selah_axpy, selah_lincomb, selah_stage_state, selah_step_update
-public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage
+public :: selah_shu_osher_2r_stage, selah_williamson_2n_stage, selah_stage_current
 ! L2: stepper
 public :: stepper
 ! L2: additive splitting of the field step and the caller's flow

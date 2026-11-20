@@ -46,9 +46,32 @@ $u = \gamma v$ and need $c$; a Gaussian-units caller passes $B/c$.
 Boris turns the velocity by $2\arctan(\omega_c\Delta t/2)$ per step (the exact angle is $\omega_c\Delta t$), keeps
 $|v|$ exactly in a pure magnetic field, and is stable at any step (aliased above $\omega_c\Delta t \approx 2$).
 
+## Charge-conserving stage currents
+
+A particle-in-cell code keeps Gauss's law exactly when its current is the one that moves the deposited charge (a
+charge-conserving deposit, Esirkepov 2001). With the particles in the field's Runge–Kutta step, the field at stage
+$k+1$ sees $\sum_{r\le k} a_{k+1,r} J_r$: Gauss's law holds at every stage when that weighted sum is the
+charge-conserving current of the displacement from $q^n$ to the particles' state at stage $k+1$. Within the window of
+stage $k$, after the particles' residual:
+
+```fortran
+call sp%lookahead(k, bp, dt, p, pt)            ! the particles' state at stage k+1 (the step's result at the last stage)
+! ... deposit H, the charge-conserving current of the displacement p -> pt over dt (the caller's: Esirkepov)
+call st%stage_current(k, bx, h, jall, jk)      ! J_k = (H - sum_{r<k} a_{k+1,r} J_r) / a_{k+1,k}
+! ... jk into jall(..., k); the field's residual at stage k with the current jk
+```
+
+Then $\sum_{r\le k} a_{k+1,r} J_r = H$ at every stage and $\sum_k b_k J_k = H(q^n \to q^{n+1})$ at the step. It
+needs $a_{k+1,k} \ne 0$ and $b_s \ne 0$, true for the whole catalogue (`stage_current_admissible()`). The individual
+$J_k$ are not physical currents: the inversion amplifies them (up to 25 times for ssp-104); only their weighted sums
+are. This is PRISM's construction; no paper on it was found (the theory note gives its proof). In two and three
+dimensions Esirkepov's current follows the straight chord between the end points, so the coupling is second order in
+time whatever the scheme's order.
+
 ## Verification
 
 | What | Case |
 |---|---|
 | companions, the gyration on a companion, the axis bounds, the drift | [C8](/verification/contracts/companion), [A5](/verification/accuracy/stability) |
 | the four pushers: defining equations, angle, speed, drift, force-free, volume, the non-relativistic limit | [A8](/verification/accuracy/pushers) |
+| Gauss's law at every stage and step with the stage currents; the look-ahead state | [C9](/verification/contracts/stage-currents) |

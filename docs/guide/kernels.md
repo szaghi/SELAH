@@ -58,6 +58,7 @@ the rank-5 view: pass a lower-rank field to the stepper, which takes it at its o
 | `selah_step_update`         | q = q + Δt Σₖ coef(k) regs(k), with the step residual dq = Σₖ coef(k) regs(k) when asked |
 | `selah_shu_osher_2r_stage`  | q = a q⁰ + b q + Δt c r: a stage of a two-register Shu–Osher form |
 | `selah_williamson_2n_stage` | ΔQ = A ΔQ + Δt r; q = q + B ΔQ: a stage of a Williamson 2N form |
+| `selah_stage_current`       | y = (h − Σₖ<ₙ coef(k) regs(k)) / coef(n): the stage current of a charge-conserving scheme (box only, no mask) |
 
 Each name is generic. The box form takes the box first and an optional mask. The flat form works on whole rank-1
 arrays with no ghosts and no mask, for particle data or perfectly-matched-layer slabs.

@@ -171,6 +171,7 @@ export default withMermaid({
           { text: 'C6 Mutation testing',            link: '/verification/contracts/mutation' },
           { text: 'C7 Precision',                   link: '/verification/contracts/precision' },
           { text: 'C8 Companion states',            link: '/verification/contracts/companion' },
+          { text: 'C9 Stage currents',              link: '/verification/contracts/stage-currents' },
         ] },
       ],
     },
