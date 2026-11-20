@@ -7,7 +7,7 @@ icon: ssp
 
 | ID | Group | Type | Backends | Figure | Program |
 |---|---|---|---|---|---|
-| P2 | Properties | P | CPU (gfortran, nvfortran, ifx; R8P and R4P) | no | `selah_test_schemes`, `selah_test_tableau_forms`, `selah_vv_stability` |
+| P2 | Properties | P | CPU (gfortran, nvfortran, ifx; R8P and R4P); the limiter also on the device | no | `selah_test_schemes`, `selah_test_tableau_forms`, `selah_vv_stability`, `selah_test_stage_euler` |
 
 ## Case and scope
 
@@ -38,6 +38,24 @@ $|C - 1.508| < 5\cdot10^{-4}$ for ssp-54 (Spiteri & Ruuth publish $C$ to four di
 ## Results
 
 The values are those of the [stability table](../accuracy/stability) (column $C$), and every one matches.
+
+## Per-stage forward-Euler steps
+
+`stage_euler_fraction(k)` $= f_k = \max_{i>k} \beta_{ik}/\alpha_{ik}$, the forward-Euler step (a fraction of
+$\Delta t$) that the residual of stage $k$ enters in the Shu–Osher form: the step a positivity limiter must make
+admissible at stage $k$ ([guide](/guide/stepper#limiters-and-forward-euler-steps)). `selah_test_stage_euler` checks:
+
+| Check | Bound |
+|---|---|
+| $f_k$ = 1 (euler, ssp-22, ssp-33), 1/6 (ssp-104), the row ratios of Spiteri & Ruuth's coefficients (ssp-54: 0.3918, 0.6631, 0.6631, 0.6631, 0.5844) | 100 ε |
+| the same values in every storage form of the scheme (two-register, Ketcheson) | 100 ε |
+| $\max_k f_k = 1/C$ | 100 ε |
+| 0 for rk4, lsrk-33, lsrk-54; a planted form with a negative coefficient, or $\beta_{ik} > 0$ with $\alpha_{ik} = 0$ | exact |
+| a stage entering two steps (planted: ratios 1 and 1/2) takes the larger | exact |
+| the decay $u_i' = -\lambda_i u_i$, $\lambda_i \Delta t$ = 0.5, 2, 5, 20, the residual of stage $k$ scaled by $\min(1, 1/(\lambda \tau_k))$: every stage state $\ge 0$ with $\tau_k = f_k \Delta t$; some $< -0.1$ with $f_k \Delta t/2$; $\ge 0$ with $\Delta t$ | 100 ε |
+
+Five mutants of the fractions (α/β for β/α; $f_k = 1$, ADAM's choice; the last row dropped; the last ratio instead of
+the largest; $C = 1$) each fail the program.
 
 ## Findings
 

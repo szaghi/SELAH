@@ -51,6 +51,8 @@ flow `stage_partition(k)` says which partition to compute the residual of. The r
 | `stage_time(k)` | the fraction of the step at which the residual of stage `k` is evaluated: the abscissa $c_k$ | for a splitting, the fractions of the other partition's flows before flow `k`: see [Time-dependent residuals](#time-dependent-residuals) |
 | `stage_weight(k)` | the effective Butcher weight $b_k$; for a splitting, the fraction of the step of flow `k` | in every Runge–Kutta form, the low-storage ones included |
 | `stage_partition(k)` | the partition flow `k` advances (1 or 2) | 0 for a Runge–Kutta form |
+| `stage_euler_fraction(k)` | the forward-Euler step stage `k`'s residual takes, as a fraction of `dt`: $f_k = \max_i \beta_{ik}/\alpha_{ik}$ of the scheme's Shu–Osher form | the step a limiter must make admissible: see [Limiters](#limiters-and-forward-euler-steps). 0 when the scheme is not SSP; a splitting's flow: $c_k$ (0 if negative) |
+| `ssp_coefficient()` | the SSP coefficient $C$ of the scheme, from its Shu–Osher form | 0 when the scheme is not SSP, and for a splitting; $\max_k f_k = 1/C$ |
 | `state_aliases_q()` | the form keeps the stage state in `q` (every form but Butcher) | the per-stage `stage_state_is_q(k)` generalises it |
 | `destroy()` | frees what the stepper owns | no finalizer: call it |
 
@@ -155,6 +157,46 @@ $t$ and $t + \Delta t$. Either way the composition keeps its order (measured: `s
 When **both** partitions' residuals depend on time, no sub-flow is exact and no stage time gives the composition's
 order: split the problem so that one partition's residual is autonomous.
 
+## Limiters and forward-Euler steps
+
+A strong-stability-preserving (SSP) scheme is a convex combination of forward-Euler steps. In its Shu–Osher form,
+stage $i$ is
+
+$$Y_i = \sum_{k<i} \alpha_{ik} \left( Y_k + \Delta t\, \frac{\beta_{ik}}{\alpha_{ik}} F(Y_k) \right),
+\qquad \alpha_{ik} \ge 0,\ \beta_{ik} \ge 0,\ \textstyle\sum_k \alpha_{ik} = 1 ,$$
+
+so the residual of stage $k$ enters forward-Euler steps of $\Delta t\, \beta_{ik}/\alpha_{ik}$ from $Y_k$. A
+limiter that makes $Y_k + \tau F(Y_k)$ admissible (positive density and pressure, a bound) for $\tau = f_k \Delta t$,
+with $f_k$ = `stage_euler_fraction(k)` $= \max_i \beta_{ik}/\alpha_{ik}$, makes it admissible for every
+$0 \le \tau \le f_k \Delta t$ ($Y_k + \tau F$ is then a convex combination of $Y_k$ and that state, and the set
+is convex). Every later stage and the step are then convex combinations of admissible states (Zhang & Shu 2010;
+Gottlieb, Ketcheson & Shu 2011). The limiter's step is $f_k \Delta t$, not $\Delta t$:
+
+```fortran
+do k=1, st%stages()
+   call st%begin_stage(k, bx, dt, q)
+   ! ... the residual of the stage state into st%rhs_register()
+   tau = st%stage_euler_fraction(k) * dt
+   ! ... the limiter: the state of stage k plus tau times its residual admissible (a source term time-centred within
+   !     that forward-Euler step at tau/2)
+   call st%end_stage(k, bx, dt, q)
+enddo
+```
+
+| Scheme | $f_k$ | $C$ |
+|---|---|---|
+| `euler`, `ssp-22`, `ssp-33` | 1 every stage | 1 |
+| `ssp-54` | 0.3918, 0.6631, 0.6631, 0.6631, 0.5844 | 1.508 |
+| `ssp-104` | 1/6 every stage | 6 |
+| `rk4`, `lsrk-33`, `lsrk-54` | 0 (not SSP: no positivity guarantee) | 0 |
+
+Taking $\Delta t$ for every stage is exact for euler, ssp-22 and ssp-33, and over-limits ssp-54 and ssp-104: it
+enforces a forward-Euler step longer than the scheme takes. Taking less than $f_k \Delta t$ loses the guarantee
+(`selah_test_stage_euler`: the decay $u' = -\lambda u$ at $\lambda \Delta t = 20$, limited with $f_k \Delta t / 2$,
+goes negative; with $f_k \Delta t$ it does not). $f_k$ is the same in every storage form of a scheme: the stages are
+the same. The time step itself is bounded by $\Delta t \le C\,\Delta t_{FE}$, `ssp_coefficient()` times the
+forward-Euler limit of the residual.
+
 ## Forms
 
 | Form | Registers | Schemes |
@@ -175,5 +217,6 @@ What each register holds, and where each form does its work: [Concepts](./concep
 | the stage contract, stages on q, masks, caller registers, the error stops | [C3](/verification/contracts/stage-contract) |
 | the forms agree with the Butcher form to round-off | [C2](/verification/contracts/forms) |
 | `stage_weight` telescopes the stage fluxes to the mass change | [P4](/verification/properties/conservation) |
+| `stage_euler_fraction` and `ssp_coefficient` against the literature; a limiter with them keeps positivity | [P2](/verification/properties/ssp-coefficients) |
 | the stepper on an A30 | [C5](/verification/contracts/device) |
 | the stepper's own cost: none (0.999 of the same kernels called directly) | [Performance](./performance) |

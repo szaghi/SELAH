@@ -45,6 +45,13 @@ module selah_stepper
 !< that depends on t, whichever partition that is (the composition keeps its order). When both residuals depend on t no
 !< sub-flow is exact, and the composition gives no order guarantee for the time dependence.
 !<
+!< **Forward-Euler steps.** `ssp_coefficient()` is the SSP coefficient C of the scheme, from its Shu–Osher form (0 for a
+!< scheme that is not SSP, and for a splitting). `stage_euler_fraction(k)` is the largest forward-Euler step, as a
+!< fraction of dt, that the residual of stage k enters in the Shu–Osher form: f_k = max_i beta_ik / alpha_ik
+!< (selah_tableaux `euler_step_fractions`; max_k f_k = 1/C). A limiter that makes the state of stage k plus
+!< f_k dt times its residual admissible (positive, bounded) keeps every later stage and the step admissible. For a
+!< splitting, flow k is a forward-Euler step of fraction c_k on its partition (0 for a backward flow).
+!<
 !< **Stages on q.** The state of a stage whose row of A is zero (the first stage of every explicit scheme) is q itself.
 !< With `stages_on_q=.true.` the Butcher form does not copy q into its stage-state register for such a stage: the
 !< caller evaluates the residual on q, and `stage_state()` is null during that stage, so that a caller that does not
@@ -98,6 +105,8 @@ type :: stepper
    real(R_P), pointer          :: b_d(:) => null()        !< Weights b, device resident.
    logical                     :: owned = .false.         !< The registers are the stepper's.
    logical, allocatable        :: on_q(:)                 !< Stage k's state is q itself.
+   real(R_P), allocatable      :: ef(:)                   !< Forward-Euler fraction of each stage (Shu–Osher form).
+   real(R_P)                   :: cssp = 0._R_P           !< SSP coefficient of the Shu–Osher form, 0 if none.
    contains
       procedure, pass(self) :: initialize
       procedure, pass(self) :: destroy
@@ -123,6 +132,8 @@ type :: stepper
       procedure, pass(self) :: stage_time
       procedure, pass(self) :: stage_weight
       procedure, pass(self) :: stage_partition
+      procedure, pass(self) :: stage_euler_fraction
+      procedure, pass(self) :: ssp_coefficient => stepper_ssp_coefficient
       procedure, pass(self) :: state_aliases_q
       procedure, pass(self) :: stage_state_is_q
 endtype stepper
@@ -187,7 +198,8 @@ contains
       self%nstages = self%sc%flows
       self%part = partitions
    endselect
-   allocate(self%on_q(self%nstages))
+   allocate(self%on_q(self%nstages), self%ef(self%nstages))
+   call euler_steps(self)
    if (self%form == FORM_BUTCHER) then
       self%on_q = .false.
       if (present(stages_on_q)) then
@@ -219,6 +231,26 @@ contains
    endif
    endsubroutine initialize
 
+   subroutine euler_steps(self)
+   !< The forward-Euler fraction of each stage and the SSP coefficient: from the scheme's Shu–Osher form, whatever the
+   !< storage form (the stages are the same, in the same order); a splitting's flow k is an Euler step of fraction c_k
+   !< on its partition (0 for a backward flow, c_k < 0).
+   class(stepper), intent(inout) :: self !< Stepper.
+   type(shu_osher_form)          :: so   !< Shu–Osher form of the scheme.
+
+   self%ef = 0._R_P
+   self%cssp = 0._R_P
+   if (self%form == FORM_SPLITTING) then
+      self%ef = max(self%sc%coefficient, 0._R_P)
+   else
+      so = shu_osher(self%scheme)
+      if (so%stages == self%nstages) then
+         self%ef = euler_step_fractions(so)
+         self%cssp = ssp_coefficient(so)
+      endif
+   endif
+   endsubroutine euler_steps
+
    subroutine destroy(self)
    !< Free what the stepper owns.
    class(stepper), intent(inout) :: self !< Stepper.
@@ -228,6 +260,8 @@ contains
    if (associated(self%b_d)) call dev_free(self%b_d)
    nullify(self%regs, self%at_d, self%b_d)
    if (allocated(self%on_q)) deallocate(self%on_q)
+   if (allocated(self%ef)) deallocate(self%ef)
+   self%cssp = 0._R_P
    self%owned = .false. ; self%nstages = 0_I4P ; self%k_active = 0_I4P
    self%rank = 5_I4P ; self%components = .true.
    endsubroutine destroy
@@ -606,6 +640,25 @@ contains
    p = 0_I4P
    if (self%form == FORM_SPLITTING) p = self%sc%partition(k)
    endfunction stage_partition
+
+   pure function stage_euler_fraction(self, k) result(f)
+   !< The forward-Euler step stage k's residual takes, as a fraction of the step (see "Forward-Euler steps" above): the
+   !< step a limiter makes admissible on the state of stage k; 0 when the scheme has no such decomposition.
+   class(stepper), intent(in) :: self !< Stepper.
+   integer(I4P),   intent(in) :: k    !< Stage.
+   real(R_P)                  :: f    !< Fraction of the step.
+
+   f = self%ef(k)
+   endfunction stage_euler_fraction
+
+   pure function stepper_ssp_coefficient(self) result(c)
+   !< The SSP coefficient C of the scheme (its Shu–Osher form): the scheme keeps every convex property of forward Euler
+   !< for dt <= C dt_FE; 0 when the scheme is not SSP, and for a splitting.
+   class(stepper), intent(in) :: self !< Stepper.
+   real(R_P)                  :: c    !< SSP coefficient.
+
+   c = self%cssp
+   endfunction stepper_ssp_coefficient
 
    pure function state_aliases_q(self) result(yes)
    !< The stage state is q itself (every form but the Butcher one).

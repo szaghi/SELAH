@@ -30,6 +30,7 @@ public :: butcher_from_williamson_2n
 public :: shu_osher_from_2r
 public :: is_explicit
 public :: ssp_coefficient
+public :: euler_step_fractions
 
 type :: butcher_tableau
    !< Butcher tableau of an s-stage Runge–Kutta scheme.
@@ -198,4 +199,28 @@ contains
    enddo
    if (ssp == huge(1._R_P)) ssp = 0._R_P
    endfunction ssp_coefficient
+   pure function euler_step_fractions(so) result(f)
+   !< Per stage k, the largest forward-Euler step its residual takes in a Shu–Osher form, as a fraction of the step:
+   !< \(f_k = \max_{i > k,\ \beta_{ik} > 0} \beta_{ik} / \alpha_{ik}\).
+   !<
+   !< Stage i of the form is the convex combination \(Y_i = \sum_{k<i} \alpha_{ik} (Y_k + \Delta t\, (\beta_{ik} /
+   !< \alpha_{ik}) F(Y_k))\): the residual of stage k enters forward-Euler steps of \(\Delta t\, \beta_{ik} /
+   !< \alpha_{ik}\). A limiter that makes \(Y_k + \tau F(Y_k)\) admissible (positive, bounded) for \(\tau = f_k
+   !< \Delta t\) makes it so for every \(0 \le \tau \le f_k \Delta t\) (a convex combination of \(Y_k\) and that
+   !< state), hence every later stage and the step. \(\max_k f_k = 1 / C\), C the SSP coefficient of the form.
+   !< Every \(f_k\) is 0 when the form is not a convex combination of forward-Euler steps (a negative coefficient, or
+   !< \(\beta_{ik} > 0\) with \(\alpha_{ik} = 0\): `ssp_coefficient` is 0 then), and \(f_k = 0\) for a stage whose
+   !< residual no later stage uses.
+   type(shu_osher_form), intent(in) :: so             !< Shu–Osher form.
+   real(R_P)                        :: f(so%stages)   !< Forward-Euler fractions [s].
+   integer(I4P)                     :: i, k           !< Counters.
+
+   f = 0._R_P
+   if (ssp_coefficient(so) <= 0._R_P) return
+   do k=1, so%stages
+      do i=k+1, so%stages+1
+         if (so%beta(i,k) > 0._R_P) f(k) = max(f(k), so%beta(i,k) / so%alpha(i,k))
+      enddo
+   enddo
+   endfunction euler_step_fractions
 endmodule selah_tableaux
