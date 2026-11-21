@@ -61,7 +61,7 @@ contains
    !< The stepper's axis bounds against the closed forms and the computed values.
    character(7), parameter :: NAMES(8) = [character(7) :: SCHEME_EULER, SCHEME_SSP_22, SCHEME_SSP_33, SCHEME_LSRK_33, &
                                           SCHEME_RK4, SCHEME_SSP_54, SCHEME_SSP_104, SCHEME_LSRK_54]
-   real(R_P) :: bi(8), br(8), tol
+   real(R_P) :: bi(8), br(8), tol, tol_r
    type(stepper) :: st
    type(butcher_tableau) :: bt
    integer(I4P)  :: k
@@ -74,7 +74,10 @@ contains
       print '(A,2F12.7)', '        '//trim(NAMES(k))//': imaginary and real axis bounds', st%imag_axis_bound(), &
                           st%real_axis_bound()
       call check(abs(st%imag_axis_bound() - bi(k)) <= tol, trim(NAMES(k))//': imag_axis_bound')
-      call check(abs(st%real_axis_bound() - br(k)) <= tol, trim(NAMES(k))//': real_axis_bound')
+      ! the real bound is a root of R(-x) = +-1: rounding resolves it only to eps sum|g_i| beta^i / |R'(-beta)|, 1.5e-3
+      ! for ssp-104 in R4P (degree 10, terms of 4e4 cancelling to 1), above 1e3 eps
+      tol_r = max(tol, epsilon(1._R_P) * root_condition(stability_polynomial(butcher(trim(NAMES(k)))), br(k)))
+      call check(abs(st%real_axis_bound() - br(k)) <= tol_r, trim(NAMES(k))//': real_axis_bound')
       call st%destroy
    enddo
    ! a tableau whose digits round: rk4 with b_1 off by 4 eps. |R(iy)|^2 - 1 then has a tiny positive y^2 term, which
@@ -87,6 +90,20 @@ contains
    call check(st%imag_axis_bound() == 0._R_P .and. st%real_axis_bound() == 0._R_P, 'strang: no axis bounds (splitting)')
    call st%destroy
    endsubroutine bounds
+
+   pure function root_condition(g, beta) result(c)
+   !< The condition of the root beta of |R(-x)| = 1: sum_i |g_i| beta^i / |R'(-beta)|.
+   real(R_P), intent(in) :: g(0:), beta
+   real(R_P)             :: c, s, d
+   integer(I4P)          :: i
+
+   s = abs(g(0)) ; d = 0._R_P
+   do i=1, ubound(g, 1)
+      s = s + abs(g(i)) * beta**i
+      d = d + i * g(i) * (-beta)**(i - 1)
+   enddo
+   c = s / abs(d)
+   endfunction root_condition
 
    function r_of(name, z) result(r)
    !< R(z) = 1 + z b^T (I - z A)^{-1} 1, by forward substitution (A strictly lower triangular).

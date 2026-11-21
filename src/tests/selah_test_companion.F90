@@ -217,22 +217,26 @@ contains
    real(R_P), intent(in)    :: u(1:), w(1:)
    real(R_P), intent(inout) :: r(1:)
    real(R_P)                :: acc
-   integer(I4P)             :: i
+   integer(I4P)             :: i, n
+
+   ! the particle count at run time, as field_residual's n: with the constant NP nvfortran (R4P, -O2 and above) sums
+   ! the 4 terms of acc in another order than the runtime loop, and the one state is no longer bitwise the field
+   n = (size(w) - 1) / 3
 
    acc = 0._R_P
    !$acc parallel loop DEVICEVAR(u, w) reduction(+:acc)
    !$omp OMPLOOP DEVICEPTR(u, w) reduction(+:acc)
-   do i=1, NP
-      acc = acc + w(1+2*NP+i) * u(1+i)**2
+   do i=1, n
+      acc = acc + w(1+2*n+i) * u(1+i)**2
    enddo
    !$acc serial DEVICEVAR(u, r)
-   r(1) = -u(1) + acc / NP
+   r(1) = -u(1) + acc / n
    !$acc end serial
    !$acc parallel loop independent DEVICEVAR(u, w, r)
    !$omp OMPLOOP DEVICEPTR(u, w, r)
-   do i=1, NP
-      r(1+i) = u(1+NP+i)
-      r(1+NP+i) = -w(1+2*NP+i) * (1._R_P + u(1)) * u(1+i)
+   do i=1, n
+      r(1+i) = u(1+n+i)
+      r(1+n+i) = -w(1+2*n+i) * (1._R_P + u(1)) * u(1+i)
    enddo
    endsubroutine one_state_residual
 

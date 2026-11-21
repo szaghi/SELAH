@@ -19,6 +19,9 @@ use selah_vv_cases
 implicit none
 integer(I4P), parameter   :: N=100, NSTEPS=60, NSWEEP=40
 real(R_P),    parameter   :: TOL=1000._R_P*epsilon(1._R_P) ! round-off of a 100-term sum
+! a run whose TV passes BLOWUP x TV0 stops: 12 decades below overflow, above one step's growth (|R| <= 1.4e4 at nu = 2C,
+! ssp-104) times the residual's 1/dx. R4P overflowed otherwise (ssp-22 at nu = 1.9: 5^59); R8P never reaches it
+real(R_P),    parameter   :: BLOWUP=1.e-12_R_P*huge(1._R_P)
 type(butcher_tableau)     :: bt
 real(R_P)                 :: nu, growth, threshold, cref
 logical                   :: tvd_ok
@@ -105,6 +108,7 @@ contains
       growth = max(growth, (tv_new - tv_old) / tv0)
       tv_old = tv_new
       if (present(frames)) call write_frame(uf, step * dt, q, dx)
+      if (tv_new > BLOWUP * tv0) exit
    enddo
    if (present(frames)) close(uf)
    call st%destroy

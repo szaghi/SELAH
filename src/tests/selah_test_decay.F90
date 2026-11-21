@@ -210,6 +210,11 @@ contains
          call sp%finish_step(bx, dt, p, decay=dl)
       else
          call sp%finish_step(bx, dt, p)
+         ! the explicit stages' blow-up stops 12 decades below overflow, above one step's growth (|R(-50)| <= 1.1e8,
+         ! ssp-104): R4P overflowed otherwise (ssp-22: 1200^13); R8P never reaches it
+         call dev_memcpy_from_device(dst=h, src=u) ; y(1) = h(1)
+         call dev_memcpy_from_device(dst=h, src=p) ; y(2) = h(1)
+         if (maxval(abs(y)) > 1.e-12_R_P * huge(1._R_P)) exit
       endif
    enddo
    call dev_memcpy_from_device(dst=h, src=u) ; y(1) = h(1)
