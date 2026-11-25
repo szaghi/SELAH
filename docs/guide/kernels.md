@@ -86,8 +86,12 @@ previous content, NaN included, cannot reach the step.
 
 **Backends.** One source serves the host (plain loops, or OpenMP with `-fopenmp`) and OpenACC,
 through FUNDAL's `fundal.H` macros in the directive style of ADAM's FNL kernels. Each loop body is an `.INC` file,
-included unmasked and once per layout masked. OpenMP offload has the directives but no build mode yet
-([Installation](./installation#backends)).
+compiled once per variant (unmasked, masked once per layout, with or without the step residual, ...), and each variant
+is a private procedure of its own, made by a `selah_kernel_<name>_proc.INC` wrapper under a name given by the macro
+`SELAH_PROC`: the public kernels only dispatch. One procedure per variant is a rule, not a style: AMD's flang (AFAR 23.2
+and 24.4) pairs the host launch of an OpenMP target region with the device kernel of another one when several regions
+of one procedure come from the same line of an included file, so a call ran the wrong variant on the GPU (ADAM issue
+\#155). OpenMP offload has the directives but no build mode yet ([Installation](./installation#backends)).
 
 ## Verification
 

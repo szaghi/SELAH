@@ -49,29 +49,34 @@ contains
    real(R_P),    intent(in)           :: b(1:,1:) !< Magnetic field at the particles, (3, np) or (np, 3).
    real(R_P),    intent(in), optional :: c        !< Speed of light (relativistic pushers; default 1).
    real(R_P)                          :: ci, c2i  !< 1/c, 1/c^2.
-   real(R_P)                          :: qh, tt, g, us, sg !< Per particle: q dt/(2m), scalars of the push.
-   real(R_P)                          :: m1, m2, m3, t1, t2, t3, s1, s2, s3, w1, w2, w3 !< Per particle: vectors.
-   integer(I4P)                       :: i        !< Particle.
 
    ci = 1._R_P ; if (present(c)) ci = 1._R_P / c
    c2i = ci * ci
    if (pusher < PUSHER_BORIS .or. pusher > PUSHER_HIGUERA_CARY) error stop 'selah push: unknown pusher'
    if (layout == LAYOUT_V_LAST) then
+      call push_last(pusher, n, dt, ix, iv, iq, im, p, e, b, ci, c2i)
+   else
+      call push_first(pusher, n, dt, ix, iv, iq, im, p, e, b, ci, c2i)
+   endif
+   endsubroutine selah_push
+
+   ! ---- the private procedures: one per layout (the loops of selah_kernel_push.INC are compiled once per layout, each in a
+   ! procedure of its own: AMD's flang pairs the host launch of an OpenMP target region with the device kernel of another
+   ! region when several regions of one procedure come from the same line of an included file, see selah_kernels_box)
 #define PP(k) p(i,k)
 #define EE(k) e(i,k)
 #define BB(k) b(i,k)
-#include "selah_kernel_push.INC"
+#define SELAH_PROC push_last
+#include "selah_kernel_push_proc.INC"
 #undef PP
 #undef EE
 #undef BB
-   else
 #define PP(k) p(k,i)
 #define EE(k) e(k,i)
 #define BB(k) b(k,i)
-#include "selah_kernel_push.INC"
+#define SELAH_PROC push_first
+#include "selah_kernel_push_proc.INC"
 #undef PP
 #undef EE
 #undef BB
-   endif
-   endsubroutine selah_push
 endmodule selah_pushers
